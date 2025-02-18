@@ -1,0 +1,28 @@
+#filepath: /d:/dev/WWW/lc-crm-service/.gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+lcenv/
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# VS Code
+.vscode/

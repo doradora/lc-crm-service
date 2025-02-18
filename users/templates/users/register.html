@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Register</title>
+  </head>
+  <body>
+    <h2>Register</h2>
+    <form method="post">
+      {% csrf_token %}
+      <!-- CSRF 保護 -->
+      {{ form.as_p }}
+      <!-- 顯示表單 -->
+      <button type="submit">Register</button>
+      <!-- 提交按鈕 -->
+    </form>
+  </body>
+</html>
