@@ -26,3 +26,8 @@ yarn-error.log
 
 # VS Code
 .vscode/
+
+#fonrtend
+vite/
+fonrtend/
+
