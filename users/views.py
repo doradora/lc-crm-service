@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from rest_framework import status, viewsets, permissions
@@ -14,6 +15,11 @@ from .serializers import (
 )
 from .models import UserProfile
 from .permissions import IsAdmin
+
+
+@login_required(login_url="signin")
+def index(request):
+    return render(request, "users/index.html")
 
 
 # API Views
@@ -47,7 +53,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().select_related("profile")
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         """
@@ -63,18 +69,3 @@ class UserViewSet(viewsets.ModelViewSet):
             self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def options(self, request, *args, **kwargs):
-        """
-        自訂處理 OPTIONS 請求，確保返回 CORS 標頭
-        """
-        response = Response(status=200)
-        response["Access-Control-Allow-Origin"] = "http://localhost:5174"
-        response["Access-Control-Allow-Methods"] = (
-            "DELETE, GET, OPTIONS, PATCH, POST, PUT"
-        )
-        response["Access-Control-Allow-Headers"] = (
-            "accept, accept-encoding, authorization, content-type, dnt, "
-            "origin, user-agent, x-csrftoken, x-requested-with"
-        )
-        return response

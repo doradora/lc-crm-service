@@ -1,0 +1,28 @@
+{% extends "config/base.html" %}
+{% load static %}
+{% block content %}
+    <!--開始::根-->
+    <div class="d-flex flex-column flex-root" id="app_root">
+        <!--開始::認證 - 登入-->
+        <div class="d-flex flex-column flex-lg-row flex-column-fluid">
+            <!--開始::主體-->
+            <div class="d-flex flex-column flex-lg-row-fluid w-lg-50 p-10 order-2 order-lg-1">
+                <!--開始::表單-->
+                <div class="d-flex flex-center flex-column flex-lg-row-fluid">
+                    <!--開始::表單-->
+                    {% include "config/auth/partials/login_form.html" %}
+                    <!--結束::包裝器-->
+                </div>
+            </div>
+            <!--結束::主體-->
+            <!--開始::側邊-->
+            <div class="d-flex flex-lg-row-fluid w-lg-50 bgi-size-cover bgi-position-center order-1 order-lg-2"
+                 style="background-image: {% static 'crm/media/misc/auth-bg.png' %}">
+                {% include "config/auth/partials/login_side.html" %}
+            </div>
+            <!--結束::側邊-->
+        </div>
+        <!--結束::認證 - 登入-->
+    </div>
+    <!--結束::根-->
+{% endblock content %}

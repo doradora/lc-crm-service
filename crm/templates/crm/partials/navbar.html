@@ -1,0 +1,56 @@
+{% load static %}
+<!-- 開始::導航欄 -->
+<div
+  class="app-navbar flex-grow-1 justify-content-end"
+  id="kt_app_header_navbar"
+>
+  <div class="app-navbar-item d-flex align-items-stretch flex-lg-grow-1">
+    <!-- 包含搜索功能 -->
+    {% include 'crm/partials/search.html' %}
+  </div>
+
+  <!-- 通知 -->
+  <div class="app-navbar-item ms-2 ms-lg-6">
+    <!-- 通知功能 -->
+    {% include 'crm/partials/notifications.html' %}
+  </div>
+
+  <!-- 快速連結 -->
+  <div class="app-navbar-item ms-2 ms-lg-6">
+    <!-- 快速連結功能 -->
+    {% include 'crm/partials/quick_links.html' %}
+  </div>
+
+  <!-- 聊天 -->
+  <div class="app-navbar-item ms-2 ms-lg-6">
+    <!-- 聊天功能 -->
+    {% include 'crm/partials/chat.html' %}
+  </div>
+
+  <!-- 用戶選單 -->
+  <div class="app-navbar-item ms-2 ms-lg-6" id="kt_header_user_menu_toggle">
+    <!-- 使用者選單 -->
+    {% include 'crm/partials/user_menu.html' %}
+  </div>
+
+  <!-- 退出按鈕 -->
+  <div class="app-navbar-item ms-2 ms-lg-6 me-lg-6">
+    <a
+      href="{% url 'logout' %}"
+      class="btn btn-icon btn-custom btn-color-gray-600 btn-active-color-primary w-35px h-35px w-md-40px h-md-40px"
+    >
+      <i class="ki-outline ki-exit-right fs-1"></i>
+    </a>
+  </div>
+
+  <!-- 移動端選單切換 -->
+  <div class="app-navbar-item ms-2 ms-lg-6 ms-n2 me-3 d-flex d-lg-none">
+    <div
+      class="btn btn-icon btn-custom btn-color-gray-600 btn-active-color-primary w-35px h-35px w-md-40px h-md-40px"
+      id="kt_app_aside_mobile_toggle"
+    >
+      <i class="ki-outline ki-burger-menu-2 fs-2"></i>
+    </div>
+  </div>
+</div>
+<!-- 結束::導航欄 -->

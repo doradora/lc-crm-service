@@ -1,0 +1,15 @@
+{% extends "crm/base.html" %}
+{% load static %}
+<!-- 頁面範例: 儀表板.html -->
+{% block title %}
+  立信工程顧問
+{% endblock title %}
+{% block content %}
+  <!-- 儀表板內容 -->
+  <h1>儀表板內容</h1>
+  <!-- 更多內容... -->
+{% endblock content %}
+{% block extra_js %}
+  <!-- 儀表板專用JS -->
+  <script src="{% static 'crm/js/custom/dashboard/dashboard.js' %}"></script>
+{% endblock extra_js %}

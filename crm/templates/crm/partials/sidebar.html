@@ -1,0 +1,49 @@
+{% load static %}
+<!-- 開始::側邊欄 -->
+<div id="app_sidebar"
+     class="app-sidebar flex-column"
+     data-kt-drawer="true"
+     data-kt-drawer-name="app-sidebar"
+     data-kt-drawer-activate="{default: true, lg: false}"
+     data-kt-drawer-overlay="true"
+     data-kt-drawer-width="250px"
+     data-kt-drawer-direction="start"
+     data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle">
+  <!-- 開始::側邊欄包裝 -->
+  <div id="app_sidebar_header"
+       class="app-sidebar-header d-flex flex-stack d-none d-lg-flex pt-8 pb-2">
+    <!--begin::Logo-->
+    <a href="{% url 'index' %}" class="app-sidebar-logo d-flex flex-row">
+      <img alt="Logo"
+           src="{% static 'crm/media/logos/lylogo2.svg' %}"
+           class="h-25px d-none d-sm-inline app-sidebar-logo-default theme-light-show" />
+      <h3>立信工程顧問</h3>
+    </a>
+    <!--end::Logo-->
+    <!--begin::Sidebar toggle-->
+    <div id="app_sidebar_toggle"
+         class="app-sidebar-toggle btn btn-sm btn-icon bg-light btn-color-gray-700 btn-active-color-primary d-none d-lg-flex rotate"
+         data-kt-toggle="true"
+         data-kt-toggle-state="active"
+         data-kt-toggle-target="body"
+         data-kt-toggle-name="app-sidebar-minimize">
+      <i class="ki-outline ki-text-align-right rotate-180 fs-1"></i>
+    </div>
+    <!--end::Sidebar toggle-->
+  </div>
+  <div class="app-sidebar-navs flex-column-fluid py-6" id="app_sidebar_navs">
+    <div id="app_sidebar_navs_wrappers"
+         class="app-sidebar-wrapper hover-scroll-y my-2"
+         data-kt-scroll="true"
+         data-kt-scroll-activate="true"
+         data-kt-scroll-height="auto"
+         data-kt-scroll-dependencies="#kt_app_sidebar_header"
+         data-kt-scroll-wrappers="#kt_app_sidebar_navs"
+         data-kt-scroll-offset="5px">
+      <!-- 側邊欄選單 -->
+      {% include "crm/partials/sidebar_menu_vue.html" %}
+    </div>
+  </div>
+  <!-- 結束::側邊欄包裝 -->
+</div>
+<!-- 結束::側邊欄 -->

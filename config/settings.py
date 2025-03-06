@@ -27,7 +27,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
-
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1",  # 基礎域名
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -38,13 +40,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
+    "config",
     "rest_framework",
     "users",
     "crm",
 ]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -54,16 +56,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5174",  # 你的前端開發伺服器地址
-    "http://127.0.0.1:5174",  # 你的前端開發伺服器地址
-]
+LOGIN_REDIRECT_URL = "/"  # 登入成功後的重定向
+LOGOUT_REDIRECT_URL = "/accounts/login/"
 
-# 新增: 允許憑證
-CORS_ALLOW_CREDENTIALS = True
-
-# 新增: 確保預檢請求能正確回應
-CORS_PREFLIGHT_MAX_AGE = 86400  # 預檢請求的有效期（秒）
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,  # 每頁預設顯示的記錄數
+}
 
 ROOT_URLCONF = "config.urls"
 
@@ -135,42 +134,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
-
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-CORS_ORIGIN_ALLOW_ALL = True
-
-CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-]
-
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-    "access-control-allow-origin",
-    "access-control-allow-methods",
-    "access-control-allow-headers",
-]
-
-# 新增: 確保回應標頭包含這些內容
-CORS_EXPOSE_HEADERS = [
-    "access-control-allow-origin",
-    "access-control-allow-methods",
-    "access-control-allow-headers",
-]

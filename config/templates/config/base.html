@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+    <head>
+        <title>
+            {% block title %}
+                立信工程顧問有限公司
+            {% endblock title %}
+        </title>
+        <meta charset="utf-8" />
+        <meta name="description" content="立信工程顧問有限公司" />
+        <meta name="keywords" content="立信,結構,土木,補強,台中土木技師公會" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {% include "config/partials/head_styles.html" %}
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        {% block extra_css %}
+        {% endblock extra_css %}
+        <script>
+            // Frame-busting to prevent site from being loaded within a frame without permission (click-jacking)
+            if (window.top != window.self) {
+                window.top.location.replace(window.self.location.href);
+            }
+            const { createApp } = Vue;
+        </script>
+    </head>
+    <body id="body" class="app-blank">
+        {% csrf_token %}
+        <!--開始::頁面加載時的主題模式設置-->
+        <script>
+            var defaultThemeMode = "light"; var themeMode; 
+            if ( document.documentElement ) { if ( document.documentElement.hasAttribute("data-bs-theme-mode")) { themeMode = document.documentElement.getAttribute("data-bs-theme-mode"); } else { if ( localStorage.getItem("data-bs-theme") !== null ) { themeMode = localStorage.getItem("data-bs-theme"); } else { themeMode = defaultThemeMode; } } if (themeMode === "system") { themeMode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } document.documentElement.setAttribute("data-bs-theme", themeMode); }
+        </script>
+        <!--結束::頁面加載時的主題模式設置-->
+        {% block content %}
+        {% endblock content %}
+        <!--開始::Javascript-->
+        <script>var hostUrl = "assets/";</script>
+        <!--開始::全局Javascript包(所有頁面必須)-->
+        <script src='{% static "crm/plugins/global/plugins.bundle.js" %}'></script>
+        <script src='{% static "crm/js/scripts.bundle.js" %}'></script>
+        <!--結束::全局Javascript包-->
+        <!--開始::自定義Javascript(僅用於此頁面)-->
+        <script src='{% static "crm/js/custom/authentication/sign-in/general.js" %}'></script>
+        <!--結束::自定義Javascript-->
+        <!--結束::Javascript-->
+    </body>
+    <!--結束::身體-->
+</html>
