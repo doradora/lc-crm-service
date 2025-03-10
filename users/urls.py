@@ -7,5 +7,5 @@ router.register(r"", UserViewSet)
 
 urlpatterns = [
     path("", index, name="users_index"),
-    path("api", include(router.urls)),
+    path("api/", include(router.urls)),
 ]

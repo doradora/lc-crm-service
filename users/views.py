@@ -7,14 +7,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from .serializers import (
-    UserProfileSerializer,
-    UserRegistrationSerializer,
-    UserCreateSerializer,
     UserSerializer,
-    UserWithProfileSerializer,
 )
-from .models import UserProfile
 from .permissions import IsAdmin
+from django.db.models import Q
 
 
 @login_required(login_url="signin")
@@ -23,49 +19,43 @@ def index(request):
 
 
 # API Views
-class UserRegistrationView(APIView):
-    """處理使用者註冊的 API 視圖"""
-
-    def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response(
-                {"message": "註冊成功", "user_id": user.id},
-                status=status.HTTP_201_CREATED,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserProfileViewSet(viewsets.ModelViewSet):
-    """處理使用者檔案的 ViewSet"""
-
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """根據使用者權限過濾查詢結果"""
-        if self.request.user.profile.is_admin:
-            return UserProfile.objects.all()
-        return UserProfile.objects.filter(user=self.request.user)
-
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().select_related("profile")
-    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
 
-    def get_serializer_class(self):
-        """
-        根據操作類型返回不同的序列化器
-        """
-        if self.action in ["list", "retrieve"]:
-            return UserWithProfileSerializer
-        return UserCreateSerializer
+    def get_permissions(self):
+        if self.action == "create":
+            # 只有 is_admin=True 的使用者可以創建
+            return [IsAuthenticated(), IsAdmin()]
+        # 其他操作（如 list、retrieve）可根據需求設定
+        return [IsAuthenticated()]  # 預設要求登入
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        queryset = User.objects.all().select_related(
+            "profile"
+        )  # 優化查詢，關聯 profile
+        search_query = self.request.query_params.get(
+            "search", None
+        )  # 從前端接收 search 參數
+        # 搜尋姓名、email 和電話
+        if search_query:
+            queryset = queryset.filter(
+                Q(username__icontains=search_query)
+                | Q(email__icontains=search_query)
+                | Q(profile__phone__icontains=search_query)
+                | Q(profile__name__icontains=search_query)
+                | Q(first_name__icontains=search_query)
+                | Q(last_name__icontains=search_query)
+            )
+        # 角色過濾
+
+        if self.request.query_params.get("is_admin", None):
+            queryset = queryset.filter(profile__is_admin=True)
+        elif self.request.query_params.get("is_designer", None):
+            queryset = queryset.filter(profile__is_designer=True)
+        elif self.request.query_params.get("is_project_manager", None):
+            queryset = queryset.filter(profile__is_project_manager=True)
+        elif self.request.query_params.get("can_request_payment", None):
+            queryset = queryset.filter(profile__can_request_payment=True)
+
+        return queryset.order_by("username")

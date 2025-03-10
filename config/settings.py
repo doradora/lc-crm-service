@@ -62,6 +62,13 @@ LOGOUT_REDIRECT_URL = "/accounts/login/"
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,  # 每頁預設顯示的記錄數
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",  # 使用 Token 認證
+        "rest_framework.authentication.SessionAuthentication",  # 可選，支援 session
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",  # 預設要求登入
+    ],
 }
 
 ROOT_URLCONF = "config.urls"
@@ -136,6 +143,11 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",  # 這一行很重要，啟用 app 內的 static 搜尋
+]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

@@ -33,6 +33,7 @@
         data-kt-app-sidebar-push-toolbar="true"
         data-kt-app-sidebar-push-footer="true"
         class="app-default">
+    {% csrf_token %}
     <div class="d-flex flex-column flex-root app-root" id="app_root">
       <div class="app-page flex-column flex-column-fluid" id="app_page">
         {% include "crm/partials/header.html" %}
