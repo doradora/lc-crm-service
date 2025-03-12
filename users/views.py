@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
+from crm.views import StandardResultsSetPagination
 from .serializers import (
     UserSerializer,
 )
@@ -22,6 +23,7 @@ def index(request):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().select_related("profile")
     serializer_class = UserSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         if self.action == "create":

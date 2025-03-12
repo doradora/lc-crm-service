@@ -41,7 +41,7 @@ def invoices(request):
 
 # API
 class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 10
+    page_size = 5
     page_size_query_param = "page_size"
     max_page_size = 100
 
@@ -57,7 +57,7 @@ class BaseViewSet(viewsets.ModelViewSet):
 
 
 class CategoryViewSet(BaseViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().order_by("code")
     serializer_class = CategorySerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
@@ -68,8 +68,11 @@ class CategoryViewSet(BaseViewSet):
 
 
 class OwnerViewSet(BaseViewSet):
-    queryset = Owner.objects.all()
-    serializer_class = OwnerSerializer  # 業主資料的序列化器
+    queryset = Owner.objects.all().order_by("tax_id")
+    serializer_class = OwnerSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["company_name", "tax_id", "contact_person", "phone", "email"]
 
 
 class ProjectViewSet(BaseViewSet):
