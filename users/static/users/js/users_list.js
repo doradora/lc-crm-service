@@ -261,6 +261,7 @@ const userList = createApp({
           formData.password_confirm = this.newUser.passwordConfirm;
         }
       }
+
       const url = this.isEditMode
         ? `/users/api/${this.editUserId}/`
         : "/users/api/";

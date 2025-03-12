@@ -1,17 +1,21 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import OwnerViewSet, ProjectViewSet, QuotationViewSet, InvoiceViewSet, index
+from . import views
 
 router = DefaultRouter()
-router.register(r"owners", OwnerViewSet)  # 業主資料的路由
-router.register(r"projects", ProjectViewSet)  # 案件資料的路由
-router.register(r"quotations", QuotationViewSet)  # 報價單的路由
-router.register(r"invoices", InvoiceViewSet)  # 請款單的路由
+router.register(r"categories", views.CategoryViewSet)
+router.register(r"owners", views.OwnerViewSet)
+router.register(r"projects", views.ProjectViewSet)
+router.register(r"quotations", views.QuotationViewSet)
+router.register(r"invoices", views.InvoiceViewSet)
 
 urlpatterns = [
-    path("", index, name="index"),  # 首頁
-    path("projects", index, name="projects"),  # 案件列表
-    path("quotations", index, name="quotations"),  # 報價單列表
-    path("invoices", index, name="invoices"),  # 請款單列表
-    path("api", include(router.urls)),  # 包含所有CRUD路由
+    path("", views.index, name="index"),
+    path("category/", views.category, name="category"),
+    path("owners/", views.owners, name="owners"),
+    path("projects/", views.projects, name="projects"),
+    path("quotations/", views.quotations, name="quotations"),
+    path("invoices/", views.invoices, name="invoices"),
+    path("api/", include(router.urls)),
+    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]

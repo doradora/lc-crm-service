@@ -62,7 +62,7 @@
       title: "業主",
       icon: "ki-outline ki-address-book fs-2x",
       subItems: [
-        { title: "業主列表", url: "{% url 'quotations' %}" }
+        { title: "業主列表", url: "{% url 'owners' %}" }
       ]
     },
     {
@@ -71,7 +71,7 @@
       icon: "ki-outline ki-user-square fs-2",
       subItems: [
         { title: "帳號管理", url: "{% url 'users_index' %}" },
-        { title: "其他聯絡人員 ", url: "{% url 'invoices' %}" },
+        { title: "其他聯絡人員 ", url: "{% url 'index' %}" },
       ]
     },
     {
@@ -79,9 +79,9 @@
       title: "帳務",
       icon: "ki-outline ki-gear fs-2",
       subItems: [
-        { title: "報價單", url: "{% url 'invoices' %}" },
+        { title: "報價單", url: "{% url 'quotations' %}" },
         { title: "發票", url: "{% url 'invoices' %}" },
-        { title: "收據", url: "{% url 'invoices' %}" },
+        { title: "收據", url: "{% url 'index' %}" },
       ]
     },
     {
@@ -89,8 +89,8 @@
       title: "設定",
       icon: "ki-outline ki-gear fs-2",
       subItems: [
-        { title: "案件類別", url: "{% url 'invoices' %}" },
-        { title: "匯出檔案", url: "{% url 'invoices' %}" },
+        { title: "案件類別", url: "{% url 'category' %}" },
+        { title: "匯出檔案", url: "{% url 'index' %}" },
       ]
     },
 
