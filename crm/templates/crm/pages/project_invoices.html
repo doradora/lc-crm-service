@@ -1,0 +1,227 @@
+{% extends "crm/base.html" %}
+{% load static %}
+{% block content %}
+    <div class="app-main flex-column flex-row-fluid" id="app_main">
+        <div id="app_toolbar" class="app-toolbar pt-7 pt-lg-10">
+            <div id="app_toolbar_container"
+                 class="app-container container-fluid d-flex align-items-stretch">
+                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
+                    <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
+                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">
+                            {{ project.name }} - 請款列表
+                        </h1>
+                        <!--begin::Breadcrumb-->
+                        <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'projects' %}" class="text-muted text-hover-primary">專案管理</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <li class="breadcrumb-item text-muted">{{ project.name }}</li>
+                        </ul>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 gap-lg-3">
+                        <button class="btn btn-primary" @click.prevent="showAddInvoiceModal">新增請款</button>
+                        <a href="{% url 'projects' %}" class="btn btn-light">返回專案列表</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="app_content" class="app-content flex-column-fluid">
+            <div id="app_content_container" class="app-container container-fluid">
+                <div class="d-flex flex-column flex-column-fluid">
+                    <div class="card card-flush" id="invoices_list">
+                        <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+                            <div class="card-title">
+                                <h3 class="card-title align-items-start flex-column">
+                                    <span class="card-label fw-bold text-gray-800">專案請款列表</span>
+                                    <span class="text-gray-400 mt-1 fw-semibold fs-6">專案編號: {{ project.year }}-{{ project.project_number }}</span>
+                                </h3>
+                            </div>
+                        </div>
+                        <div class="card-body pt-0">
+                            <!-- 資料載入指示器 -->
+                            <div v-if="isLoading" class="d-flex justify-content-center py-10">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">載入中...</span>
+                                </div>
+                            </div>
+                            <!-- 請款資料表格 -->
+                            <table class="table align-middle table-row-dashed table-hover fs-6 gy-5"
+                                   v-if="!isLoading">
+                                <thead>
+                                    <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                                        <th class="min-w-100px">ID</th>
+                                        <th class="min-w-150px">報價單</th>
+                                        <th class="min-w-150px">發行日期</th>
+                                        <th class="min-w-150px">金額</th>
+                                        <th class="min-w-150px">狀態</th>
+                                        <th class="text-end min-w-70px">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="fw-semibold text-gray-600">
+                                    <tr v-for="invoice in invoices" :key="invoice.id">
+                                        <td>
+                                            <span class="badge badge-light">#[[ invoice.id ]]</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-light">#[[ invoice.quotation ]]</span>
+                                        </td>
+                                        <td>[[ formatDate(invoice.date_issued) ]]</td>
+                                        <td>$ [[ formatCurrency(invoice.amount) ]]</td>
+                                        <td>
+                                            <div :class="getStatusBadgeClass(invoice)">[[ invoice.paid ? '已付款' : '未付款' ]]</div>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="#"
+                                               class="btn btn-sm btn-light btn-flex btn-center btn-active-light-primary"
+                                               @click.prevent="toggleMenu(invoice.id)">
+                                                操作
+                                                <i class="ki-outline ki-down fs-5 ms-1"></i>
+                                            </a>
+                                            <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-125px py-4"
+                                                 data-kt-menu="true"
+                                                 :style="getMenuStyle(invoice.id)"
+                                                 :class="{'show': activeMenu === invoice.id}">
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3" @click.prevent="editInvoice(invoice)">編輯請款</a>
+                                                </div>
+                                                <div class="menu-item px-3" v-if="!invoice.paid">
+                                                    <a class="menu-link px-3" @click.prevent="markAsPaid(invoice.id)">標記為已付款</a>
+                                                </div>
+                                                <div class="menu-item px-3" v-if="invoice.paid">
+                                                    <a class="menu-link px-3" @click.prevent="markAsUnpaid(invoice.id)">標記為未付款</a>
+                                                </div>
+                                                <hr class="my-1" />
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3 text-danger"
+                                                       @click.prevent="deleteInvoice(invoice.id)">刪除</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- 無資料提示 -->
+                                    <tr v-if="invoices.length === 0">
+                                        <td colspan="6" class="text-center py-5">
+                                            <div class="text-gray-500">此專案尚未有請款資料</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <!-- 分頁控制 -->
+                            <ul class="pagination" v-if="invoices.length > 0">
+                                <li class="page-item btn"
+                                    @click="fetchInvoices(currentPage - 1)"
+                                    :class="currentPage === 1 ? 'disabled' : ''"
+                                    :disabled="currentPage === 1">上一頁</li>
+                                <li class="page-item">
+                                    <a>第 [[ currentPage ]] 頁 / 共 [[ totalPages ]] 頁</a>
+                                </li>
+                                <li class="page-item btn"
+                                    @click="fetchInvoices(currentPage + 1)"
+                                    :class="currentPage === totalPages? 'disabled' : ''"
+                                    :disabled="currentPage === totalPages">下一頁</li>
+                            </ul>
+                        </div>
+                        <!-- 新增/編輯請款的 Modal -->
+                        <div class="modal fade"
+                             tabindex="-1"
+                             id="addInvoiceModal"
+                             aria-labelledby="addInvoiceModalLabel"
+                             aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="addInvoiceModalLabel">[[ isEditMode ? '編輯請款' : '新增請款' ]]</h5>
+                                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                                             @click="hideAddInvoiceModal"
+                                             aria-label="Close">
+                                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                                        </div>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form @submit.prevent="submitInvoiceForm" ref="invoiceForm">
+                                            <div class="mb-5">
+                                                <label class="form-label">專案</label>
+                                                <input type="text"
+                                                       class="form-control"
+                                                       :value="projectName"
+                                                       readonly
+                                                       disabled>
+                                            </div>
+                                            <div class="mb-5">
+                                                <label class="form-label">
+                                                    選擇報價單<span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" v-model="newInvoice.quotation" required>
+                                                    <option value="">請選擇報價單</option>
+                                                    <option v-for="quotation in quotations"
+                                                            :key="quotation.id"
+                                                            :value="quotation.id">
+                                                        報價單 #[[ quotation.id ]] - $[[ formatCurrency(quotation.amount) ]]
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-5">
+                                                <label class="form-label">
+                                                    請款金額<span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           v-model="newInvoice.amount"
+                                                           step="0.01"
+                                                           min="0"
+                                                           required>
+                                                </div>
+                                            </div>
+                                            <div class="mb-5">
+                                                <label class="form-label">
+                                                    發行日期<span class="text-danger">*</span>
+                                                </label>
+                                                <input type="date"
+                                                       class="form-control"
+                                                       v-model="newInvoice.date_issued"
+                                                       required>
+                                            </div>
+                                            <div class="mb-5">
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           v-model="newInvoice.paid"
+                                                           id="paidCheckbox">
+                                                    <label class="form-check-label" for="paidCheckbox">已付款</label>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-light" @click="hideAddInvoiceModal">關閉</button>
+                                                <button type="submit" class="btn btn-primary">送出</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 結束 Modal -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script>
+    // 設定專案資訊給 Vue 使用
+    const PROJECT_ID = {{ project.id }};
+    const PROJECT_NAME = "{{ project.name }}";
+    </script>
+    <script src="{% static 'crm/js/pages/project_invoices.js' %}"></script>
+{% endblock extra_js %}

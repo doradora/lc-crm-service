@@ -16,6 +16,19 @@ urlpatterns = [
     path("projects/", views.projects, name="projects"),
     path("quotations/", views.quotations, name="quotations"),
     path("invoices/", views.invoices, name="invoices"),
+    path("dashboard/", views.project_dashboard, name="project_dashboard"),
+    # 關聯路由
+    path("owner/<int:owner_id>/projects/", views.owner_projects, name="owner_projects"),
+    path(
+        "project/<int:project_id>/quotations/",
+        views.project_quotations,
+        name="project_quotations",
+    ),
+    path(
+        "project/<int:project_id>/invoices/",
+        views.project_invoices,
+        name="project_invoices",
+    ),
     path("api/", include(router.urls)),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]

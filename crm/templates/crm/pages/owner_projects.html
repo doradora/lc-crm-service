@@ -7,26 +7,29 @@
                  class="app-container container-fluid d-flex align-items-stretch">
                 <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
                     <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
-                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">專案列表</h1>
+                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">
+                            {{ owner.company_name }} - 專案列表
+                        </h1>
                         <!--begin::Breadcrumb-->
                         <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
-                            <!--begin::Item-->
                             <li class="breadcrumb-item text-muted">
                                 <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
                             </li>
-                            <!--end::Item-->
-                            <!--begin::Item-->
                             <li class="breadcrumb-item">
                                 <span class="bullet bg-gray-500 w-5px h-2px"></span>
                             </li>
-                            <!--end::Item-->
-                            <!--begin::Item-->
-                            <li class="breadcrumb-item text-muted">專案管理</li>
-                            <!--end::Item-->
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'owners' %}" class="text-muted text-hover-primary">業主管理</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <li class="breadcrumb-item text-muted">{{ owner.company_name }}</li>
                         </ul>
                     </div>
                     <div class="d-flex align-items-center gap-2 gap-lg-3">
                         <button class="btn btn-primary" @click.prevent="showAddProjectModal">新增專案</button>
+                        <a href="{% url 'owners' %}" class="btn btn-light">返回業主列表</a>
                     </div>
                 </div>
             </div>
@@ -42,7 +45,7 @@
                                     <input type="text"
                                            v-model="searchQuery"
                                            class="form-control form-control-solid w-250px ps-12"
-                                           placeholder="搜尋專案/業主/負責人" />
+                                           placeholder="搜尋專案名稱" />
                                 </div>
                                 <div class="d-flex position-relative my-1">
                                     <div class="w-200 mw-150px me-2">
@@ -56,42 +59,29 @@
                                         </select>
                                     </div>
                                     <div class="w-200 mw-150px me-2">
-                                        <select class="form-select" v-model="completedFilter" data-placeholder="專案狀態">
-                                            <option value="">所有狀態</option>
-                                            <option value="completed">已完成</option>
-                                            <option value="in_progress">進行中</option>
+                                        <select class="form-select" v-model="yearFilter" data-placeholder="年份">
+                                            <option value="">所有年份</option>
+                                            <option v-for="year in availableYears" :key="year" :value="year">[[ year ]]</option>
                                         </select>
                                     </div>
-                                    <div class="w-200 mw-150px me-2">
-                                        <select class="form-select" v-model="startYearFilter" data-placeholder="開始年份">
-                                            <option value="">開始年份</option>
-                                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                                        </select>
-                                    </div>
-                                    <div class="w-200 mw-150px me-2">
-                                        <select class="form-select" v-model="endYearFilter" data-placeholder="結束年份">
-                                            <option value="">結束年份</option>
-                                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                                        </select>
-                                    </div>
-                                    <button class="btn btn-light" @click="fetchProjects()">搜尋</button>
+                                    <button class="btn btn-light" @click="fetchOwnerProjects()">搜尋</button>
                                 </div>
                             </div>
                         </div>
-                        <!--end::Card header-->
-                        <!--begin::Card body-->
                         <div class="card-body pt-0">
+                            <!-- 資料載入指示器 -->
                             <div v-if="isLoading" class="d-flex justify-content-center py-10">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">載入中...</span>
                                 </div>
                             </div>
-                            <table class="table align-middle table-row-dashed table-hover fs-6 gy-5">
+                            <!-- 專案資料表格 -->
+                            <table class="table align-middle table-row-dashed table-hover fs-6 gy-5"
+                                   v-if="!isLoading">
                                 <thead>
                                     <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
                                         <th class="min-w-100px">年度-編號</th>
                                         <th class="min-w-200px">專案名稱</th>
-                                        <th class="min-w-150px">業主</th>
                                         <th class="min-w-100px">類別</th>
                                         <th class="min-w-100px">專案負責人</th>
                                         <th class="min-w-100px">狀態</th>
@@ -111,7 +101,6 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>[[ getOwnerName(project.owner) ]]</td>
                                         <td>[[ getCategoryName(project.category) ]]</td>
                                         <td>[[ getManagerName(project.manager) ]]</td>
                                         <td>
@@ -145,19 +134,25 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    <!-- 無資料提示 -->
+                                    <tr v-if="projects.length === 0">
+                                        <td colspan="6" class="text-center py-5">
+                                            <div class="text-gray-500">此業主尚未有專案</div>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                             <!-- 分頁控制 -->
-                            <ul class="pagination">
+                            <ul class="pagination" v-if="projects.length > 0">
                                 <li class="page-item btn"
-                                    @click="fetchProjects(currentPage - 1)"
+                                    @click="fetchOwnerProjects(currentPage - 1)"
                                     :class="currentPage === 1 ? 'disabled' : ''"
                                     :disabled="currentPage === 1">上一頁</li>
                                 <li class="page-item">
                                     <a>第 [[ currentPage ]] 頁 / 共 [[ totalPages ]] 頁</a>
                                 </li>
                                 <li class="page-item btn"
-                                    @click="fetchProjects(currentPage + 1)"
+                                    @click="fetchOwnerProjects(currentPage + 1)"
                                     :class="currentPage === totalPages? 'disabled' : ''"
                                     :disabled="currentPage === totalPages">下一頁</li>
                             </ul>
@@ -185,42 +180,12 @@
                                                     <label class="form-label">
                                                         業主<span class="text-danger">*</span>
                                                     </label>
-                                                    <div class="input-group">
-                                                        <div class="dropdown w-100" v-click-outside="closeOwnerDropdown">
-                                                            <input type="text"
-                                                                   class="form-control"
-                                                                   placeholder="搜尋或輸入業主名稱"
-                                                                   v-model="ownerSearchTerm"
-                                                                   @focus="showOwnerDropdown = true"
-                                                                   @input="filterOwners"
-                                                                   autocomplete="off"
-                                                                   required>
-                                                            <div class="dropdown-menu dropdown-menu-fit dropdown-menu-height-300 w-100"
-                                                                 :class="{'show': showOwnerDropdown && filteredOwners.length > 0}">
-                                                                <a v-for="owner in filteredOwners"
-                                                                   :key="owner.id"
-                                                                   class="dropdown-item"
-                                                                   href="#"
-                                                                   @click.prevent="selectOwner(owner)">
-                                                                    [[ owner.company_name ]]
-                                                                </a>
-                                                                <div class="dropdown-divider"
-                                                                     v-if="ownerSearchTerm && filteredOwners.length === 0">
-                                                                </div>
-                                                                <a class="dropdown-item text-primary"
-                                                                   href="#"
-                                                                   @click.prevent="showAddOwnerModal"
-                                                                   v-if="ownerSearchTerm && filteredOwners.length === 0">
-                                                                    <i class="ki-outline ki-plus-square me-2"></i>新增「[[ ownerSearchTerm ]]」為新業主
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <button class="btn btn-icon btn-light"
-                                                                type="button"
-                                                                @click="showAddOwnerModal">
-                                                            <i class="ki-outline ki-plus fs-2"></i>
-                                                        </button>
-                                                    </div>
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           :value="'{{ owner.company_name }}'"
+                                                           readonly
+                                                           disabled>
+                                                    <input type="hidden" v-model="newProject.owner">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">
@@ -248,15 +213,12 @@
                                                            max="2099"
                                                            required>
                                                 </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label">
-                                                        編號<span class="text-danger">*</span>
-                                                    </label>
+                                                <div class="col-md-3" v-if="isEditMode">
+                                                    <label class="form-label">編號</label>
                                                     <input type="text"
                                                            class="form-control"
                                                            v-model="newProject.project_number"
-                                                           :readonly="isEditMode"
-                                                           required>
+                                                           readonly>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">
@@ -270,48 +232,19 @@
                                                     <label class="form-label">
                                                         專案負責人<span class="text-danger">*</span>
                                                     </label>
-                                                    <div class="dropdown w-100" v-click-outside="closeManagerDropdown">
-                                                        <input type="text"
-                                                               class="form-control"
-                                                               placeholder="搜尋專案負責人"
-                                                               v-model="managerSearchTerm"
-                                                               @focus="showManagerDropdown = true"
-                                                               @input="filterManagers"
-                                                               autocomplete="off"
-                                                               required>
-                                                        <div class="dropdown-menu dropdown-menu-fit dropdown-menu-height-300 w-100"
-                                                             :class="{'show': showManagerDropdown && filteredManagers.length > 0}">
-                                                            <a v-for="manager in filteredManagers"
-                                                               :key="manager.id"
-                                                               class="dropdown-item"
-                                                               href="#"
-                                                               @click.prevent="selectManager(manager)">
-                                                                [[ manager.profile.name || manager.username ]]
-                                                            </a>
-                                                        </div>
-                                                    </div>
+                                                    <select class="form-select" v-model="newProject.manager" required>
+                                                        <option value="">選擇負責人</option>
+                                                        <option v-for="user in projectManagers" :key="user.id" :value="user.id">
+                                                            [[ user.profile.name || user.username ]]
+                                                        </option>
+                                                    </select>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">繪圖設計師</label>
-                                                    <div class="dropdown w-100" v-click-outside="closeDesignerDropdown">
-                                                        <input type="text"
-                                                               class="form-control"
-                                                               placeholder="搜尋設計師"
-                                                               v-model="designerSearchTerm"
-                                                               @focus="showDesignerDropdown = true"
-                                                               @input="filterDesigners"
-                                                               autocomplete="off">
-                                                        <div class="dropdown-menu dropdown-menu-fit dropdown-menu-height-300 w-100"
-                                                             :class="{'show': showDesignerDropdown && filteredDesigners.length > 0}">
-                                                            <a v-for="designer in filteredDesigners"
-                                                               :key="designer.id"
-                                                               class="dropdown-item"
-                                                               href="#"
-                                                               @click.prevent="selectDesigner(designer)">
-                                                                [[ designer.profile.name || designer.username ]]
-                                                            </a>
-                                                        </div>
-                                                    </div>
+                                                    <select class="form-select" v-model="newProject.drawing">
+                                                        <option value="">選擇設計師</option>
+                                                        <option v-for="user in designers" :key="user.id" :value="user.id">[[ user.profile.name || user.username ]]</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                             <div class="mb-5">
@@ -323,10 +256,7 @@
                                             </div>
                                             <div class="mb-5">
                                                 <label class="form-label">聯絡方式</label>
-                                                <textarea class="form-control"
-                                                          v-model="newProject.contact_info"
-                                                          rows="2"
-                                                          placeholder="選填"></textarea>
+                                                <textarea class="form-control" v-model="newProject.contact_info" rows="2"></textarea>
                                             </div>
                                             <div class="row mb-5">
                                                 <div class="col-md-4">
@@ -361,29 +291,20 @@
                                             </div>
                                             <div class="mb-5">
                                                 <label class="form-label">變更說明</label>
-                                                <textarea class="form-control"
-                                                          v-model="newProject.change_description"
-                                                          rows="3"
-                                                          placeholder="選填"></textarea>
+                                                <textarea class="form-control" v-model="newProject.change_description" rows="3"></textarea>
                                             </div>
                                             <div class="mb-5">
                                                 <label class="form-label">備註</label>
-                                                <textarea class="form-control"
-                                                          v-model="newProject.notes"
-                                                          rows="3"
-                                                          placeholder="選填"></textarea>
+                                                <textarea class="form-control" v-model="newProject.notes" rows="3"></textarea>
                                             </div>
                                             <div class="row mb-5">
                                                 <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        支出金額<span class="text-danger">*</span>
-                                                    </label>
+                                                    <label class="form-label">支出金額</label>
                                                     <input type="number"
                                                            class="form-control"
                                                            v-model="newProject.expenditure"
                                                            step="0.01"
-                                                           min="0"
-                                                           required>
+                                                           min="0">
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
@@ -396,70 +317,6 @@
                             </div>
                         </div>
                         <!-- 結束 Modal -->
-                        <!-- 新增業主的 Modal -->
-                        <div class="modal fade"
-                             tabindex="-1"
-                             id="addOwnerModal"
-                             aria-labelledby="addOwnerModalLabel"
-                             aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="addOwnerModalLabel">新增業主</h5>
-                                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                                             @click="hideAddOwnerModal"
-                                             aria-label="Close">
-                                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
-                                        </div>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form @submit.prevent="submitOwnerForm" ref="ownerForm">
-                                            <div class="mb-5">
-                                                <label class="form-label">
-                                                    公司名稱<span class="text-danger">*</span>
-                                                </label>
-                                                <input type="text"
-                                                       class="form-control"
-                                                       v-model="newOwner.company_name"
-                                                       required>
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">統一編號</label>
-                                                <input type="text"
-                                                       class="form-control"
-                                                       v-model="newOwner.tax_id"
-                                                       maxlength="8">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">聯絡人</label>
-                                                <input type="text" class="form-control" v-model="newOwner.contact_person">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">電話</label>
-                                                <input type="text" class="form-control" v-model="newOwner.phone">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">地址</label>
-                                                <input type="text" class="form-control" v-model="newOwner.address">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">Email</label>
-                                                <input type="email" class="form-control" v-model="newOwner.email">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">備註</label>
-                                                <textarea class="form-control" v-model="newOwner.notes" rows="2"></textarea>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
-                                                <button type="submit" class="btn btn-primary">送出</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 結束新增業主 Modal -->
                     </div>
                 </div>
             </div>
@@ -467,5 +324,9 @@
     </div>
 {% endblock content %}
 {% block extra_js %}
-    <script src="{% static 'crm/js/pages/projects.js' %}"></script>
+    <script>
+    // 設定業主ID給 Vue 使用
+    const OWNER_ID = {{ owner.id }};
+    </script>
+    <script src="{% static 'crm/js/pages/owner_projects.js' %}"></script>
 {% endblock extra_js %}

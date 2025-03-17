@@ -1,0 +1,165 @@
+{% extends "crm/base.html" %}
+{% load static %}
+{% block content %}
+    <div class="app-main flex-column flex-row-fluid" id="app_main">
+        <div id="app_toolbar" class="app-toolbar pt-7 pt-lg-10">
+            <div id="app_toolbar_container"
+                 class="app-container container-fluid d-flex align-items-stretch">
+                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
+                    <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
+                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">專案儀表板</h1>
+                        <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <li class="breadcrumb-item text-muted">專案統計</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="app_content" class="app-content flex-column-fluid">
+            <div id="app_content_container" class="app-container container-fluid">
+                <!-- 統計卡片 -->
+                <div class="row g-5 g-xl-10 mb-5 mb-xl-10">
+                    <!-- 總專案數 -->
+                    <div class="col-md-6 col-lg-6 col-xl-3 col-xxl-3 mb-md-5 mb-xl-10">
+                        <div class="card card-flush">
+                            <div class="card-header pt-5">
+                                <div class="card-title d-flex flex-column">
+                                    <span class="fs-2hx fw-bold text-dark me-2 lh-1 ls-n2">[[ stats.totalProjects ]]</span>
+                                    <span class="text-gray-400 pt-1 fw-semibold fs-6">總專案數</span>
+                                </div>
+                            </div>
+                            <div class="card-body d-flex flex-column pt-2 pb-5">
+                                <div class="d-flex flex-stack mt-auto">
+                                    <span class="text-gray-400 fw-semibold fs-6">完成率: [[ stats.completionRate ]]%</span>
+                                </div>
+                                <div class="progress h-8px bg-light-primary mt-3">
+                                    <div class="progress-bar bg-primary"
+                                         role="progressbar"
+                                         :style="{ width: stats.completionRate + '%' }"
+                                         :aria-valuenow="stats.completionRate"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 進行中專案 -->
+                    <div class="col-md-6 col-lg-6 col-xl-3 col-xxl-3 mb-md-5 mb-xl-10">
+                        <div class="card card-flush">
+                            <div class="card-header pt-5">
+                                <div class="card-title d-flex flex-column">
+                                    <span class="fs-2hx fw-bold text-primary me-2 lh-1 ls-n2">[[ stats.activeProjects ]]</span>
+                                    <span class="text-gray-400 pt-1 fw-semibold fs-6">進行中專案</span>
+                                </div>
+                            </div>
+                            <div class="card-body d-flex align-items-end pt-0">
+                                <div class="d-flex align-items-center flex-column mt-3 w-100">
+                                    <div class="d-flex justify-content-between w-100 mt-auto mb-2">
+                                        <span class="fw-bold fs-6 text-gray-400">專案活躍度</span>
+                                        <span class="fw-bold fs-6 text-primary">[[ stats.activeProjectsPercent ]]%</span>
+                                    </div>
+                                    <div class="w-100 h-5px mx-3 bg-light-success rounded">
+                                        <div class="bg-success rounded h-5px"
+                                             :style="{ width: stats.activeProjectsPercent + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 已完成專案 -->
+                    <div class="col-md-6 col-lg-6 col-xl-3 col-xxl-3 mb-md-5 mb-xl-10">
+                        <div class="card card-flush">
+                            <div class="card-header pt-5">
+                                <div class="card-title d-flex flex-column">
+                                    <span class="fs-2hx fw-bold text-success me-2 lh-1 ls-n2">[[ stats.completedProjects ]]</span>
+                                    <span class="text-gray-400 pt-1 fw-semibold fs-6">已完成專案</span>
+                                </div>
+                            </div>
+                            <div class="card-body d-flex align-items-end pt-0">
+                                <div class="d-flex align-items-center flex-column mt-3 w-100">
+                                    <div class="d-flex justify-content-between w-100 mt-auto mb-2">
+                                        <span class="fw-bold fs-6 text-gray-400">完成度</span>
+                                        <span class="fw-bold fs-6 text-success">[[ stats.completedProjectsPercent ]]%</span>
+                                    </div>
+                                    <div class="w-100 h-5px mx-3 bg-light-success rounded">
+                                        <div class="bg-success rounded h-5px"
+                                             :style="{ width: stats.completedProjectsPercent + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 總營業額 -->
+                    <div class="col-md-6 col-lg-6 col-xl-3 col-xxl-3 mb-md-5 mb-xl-10">
+                        <div class="card card-flush">
+                            <div class="card-header pt-5">
+                                <div class="card-title d-flex flex-column">
+                                    <span class="fs-2hx fw-bold text-warning me-2 lh-1 ls-n2">$[[ formatCurrency(stats.totalRevenue) ]]</span>
+                                    <span class="text-gray-400 pt-1 fw-semibold fs-6">總營業額</span>
+                                </div>
+                            </div>
+                            <div class="card-body pt-2 pb-4 d-flex align-items-center">
+                                <div class="d-flex flex-center me-5 pt-2">
+                                    <div id="revenue_chart" style="height: 70px"></div>
+                                </div>
+                                <div class="d-flex flex-column content-justify-center w-100">
+                                    <div class="d-flex fs-6 fw-semibold align-items-center">
+                                        <div class="bullet w-8px h-6px rounded-2 bg-success me-3"></div>
+                                        <div class="fs-6 fw-bold text-gray-400 flex-shrink-0">已收款</div>
+                                        <div class="ms-auto fw-bold text-gray-700">$[[ formatCurrency(stats.paidRevenue) ]]</div>
+                                    </div>
+                                    <div class="d-flex fs-6 fw-semibold align-items-center my-3">
+                                        <div class="bullet w-8px h-6px rounded-2 bg-primary me-3"></div>
+                                        <div class="fs-6 fw-bold text-gray-400 flex-shrink-0">未收款</div>
+                                        <div class="ms-auto fw-bold text-gray-700">$[[ formatCurrency(stats.unpaidRevenue) ]]</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 圖表區域 -->
+                <div class="row g-5 g-xl-10">
+                    <!-- 專案類別分布 -->
+                    <div class="col-xl-6 mb-5 mb-xl-10">
+                        <div class="card card-flush h-xl-100">
+                            <div class="card-header pt-5">
+                                <h3 class="card-title align-items-start flex-column">
+                                    <span class="card-label fw-bold text-gray-800">專案類別分布</span>
+                                    <span class="text-gray-400 mt-1 fw-semibold fs-6">各類別專案數量統計</span>
+                                </h3>
+                            </div>
+                            <div class="card-body pt-6">
+                                <div id="category_chart" style="height: 350px"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 年度專案趨勢 -->
+                    <div class="col-xl-6 mb-5 mb-xl-10">
+                        <div class="card card-flush h-xl-100">
+                            <div class="card-header pt-5">
+                                <h3 class="card-title align-items-start flex-column">
+                                    <span class="card-label fw-bold text-gray-800">年度專案趨勢</span>
+                                    <span class="text-gray-400 mt-1 fw-semibold fs-6">各年度專案數量統計</span>
+                                </h3>
+                            </div>
+                            <div class="card-body pt-6">
+                                <div id="yearly_chart" style="height: 350px"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="{% static 'crm/js/pages/project_dashboard.js' %}"></script>
+{% endblock extra_js %}

@@ -68,15 +68,19 @@ class Project(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        # 若沒有設定專案編號，則自動生成
         if not self.project_number:
+            # 查找同年度同類別的最後一個專案
             last_project = (
-                Project.objects.filter(year=self.year)
+                Project.objects.filter(year=self.year, category=self.category)
                 .order_by("-project_number")
                 .first()
             )
             if last_project:
+                # 如果有同年度同類別的專案，則編號加1
                 self.project_number = f"{int(last_project.project_number) + 1:03d}"
             else:
+                # 如果是該年度該類別的第一個專案，編號從001開始
                 self.project_number = "001"
         super().save(*args, **kwargs)
 
