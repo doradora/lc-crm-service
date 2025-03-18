@@ -29,6 +29,12 @@ urlpatterns = [
         views.project_invoices,
         name="project_invoices",
     ),
+    # 新增專案詳情頁路由
+    path(
+        "project/<int:project_id>/details/",
+        views.project_details,
+        name="project_details",
+    ),
     path("api/", include(router.urls)),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]

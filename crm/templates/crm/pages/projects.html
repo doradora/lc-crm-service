@@ -106,7 +106,7 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="ms-5">
-                                                    <a @click.prevent="editProject(project)"
+                                                    <a :href="`/crm/project/${project.id}/details/`"
                                                        class="text-gray-800 text-hover-primary fs-5 fw-bold">[[ project.name ]]</a>
                                                 </div>
                                             </div>
@@ -129,7 +129,11 @@
                                                  :style="getMenuStyle(project.id)"
                                                  :class="{'show': activeMenu === project.id}">
                                                 <div class="menu-item px-3">
-                                                    <a class="menu-link px-3" @click.prevent="editProject(project)">編輯資料</a>
+                                                    <a class="menu-link px-3" @click.prevent="editProject(project)">編輯基本資料</a>
+                                                </div>
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3"
+                                                       @click.prevent="viewProjectDetails(project.id)">編輯詳細資料</a>
                                                 </div>
                                                 <div class="menu-item px-3">
                                                     <a class="menu-link px-3" @click.prevent="viewQuotations(project.id)">查看報價</a>
@@ -168,10 +172,10 @@
                              id="addProjectModal"
                              aria-labelledby="addProjectModalLabel"
                              aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
+                            <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="addProjectModalLabel">[[ isEditMode ? '編輯專案' : '新增專案' ]]</h5>
+                                        <h5 class="modal-title" id="addProjectModalLabel">[[ isEditMode ? '編輯專案基本資料' : '建立新專案' ]]</h5>
                                         <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
                                              @click="hideAddProjectModal"
                                              aria-label="Close">
@@ -180,64 +184,62 @@
                                     </div>
                                     <div class="modal-body">
                                         <form @submit.prevent="submitProjectForm" ref="projectForm">
-                                            <div class="row mb-5">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        業主<span class="text-danger">*</span>
-                                                    </label>
+                                            <div class="mb-5">
+                                                <label class="form-label">
+                                                    業主<span class="text-danger">*</span>
+                                                </label>
+                                                <div class="position-relative" v-click-outside="closeOwnerDropdown">
                                                     <div class="input-group">
-                                                        <div class="dropdown w-100" v-click-outside="closeOwnerDropdown">
-                                                            <input type="text"
-                                                                   class="form-control"
-                                                                   placeholder="搜尋或輸入業主名稱"
-                                                                   v-model="ownerSearchTerm"
-                                                                   @focus="showOwnerDropdown = true"
-                                                                   @input="filterOwners"
-                                                                   autocomplete="off"
-                                                                   required>
-                                                            <div class="dropdown-menu dropdown-menu-fit dropdown-menu-height-300 w-100"
-                                                                 :class="{'show': showOwnerDropdown && filteredOwners.length > 0}">
-                                                                <a v-for="owner in filteredOwners"
-                                                                   :key="owner.id"
-                                                                   class="dropdown-item"
-                                                                   href="#"
-                                                                   @click.prevent="selectOwner(owner)">
-                                                                    [[ owner.company_name ]]
-                                                                </a>
-                                                                <div class="dropdown-divider"
-                                                                     v-if="ownerSearchTerm && filteredOwners.length === 0">
-                                                                </div>
-                                                                <a class="dropdown-item text-primary"
-                                                                   href="#"
-                                                                   @click.prevent="showAddOwnerModal"
-                                                                   v-if="ownerSearchTerm && filteredOwners.length === 0">
-                                                                    <i class="ki-outline ki-plus-square me-2"></i>新增「[[ ownerSearchTerm ]]」為新業主
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <button class="btn btn-icon btn-light"
-                                                                type="button"
+                                                        <input type="text"
+                                                               class="form-control"
+                                                               v-model="ownerSearchTerm"
+                                                               @focus="showOwnerDropdown = true"
+                                                               @input="filterOwners"
+                                                               placeholder="搜尋業主..."
+                                                               required>
+                                                        <button type="button"
+                                                                class="btn btn-light-primary"
                                                                 @click="showAddOwnerModal">
                                                             <i class="ki-outline ki-plus fs-2"></i>
                                                         </button>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        專案類別<span class="text-danger">*</span>
-                                                    </label>
-                                                    <select class="form-select" v-model="newProject.category" required>
-                                                        <option value="">選擇專案類別</option>
-                                                        <option v-for="category in categories"
-                                                                :key="category.id"
-                                                                :value="category.id">
-                                                            [[ category.code ]]: [[ category.description ]]
-                                                        </option>
-                                                    </select>
+                                                    <div class="dropdown-menu w-100"
+                                                         :class="{ 'show': showOwnerDropdown }"
+                                                         style="max-height: 200px;
+                                                                overflow-y: auto">
+                                                        <div v-if="filteredOwners.length === 0" class="dropdown-item disabled">沒有結果，請嘗試其他關鍵字或新增業主</div>
+                                                        <a v-for="owner in filteredOwners"
+                                                           :key="owner.id"
+                                                           class="dropdown-item"
+                                                           href="#"
+                                                           @click.prevent="selectOwner(owner)">
+                                                            [[ owner.company_name ]]
+                                                            <span v-if="owner.tax_id" class="text-muted">([[ owner.tax_id ]])</span>
+                                                        </a>
+                                                        <div class="dropdown-divider"></div>
+                                                        <a class="dropdown-item text-primary"
+                                                           href="#"
+                                                           @click.prevent="showAddOwnerModal">
+                                                            <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div class="mb-5">
+                                                <label class="form-label">
+                                                    專案類別<span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" v-model="newProject.category" required>
+                                                    <option value="">選擇專案類別</option>
+                                                    <option v-for="category in categories"
+                                                            :key="category.id"
+                                                            :value="category.id">
+                                                        [[ category.code ]]: [[ category.description ]]
+                                                    </option>
+                                                </select>
+                                            </div>
                                             <div class="row mb-5">
-                                                <div class="col-md-3">
+                                                <div class="col-md-6">
                                                     <label class="form-label">
                                                         年份<span class="text-danger">*</span>
                                                     </label>
@@ -248,147 +250,25 @@
                                                            max="2099"
                                                            required>
                                                 </div>
-                                                <div class="col-md-3">
+                                                <div class="col-md-6" v-if="isEditMode">
                                                     <label class="form-label">
                                                         編號<span class="text-danger">*</span>
                                                     </label>
                                                     <input type="text"
                                                            class="form-control"
                                                            v-model="newProject.project_number"
-                                                           :readonly="isEditMode"
-                                                           required>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        專案名稱<span class="text-danger">*</span>
-                                                    </label>
-                                                    <input type="text" class="form-control" v-model="newProject.name" required>
-                                                </div>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        專案負責人<span class="text-danger">*</span>
-                                                    </label>
-                                                    <div class="dropdown w-100" v-click-outside="closeManagerDropdown">
-                                                        <input type="text"
-                                                               class="form-control"
-                                                               placeholder="搜尋專案負責人"
-                                                               v-model="managerSearchTerm"
-                                                               @focus="showManagerDropdown = true"
-                                                               @input="filterManagers"
-                                                               autocomplete="off"
-                                                               required>
-                                                        <div class="dropdown-menu dropdown-menu-fit dropdown-menu-height-300 w-100"
-                                                             :class="{'show': showManagerDropdown && filteredManagers.length > 0}">
-                                                            <a v-for="manager in filteredManagers"
-                                                               :key="manager.id"
-                                                               class="dropdown-item"
-                                                               href="#"
-                                                               @click.prevent="selectManager(manager)">
-                                                                [[ manager.profile.name || manager.username ]]
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">繪圖設計師</label>
-                                                    <div class="dropdown w-100" v-click-outside="closeDesignerDropdown">
-                                                        <input type="text"
-                                                               class="form-control"
-                                                               placeholder="搜尋設計師"
-                                                               v-model="designerSearchTerm"
-                                                               @focus="showDesignerDropdown = true"
-                                                               @input="filterDesigners"
-                                                               autocomplete="off">
-                                                        <div class="dropdown-menu dropdown-menu-fit dropdown-menu-height-300 w-100"
-                                                             :class="{'show': showDesignerDropdown && filteredDesigners.length > 0}">
-                                                            <a v-for="designer in filteredDesigners"
-                                                               :key="designer.id"
-                                                               class="dropdown-item"
-                                                               href="#"
-                                                               @click.prevent="selectDesigner(designer)">
-                                                                [[ designer.profile.name || designer.username ]]
-                                                            </a>
-                                                        </div>
-                                                    </div>
+                                                           readonly>
                                                 </div>
                                             </div>
                                             <div class="mb-5">
-                                                <label class="form-label">繪圖其他人員</label>
-                                                <input type="text"
-                                                       class="form-control"
-                                                       v-model="newProject.drawing_other"
-                                                       placeholder="其他協助繪圖人員名稱">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">聯絡方式</label>
-                                                <textarea class="form-control"
-                                                          v-model="newProject.contact_info"
-                                                          rows="2"
-                                                          placeholder="選填"></textarea>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-4">
-                                                    <label class="form-label">變更次數</label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="newProject.change_count"
-                                                           min="0"
-                                                           value="0">
-                                                </div>
-                                                <div class="col-md-8">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">狀態</label>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input"
-                                                                   type="radio"
-                                                                   id="inProgressOption"
-                                                                   :value="false"
-                                                                   v-model="newProject.is_completed">
-                                                            <label class="form-check-label" for="inProgressOption">進行中</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input"
-                                                                   type="radio"
-                                                                   id="completedOption"
-                                                                   :value="true"
-                                                                   v-model="newProject.is_completed">
-                                                            <label class="form-check-label" for="completedOption">已完成</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">變更說明</label>
-                                                <textarea class="form-control"
-                                                          v-model="newProject.change_description"
-                                                          rows="3"
-                                                          placeholder="選填"></textarea>
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">備註</label>
-                                                <textarea class="form-control"
-                                                          v-model="newProject.notes"
-                                                          rows="3"
-                                                          placeholder="選填"></textarea>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        支出金額<span class="text-danger">*</span>
-                                                    </label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="newProject.expenditure"
-                                                           step="0.01"
-                                                           min="0"
-                                                           required>
-                                                </div>
+                                                <label class="form-label">
+                                                    專案名稱<span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" v-model="newProject.name" required>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-light" @click="hideAddProjectModal">關閉</button>
-                                                <button type="submit" class="btn btn-primary">送出</button>
+                                                <button type="submit" class="btn btn-primary">[[ isEditMode ? '更新' : '建立並繼續編輯' ]]</button>
                                             </div>
                                         </form>
                                     </div>
@@ -434,9 +314,19 @@
                                                 <label class="form-label">聯絡人</label>
                                                 <input type="text" class="form-control" v-model="newOwner.contact_person">
                                             </div>
+                                            <div class="row mb-5">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">電話</label>
+                                                    <input type="text" class="form-control" v-model="newOwner.phone">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">手機</label>
+                                                    <input type="text" class="form-control" v-model="newOwner.mobile">
+                                                </div>
+                                            </div>
                                             <div class="mb-5">
-                                                <label class="form-label">電話</label>
-                                                <input type="text" class="form-control" v-model="newOwner.phone">
+                                                <label class="form-label">傳真</label>
+                                                <input type="text" class="form-control" v-model="newOwner.fax">
                                             </div>
                                             <div class="mb-5">
                                                 <label class="form-label">地址</label>
@@ -445,10 +335,6 @@
                                             <div class="mb-5">
                                                 <label class="form-label">Email</label>
                                                 <input type="email" class="form-control" v-model="newOwner.email">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">備註</label>
-                                                <textarea class="form-control" v-model="newOwner.notes" rows="2"></textarea>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>

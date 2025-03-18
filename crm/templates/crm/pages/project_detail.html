@@ -1,0 +1,506 @@
+{% extends "crm/base.html" %}
+{% load static %}
+{% block content %}
+    <div class="app-main flex-column flex-row-fluid" id="app_main">
+        <div id="app_toolbar" class="app-toolbar pt-5">
+            <div id="app_toolbar_container"
+                 class="app-container container-fluid d-flex align-items-stretch">
+                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
+                    <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
+                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">專案詳情</h1>
+                        <!--begin::Breadcrumb-->
+                        <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'projects' %}" class="text-muted text-hover-primary">專案管理</a>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">專案詳情</li>
+                            <!--end::Item-->
+                        </ul>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 gap-lg-3">
+                        <a href="{% url 'projects' %}" class="btn btn-light">返回專案列表</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="app_content" class="app-content flex-column-fluid">
+            <div id="app_content_container"
+                 class="app-container container-fluid d-flex flex-column">
+                <!-- 專案狀態概覽卡片 -->
+                <div class="card">
+                    <div class="card-body pb-0">
+                        <div class="d-flex flex-wrap flex-sm-nowrap mb-3">
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap mb-2">
+                                    <div class="d-flex flex-column">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="text-gray-900 fs-2 fw-bold me-1">[[ project.name ]]</span>
+                                            <span class="badge" :class="getStatusBadgeClass">[[ project.is_completed ? '已完成' : '進行中' ]]</span>
+                                        </div>
+                                        <div class="d-flex flex-wrap fw-semibold mb-4">
+                                            <span class="badge badge-light me-2">[[ project.year ]]-[[ project.project_number ]]</span>
+                                            <span class="badge badge-light me-2">[[ getCategoryName ]]</span>
+                                            <span class="badge badge-light me-2">[[ getOwnerName ]]</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap my-2">
+                                        <button class="btn btn-sm btn-primary me-2" @click.prevent="saveProject">儲存變更</button>
+                                        <div class="btn-group">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-light dropdown-toggle"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">更多操作</button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="#">查看報價</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#">查看請款</a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger"
+                                                       href="#"
+                                                       @click.prevent="deleteProject">刪除專案</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-column flex-column-fluid flex-xl-row">
+                    <div class="d-flex flex-column flex-row-fluid w-xl-50">
+                        <!-- 專案詳細資料表單 -->
+                        <div class="card mb-5 mt-5 mb-xl-10" id="project_details_form">
+                            <div class="card-header border-0 cursor-pointer">
+                                <div class="card-title m-0">
+                                    <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-4 fw-semibold mb-0">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" data-bs-toggle="tab" href="#tab_basic_info">基本資料</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#tab_design_info">設計(變更)</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#tab_finance_info">費用支出</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch form-check-custom form-check-solid">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               id="projectCompletedSwitch"
+                                               v-model="project.is_completed">
+                                        <label class="form-check-label" for="projectCompletedSwitch">
+                                            <span class="badge" :class="getStatusBadgeClass">[[ project.is_completed ? '已完成' : '進行中' ]]</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body border-top p-9">
+                                <form @submit.prevent="saveProject">
+                                    <div class="tab-content" id="myTabContent">
+                                        <!-- 基本資料標籤頁 -->
+                                        <div class="tab-pane fade show active" id="tab_basic_info" role="tabpanel">
+                                            <!-- 基本資料區塊 -->
+                                            <div class="row mb-5">
+                                                <div class="col-md-12 mb-5">
+                                                    <label class="form-label">業主</label>
+                                                    <div class="position-relative" v-click-outside="closeOwnerDropdown">
+                                                        <div class="input-group">
+                                                            <input type="text"
+                                                                   class="form-control"
+                                                                   v-model="ownerSearchTerm"
+                                                                   @focus="showOwnerDropdown = true"
+                                                                   @input="filterOwners"
+                                                                   placeholder="搜尋業主...">
+                                                            <button type="button"
+                                                                    class="btn btn-light-primary"
+                                                                    @click="showAddOwnerModal">
+                                                                <i class="ki-outline ki-plus fs-2"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="dropdown-menu w-100"
+                                                             :class="{ 'show': showOwnerDropdown }"
+                                                             style="max-height: 200px;
+                                                                    overflow-y: auto">
+                                                            <div v-if="filteredOwners.length === 0" class="dropdown-item disabled">沒有結果，請嘗試其他關鍵字或新增業主</div>
+                                                            <a v-for="owner in filteredOwners"
+                                                               :key="owner.id"
+                                                               class="dropdown-item"
+                                                               href="#"
+                                                               @click.prevent="selectOwner(owner)">
+                                                                [[ owner.company_name ]]
+                                                                <span v-if="owner.tax_id" class="text-muted">([[ owner.tax_id ]])</span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-5">
+                                                    <label class="form-label">年份</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           v-model="project.year"
+                                                           min="2000"
+                                                           max="2099">
+                                                </div>
+                                                <div class="col-md-4 mb-5">
+                                                    <label class="form-label">專案編號</label>
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           v-model="project.project_number"
+                                                           readonly>
+                                                </div>
+                                                <div class="col-md-4 mb-5">
+                                                    <label class="form-label">專案類別</label>
+                                                    <select class="form-select" v-model="project.category">
+                                                        <option v-for="category in categories"
+                                                                :key="category.id"
+                                                                :value="category.id">
+                                                            [[ category.code ]]: [[ category.description ]]
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-5">
+                                                <div class="col-md-12">
+                                                    <label class="form-label">專案名稱</label>
+                                                    <input type="text" class="form-control" v-model="project.name">
+                                                </div>
+                                            </div>
+                                            <!-- 其他資訊區塊 -->
+                                            <div class="card-title mb-5 mt-8">
+                                                <h4>其他資訊</h4>
+                                            </div>
+                                            <div class="row mb-5">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label">聯絡方式</label>
+                                                    <textarea class="form-control" v-model="project.contact_info" rows="3"></textarea>
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label">備註</label>
+                                                    <textarea class="form-control" v-model="project.notes" rows="5"></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- 設計(變更)標籤頁 -->
+                                        <div class="tab-pane fade" id="tab_design_info" role="tabpanel">
+                                            <!-- 變更紀錄區塊 -->
+                                            <div class="card-title mb-5">
+                                                <h4>設計與變更紀錄</h4>
+                                            </div>
+                                            <div class="row mb-5">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label">變更次數</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           v-model="project.change_count"
+                                                           min="0">
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label">變更說明</label>
+                                                    <textarea class="form-control" v-model="project.change_description" rows="3"></textarea>
+                                                </div>
+                                            </div>
+                                            <!-- 此處可以添加其他與設計/變更相關的欄位 -->
+                                        </div>
+                                        <!-- 費用支出標籤頁 -->
+                                        <div class="tab-pane fade" id="tab_finance_info" role="tabpanel">
+                                            <!-- 費用與請款區塊 -->
+                                            <div class="card-title mb-5">
+                                                <h4>費用與請款</h4>
+                                            </div>
+                                            <div class="row mb-5 ">
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label">支出金額</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           v-model="project.expenditure"
+                                                           min="0"
+                                                           step="0.01">
+                                                </div>
+                                                <div class="col-md-6 mb-5">
+                                                    <label class="form-label">請款金額</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           v-model="project.invoice_amount"
+                                                           min="0"
+                                                           step="0.01">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-end mt-5">
+                                        <a href="{% url 'projects' %}" class="btn btn-light me-3">取消</a>
+                                        <button type="submit" class="btn btn-primary">儲存變更</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column  w-xl-50">
+                        <!-- 專案負責人卡片 -->
+                        <div class="card m-5 mb-3 me-0">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <h4 class="fw-bold">專案團隊成員</h4>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- 專案負責人 -->
+                                <div class="mb-5">
+                                    <label class="form-label">專案負責人</label>
+                                    <div class="position-relative" v-click-outside="closeManagerDropdown">
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="managerSearchTerm"
+                                               @focus="showManagerDropdown = true"
+                                               @input="filterManagers"
+                                               placeholder="搜尋專案負責人...">
+                                        <div class="dropdown-menu w-100"
+                                             :class="{ 'show': showManagerDropdown }"
+                                             style="max-height: 200px;
+                                                    overflow-y: auto">
+                                            <div v-if="filteredManagers.length === 0" class="dropdown-item disabled">沒有結果</div>
+                                            <a v-for="manager in filteredManagers"
+                                               :key="manager.id"
+                                               class="dropdown-item"
+                                               href="#"
+                                               @click.prevent="selectManager(manager)">
+                                                [[ manager.profile.name || manager.username ]]
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 繪圖人員 -->
+                                <div class="mb-5">
+                                    <label class="form-label">繪圖人員</label>
+                                    <div class="position-relative" v-click-outside="closeDesignerDropdown">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="symbol symbol-30px me-3" v-if="project.designer">
+                                                <div class="symbol-label bg-light-success">
+                                                    <i class="ki-outline ki-abstract-26 fs-5 text-success"></i>
+                                                </div>
+                                            </div>
+                                            <span class="fs-6 fw-bold" v-if="getDesignerName">[[ getDesignerName ]]</span>
+                                        </div>
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="designerSearchTerm"
+                                               @focus="showDesignerDropdown = true"
+                                               @input="filterDesigners"
+                                               placeholder="搜尋繪圖人員...">
+                                        <div class="dropdown-menu w-100"
+                                             :class="{ 'show': showDesignerDropdown }"
+                                             style="max-height: 200px;
+                                                    overflow-y: auto">
+                                            <div v-if="filteredDesigners.length === 0" class="dropdown-item disabled">沒有結果</div>
+                                            <a v-for="designer in filteredDesigners"
+                                               :key="designer.id"
+                                               class="dropdown-item"
+                                               href="#"
+                                               @click.prevent="selectDesigner(designer)">
+                                                [[ designer.profile.name || designer.username ]]
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 其他繪圖人員 -->
+                                <div class="mb-5">
+                                    <label class="form-label">其他繪圖人員</label>
+                                    <input type="text"
+                                           class="form-control"
+                                           v-model="project.drawing_other"
+                                           placeholder="可輸入未在系統中的繪圖人員名稱">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-row flex-row-fluid">
+                            <!-- 請款狀態卡片 -->
+                            <div class="card m-5 mb-3 w-100 me-0">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <h4 class="fw-bold">請款狀態</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!-- 請款狀態 -->
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="symbol symbol-30px me-3">
+                                            <div class="symbol-label"
+                                                 :class="project.is_invoiced ? 'bg-light-success' : 'bg-light-warning'">
+                                                <i class="ki-outline ki-document fs-5"
+                                                   :class="project.is_invoiced ? 'text-success' : 'text-warning'"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="fs-6 fw-bold d-block">請款狀態</span>
+                                            <span class="badge"
+                                                  :class="project.is_invoiced ? 'badge-light-success' : 'badge-light-warning'">
+                                                [[ project.is_invoiced ? '已請款' : '未請款' ]]
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <!-- 請款日期 -->
+                                    <div class="d-flex align-items-center mb-3" v-if="project.invoice_date">
+                                        <div class="symbol symbol-30px me-3">
+                                            <div class="symbol-label bg-light-primary">
+                                                <i class="ki-outline ki-calendar fs-5 text-primary"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="fs-6 fw-bold d-block">請款日期</span>
+                                            <span class="text-gray-700">[[ project.invoice_date ]]</span>
+                                        </div>
+                                    </div>
+                                    <!-- 發票日期 -->
+                                    <div class="d-flex align-items-center mb-3"
+                                         v-if="project.invoice_issue_date">
+                                        <div class="symbol symbol-30px me-3">
+                                            <div class="symbol-label bg-light-primary">
+                                                <i class="ki-outline ki-document-2 fs-5 text-primary"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="fs-6 fw-bold d-block">發票日期</span>
+                                            <span class="text-gray-700">[[ project.invoice_issue_date ]]</span>
+                                        </div>
+                                    </div>
+                                    <!-- 收款狀態 -->
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="symbol symbol-30px me-3">
+                                            <div class="symbol-label"
+                                                 :class="project.is_paid ? 'bg-light-success' : 'bg-light-warning'">
+                                                <i class="ki-outline ki-dollar fs-5"
+                                                   :class="project.is_paid ? 'text-success' : 'text-warning'"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="fs-6 fw-bold d-block">收款狀態</span>
+                                            <span class="badge"
+                                                  :class="project.is_paid ? 'badge-light-success' : 'badge-light-warning'">
+                                                [[ project.is_paid ? '已收款' : '未收款' ]]
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <!-- 收款日期 -->
+                                    <div class="d-flex align-items-center mb-3" v-if="project.payment_date">
+                                        <div class="symbol symbol-30px me-3">
+                                            <div class="symbol-label bg-light-success">
+                                                <i class="ki-outline ki-calendar-tick fs-5 text-success"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="fs-6 fw-bold d-block">收款日期</span>
+                                            <span class="text-gray-700">[[ project.payment_date ]]</span>
+                                        </div>
+                                    </div>
+                                    <!-- 請款備註 -->
+                                    <div class="mb-3 mt-5" v-if="project.invoice_notes">
+                                        <div class="fs-6 fw-bold mb-2">請款備註</div>
+                                        <div class="text-gray-700 bg-light p-3 rounded">[[ project.invoice_notes ]]</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 新增業主的 Modal -->
+    <div class="modal fade"
+         tabindex="-1"
+         id="addOwnerModal"
+         aria-labelledby="addOwnerModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addOwnerModalLabel">新增業主</h5>
+                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                         @click="hideAddOwnerModal"
+                         aria-label="Close">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitOwnerForm" ref="ownerForm">
+                        <div class="mb-5">
+                            <label class="form-label">
+                                公司名稱<span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   v-model="newOwner.company_name"
+                                   required>
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">統一編號</label>
+                            <input type="text"
+                                   class="form-control"
+                                   v-model="newOwner.tax_id"
+                                   maxlength="8">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">聯絡人</label>
+                            <input type="text" class="form-control" v-model="newOwner.contact_person">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">電話</label>
+                            <input type="text" class="form-control" v-model="newOwner.phone">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">手機</label>
+                            <input type="text" class="form-control" v-model="newOwner.mobile">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">傳真</label>
+                            <input type="text" class="form-control" v-model="newOwner.fax">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">地址</label>
+                            <input type="text" class="form-control" v-model="newOwner.address">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" v-model="newOwner.email">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
+                            <button type="submit" class="btn btn-primary">送出</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 結束新增業主 Modal -->
+{% endblock content %}
+{% block extra_js %}
+    <script src="{% static 'crm/js/pages/project_detail.js' %}"></script>
+{% endblock extra_js %}

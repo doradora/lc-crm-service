@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Owner, Project, Quotation, Invoice, Category
+from .models import Owner, Project, Quotation, Invoice, Category, ProjectChange
 from django.contrib.auth.models import User
 
 
@@ -42,12 +42,36 @@ class UserMinimalSerializer(serializers.ModelSerializer):
         return obj.username
 
 
+class ProjectChangeSerializer(serializers.ModelSerializer):
+    """專案變更記錄序列化器"""
+
+    created_by_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ProjectChange
+        fields = [
+            "id",
+            "project",
+            "description",
+            "date_created",
+            "created_by",
+            "created_by_name",
+        ]
+        read_only_fields = ["date_created"]
+
+    def get_created_by_name(self, obj):
+        if obj.created_by and hasattr(obj.created_by, "profile"):
+            return obj.created_by.profile.name or obj.created_by.username
+        return None if not obj.created_by else obj.created_by.username
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     # 在獲取時增加名稱字段
     owner_name = serializers.SerializerMethodField(read_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
     manager_name = serializers.SerializerMethodField(read_only=True)
     drawing_name = serializers.SerializerMethodField(read_only=True)
+    changes = ProjectChangeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Project
@@ -66,8 +90,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "drawing_name",
             "drawing_other",
             "contact_info",
-            "change_count",
-            "change_description",
+            "changes",  # 變更記錄關聯
             "notes",
             "is_completed",
             "expenditure",
@@ -79,6 +102,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             "invoice_notes",
             "is_paid",
         ]
+        read_only_fields = [
+            "project_number"
+        ]  # 將 project_number 設為唯讀欄位，API 不需要提供
 
     def get_owner_name(self, obj):
         return obj.owner.company_name if obj.owner else None

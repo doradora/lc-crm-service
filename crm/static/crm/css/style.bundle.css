@@ -49838,8 +49838,8 @@ body,
 }
 @media (min-width: 992px) {
   .app-content {
-    padding-top: 30px;
-    padding-bottom: 30px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
     padding-left: 0;
     padding-right: 0;
   }
@@ -49847,8 +49847,8 @@ body,
 @media (max-width: 991.98px) {
   .app-content {
     max-width: none;
-    padding-top: 20px;
-    padding-bottom: 20px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
     padding-left: 0;
     padding-right: 0;
   }

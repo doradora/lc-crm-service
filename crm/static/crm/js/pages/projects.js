@@ -151,30 +151,20 @@ const projectList = createApp({
       this.isEditMode = true;
       this.editProjectId = project.id;
 
-      // 深度複製專案數據，避免直接修改列表數據
-      this.newProject = JSON.parse(JSON.stringify(project));
+      // 只複製基本欄位
+      this.newProject = {
+        category: project.category,
+        year: project.year,
+        project_number: project.project_number,
+        name: project.name,
+        owner: project.owner,
+      };
 
-      // 設置對應的搜尋項的值
+      // 設置業主搜尋框的顯示內容
       if (project.owner && this.ownerMap[project.owner]) {
         this.ownerSearchTerm = this.ownerMap[project.owner].company_name;
       } else {
         this.ownerSearchTerm = "";
-      }
-
-      if (project.manager && this.userMap[project.manager]) {
-        this.managerSearchTerm =
-          this.userMap[project.manager].profile.name ||
-          this.userMap[project.manager].username;
-      } else {
-        this.managerSearchTerm = "";
-      }
-
-      if (project.drawing && this.userMap[project.drawing]) {
-        this.designerSearchTerm =
-          this.userMap[project.drawing].profile.name ||
-          this.userMap[project.drawing].username;
-      } else {
-        this.designerSearchTerm = "";
       }
 
       // 顯示模態框
@@ -194,8 +184,14 @@ const projectList = createApp({
       this.activeMenu = null;
     },
     viewInvoices(projectId) {
-      // 導航到該專案的請款列表頁面
+      // 導航到詢專案的請款列表頁面
       window.location.href = `/crm/project/${projectId}/invoices/`;
+      // 關閉下拉選單
+      this.activeMenu = null;
+    },
+    viewProjectDetails(projectId) {
+      // 導航到該專案的詳情頁面
+      window.location.href = `/crm/project/${projectId}/details/`;
       // 關閉下拉選單
       this.activeMenu = null;
     },
@@ -330,35 +326,16 @@ const projectList = createApp({
       this.isEditMode = false;
       this.editProjectId = null;
 
-      // 重置表單數據
+      // 重置為簡化的表單數據，只保留最基本的欄位
       this.newProject = {
         owner: "",
         category: "",
         year: new Date().getFullYear(),
-        project_number: "",
         name: "",
-        manager: "",
-        drawing: "",
-        drawing_other: "",
-        contact_info: "",
-        change_count: 0,
-        change_description: "",
-        notes: "",
-        is_completed: false,
-        expenditure: 0, // 確保有預設值
-        is_invoiced: false,
-        invoice_date: null,
-        invoice_amount: null,
-        payment_date: null,
-        invoice_issue_date: null,
-        invoice_notes: "",
-        is_paid: false,
       };
 
-      // 重置搜尋欄位
+      // 清空業主搜尋框
       this.ownerSearchTerm = "";
-      this.managerSearchTerm = "";
-      this.designerSearchTerm = "";
 
       // 使用 Bootstrap 的 Modal API 顯示
       const modal = new bootstrap.Modal(
@@ -402,29 +379,30 @@ const projectList = createApp({
       modal.hide();
     },
     submitProjectForm() {
-      // 準備提交的數據
-      const formData = { ...this.newProject };
-
-      // 處理可能的 null 值
-      if (!formData.drawing) {
-        formData.drawing = null;
+      // 如果未選擇業主，顯示錯誤訊息
+      if (!this.newProject.owner) {
+        alert("請選擇或新增業主");
+        return;
       }
 
-      // 確保數值型欄位轉換為數字
-      formData.expenditure = parseFloat(formData.expenditure) || 0;
-      formData.change_count = parseInt(formData.change_count) || 0;
-      formData.year = parseInt(formData.year) || new Date().getFullYear();
+      // 簡化的表單提交，只包含基本欄位
+      const formData = {
+        owner: this.newProject.owner,
+        category: this.newProject.category,
+        year: parseInt(this.newProject.year) || new Date().getFullYear(),
+        name: this.newProject.name,
+      };
 
-      // 確保空字符串欄位設置為空字符串而非 null
-      formData.contact_info = formData.contact_info || "";
-      formData.change_description = formData.change_description || "";
-      formData.notes = formData.notes || "";
-      formData.drawing_other = formData.drawing_other || "";
+      // 如果是編輯模式且已有專案編號，則保留它
+      if (this.isEditMode && this.newProject.project_number) {
+        // 在編輯模式下，我們不修改 project_number，讓它維持原樣
+        // DRF 會忽略此欄位，因為我們已將其設為 read_only
+      }
 
       const url = this.isEditMode
         ? `/crm/api/projects/${this.editProjectId}/`
         : "/crm/api/projects/";
-      const method = this.isEditMode ? "PUT" : "POST";
+      const method = this.isEditMode ? "PATCH" : "POST";
 
       fetch(url, {
         method: method,
@@ -444,9 +422,16 @@ const projectList = createApp({
           }
           return response.json();
         })
-        .then(() => {
+        .then((data) => {
           this.hideAddProjectModal(); // 提交成功後關閉 Modal
-          this.fetchProjects(this.currentPage); // 刷新專案列表
+
+          if (this.isEditMode) {
+            // 如果是編輯模式，重新載入專案列表
+            this.fetchProjects(this.currentPage);
+          } else {
+            // 如果是新增模式，導航到專案詳情頁進行完整編輯
+            window.location.href = `/crm/project/${data.id}/details/`;
+          }
         })
         .catch((error) => {
           console.error("Error:", error);

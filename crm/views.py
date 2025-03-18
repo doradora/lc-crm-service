@@ -1,7 +1,8 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count, Sum, F, Q, Min, Max
 from django.utils import timezone
+from django.contrib import messages
 from rest_framework import viewsets, filters, permissions, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import SessionAuthentication
@@ -67,6 +68,28 @@ def project_invoices(request, project_id):
 def project_dashboard(request):
     """顯示專案儀表板頁面"""
     return render(request, "crm/pages/project_dashboard.html")
+
+
+@login_required(login_url="signin")
+def project_details(request, project_id):
+    """
+    顯示專案詳情頁面
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        messages.error(request, "專案不存在")
+        return redirect("projects")
+
+    # 檢查用戶權限
+    # 這裡可以添加額外的權限檢查，例如檢查該用戶是否有權限查看特定專案
+
+    context = {
+        "project_id": project_id,
+        "page_title": f"專案詳情 - {project.name}",
+    }
+
+    return render(request, "crm/pages/project_detail.html", context)
 
 
 # API
