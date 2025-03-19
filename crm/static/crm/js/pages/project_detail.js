@@ -26,6 +26,8 @@ const projectDetail = createApp({
         invoice_issue_date: null,
         invoice_notes: "",
         is_paid: false,
+        expenditures: [], // 添加支出記錄陣列
+        total_expenditure: 0, // 添加總支出金額
       },
 
       // 其他數據
@@ -61,6 +63,13 @@ const projectDetail = createApp({
 
       // 標籤頁相關
       activeTab: "tab_basic_info",
+
+      // 新增支出相關數據
+      newExpenditure: {
+        date: new Date().toISOString().slice(0, 10), // 預設為今天
+        amount: 0,
+        description: "",
+      },
     };
   },
   computed: {
@@ -524,6 +533,112 @@ const projectDetail = createApp({
     switchTab(tabId) {
       this.activeTab = tabId;
       // Bootstrap 已經處理了標籤切換的顯示邏輯，此方法僅用於記錄當前活動標籤
+    },
+
+    // 格式化金額顯示
+    formatAmount(amount) {
+      return parseFloat(amount).toLocaleString("zh-TW", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+    },
+
+    // 顯示新增支出Modal
+    showAddExpenditureModal() {
+      // 重置新支出表單
+      this.newExpenditure = {
+        date: new Date().toISOString().slice(0, 10), // 預設為今天
+        amount: 0,
+        description: "",
+      };
+
+      // 顯示新增支出Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("addExpenditureModal")
+      );
+      modal.show();
+    },
+
+    // 隱藏新增支出Modal
+    hideAddExpenditureModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("addExpenditureModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 提交新增支出表單
+    submitExpenditureForm() {
+      const expenditureData = {
+        project: this.projectId,
+        date: this.newExpenditure.date,
+        amount: this.newExpenditure.amount,
+        description: this.newExpenditure.description,
+      };
+
+      fetch("/crm/api/expenditures/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector(
+            'input[name="csrfmiddlewaretoken"]'
+          ).value,
+        },
+        body: JSON.stringify(expenditureData),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((err) => {
+              throw new Error(JSON.stringify(err));
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // 新增支出成功後，更新專案詳情以獲取最新支出記錄
+          this.fetchProjectDetails();
+
+          // 關閉Modal
+          this.hideAddExpenditureModal();
+
+          // 顯示成功提示
+          alert(`支出記錄新增成功`);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert(`新增支出失敗：${error.message}`);
+        });
+    },
+
+    // 刪除支出記錄
+    deleteExpenditure(expenditureId) {
+      if (confirm("確定要刪除此支出記錄嗎？此操作無法還原！")) {
+        fetch(`/crm/api/expenditures/${expenditureId}/`, {
+          method: "DELETE",
+          headers: {
+            "X-CSRFToken": document.querySelector(
+              'input[name="csrfmiddlewaretoken"]'
+            ).value,
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("刪除失敗");
+            }
+
+            // 刪除成功後，更新專案詳情以獲取最新支出記錄
+            this.fetchProjectDetails();
+
+            // 顯示成功提示
+            alert("支出記錄已刪除");
+          })
+          .catch((error) => {
+            console.error("Error deleting expenditure:", error);
+            alert(`刪除失敗: ${error.message}`);
+          });
+      }
     },
   },
   mounted() {

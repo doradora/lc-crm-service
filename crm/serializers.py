@@ -1,5 +1,14 @@
 from rest_framework import serializers
-from .models import Owner, Project, Quotation, Invoice, Category, ProjectChange
+from .models import (
+    Owner,
+    Project,
+    Quotation,
+    Invoice,
+    Category,
+    ProjectChange,
+    Expenditure,
+    InvoiceProject,
+)
 from django.contrib.auth.models import User
 
 
@@ -53,11 +62,36 @@ class ProjectChangeSerializer(serializers.ModelSerializer):
             "id",
             "project",
             "description",
-            "date_created",
+            "created_at",  # 修正為 created_at，與模型對應
             "created_by",
             "created_by_name",
         ]
-        read_only_fields = ["date_created"]
+        read_only_fields = ["created_at"]  # 修正為 created_at
+
+    def get_created_by_name(self, obj):
+        if obj.created_by and hasattr(obj.created_by, "profile"):
+            return obj.created_by.profile.name or obj.created_by.username
+        return None if not obj.created_by else obj.created_by.username
+
+
+class ExpenditureSerializer(serializers.ModelSerializer):
+    """專案支出序列化器"""
+
+    created_by_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Expenditure
+        fields = [
+            "id",
+            "project",
+            "amount",
+            "description",
+            "date",
+            "created_by",
+            "created_by_name",
+            "created_at",
+        ]
+        read_only_fields = ["created_at"]
 
     def get_created_by_name(self, obj):
         if obj.created_by and hasattr(obj.created_by, "profile"):
@@ -72,6 +106,10 @@ class ProjectSerializer(serializers.ModelSerializer):
     manager_name = serializers.SerializerMethodField(read_only=True)
     drawing_name = serializers.SerializerMethodField(read_only=True)
     changes = ProjectChangeSerializer(many=True, read_only=True)
+    expenditures = ExpenditureSerializer(many=True, read_only=True)
+    total_expenditure = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
 
     class Meta:
         model = Project
@@ -91,9 +129,10 @@ class ProjectSerializer(serializers.ModelSerializer):
             "drawing_other",
             "contact_info",
             "changes",  # 變更記錄關聯
+            "expenditures",  # 支出記錄關聯
+            "total_expenditure",  # 總支出
             "notes",
             "is_completed",
-            "expenditure",
             "is_invoiced",
             "invoice_date",
             "invoice_amount",
@@ -103,8 +142,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             "is_paid",
         ]
         read_only_fields = [
-            "project_number"
-        ]  # 將 project_number 設為唯讀欄位，API 不需要提供
+            "project_number",
+            "total_expenditure",
+        ]  # 將 project_number 和 total_expenditure 設為唯讀欄位
 
     def get_owner_name(self, obj):
         return obj.owner.company_name if obj.owner else None
@@ -136,37 +176,57 @@ class QuotationSerializer(serializers.ModelSerializer):
         return Invoice.objects.filter(quotation=obj).exists()
 
 
-class InvoiceSerializer(serializers.ModelSerializer):
-    quotation_amount = serializers.SerializerMethodField(read_only=True)
-    project_id = serializers.SerializerMethodField(read_only=True)
+class InvoiceProjectSerializer(serializers.ModelSerializer):
+    """發票專案關聯序列化器"""
+
     project_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = InvoiceProject
+        fields = [
+            "id",
+            "invoice",
+            "project",
+            "project_name",
+            "quotation",
+            "amount",
+            "description",
+        ]
+
+    def get_project_name(self, obj):
+        return obj.project.name if obj.project else None
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    projects = serializers.SerializerMethodField(read_only=True)
+    created_by_name = serializers.SerializerMethodField(read_only=True)
+    invoice_projects = InvoiceProjectSerializer(
+        source="invoiceproject_set", many=True, read_only=True
+    )
 
     class Meta:
         model = Invoice
         fields = [
             "id",
-            "quotation",
-            "quotation_amount",
-            "project_id",
-            "project_name",
+            "invoice_number",
+            "projects",
+            "invoice_projects",
             "amount",
             "date_issued",
+            "due_date",
             "paid",
+            "payment_date",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "created_at",
         ]
+        read_only_fields = ["amount", "created_at"]
 
-    def get_quotation_amount(self, obj):
-        return obj.quotation.amount if obj.quotation else None
+    def get_projects(self, obj):
+        return [project.id for project in obj.projects.all()]
 
-    def get_project_id(self, obj):
-        return (
-            obj.quotation.project.id
-            if obj.quotation and obj.quotation.project
-            else None
-        )
-
-    def get_project_name(self, obj):
-        return (
-            obj.quotation.project.name
-            if obj.quotation and obj.quotation.project
-            else None
-        )
+    def get_created_by_name(self, obj):
+        if obj.created_by and hasattr(obj.created_by, "profile"):
+            return obj.created_by.profile.name or obj.created_by.username
+        return None if not obj.created_by else obj.created_by.username

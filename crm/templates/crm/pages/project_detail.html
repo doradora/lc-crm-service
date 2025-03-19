@@ -252,6 +252,54 @@
                                                            step="0.01">
                                                 </div>
                                             </div>
+                                            <!-- 支出記錄列表區塊 -->
+                                            <div class="card-title mb-5 d-flex justify-content-between align-items-center">
+                                                <h4>支出記錄</h4>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-primary"
+                                                        @click="showAddExpenditureModal">
+                                                    <i class="ki-outline ki-plus fs-2"></i>新增支出
+                                                </button>
+                                            </div>
+                                            <!-- 支出記錄表格 -->
+                                            <div class="table-responsive">
+                                                <table class="table table-row-dashed table-row-gray-200 align-middle gs-0 gy-4">
+                                                    <thead>
+                                                        <tr class="fw-bold text-muted bg-light">
+                                                            <th class="min-w-100px">日期</th>
+                                                            <th class="min-w-150px">說明</th>
+                                                            <th class="min-w-100px text-end">金額</th>
+                                                            <th class="min-w-100px">建立者</th>
+                                                            <th class="min-w-100px text-center">操作</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-if="!project.expenditures || project.expenditures.length === 0">
+                                                            <td colspan="5" class="text-center py-5">尚無支出記錄</td>
+                                                        </tr>
+                                                        <tr v-for="expenditure in project.expenditures" :key="expenditure.id">
+                                                            <td>[[ expenditure.date ]]</td>
+                                                            <td>[[ expenditure.description ]]</td>
+                                                            <td class="text-end fw-bold">NT$ [[ formatAmount(expenditure.amount) ]]</td>
+                                                            <td>[[ expenditure.created_by_name ]]</td>
+                                                            <td class="text-center">
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-icon btn-light-danger"
+                                                                        @click="deleteExpenditure(expenditure.id)">
+                                                                    <i class="ki-outline ki-trash fs-2"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                    <tfoot v-if="project.expenditures && project.expenditures.length > 0">
+                                                        <tr>
+                                                            <td colspan="2" class="text-end fw-bold">總計:</td>
+                                                            <td class="text-end fw-bolder fs-6 text-primary">NT$ [[ formatAmount(project.total_expenditure) ]]</td>
+                                                            <td colspan="2"></td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-end mt-5">
@@ -500,6 +548,63 @@
         </div>
     </div>
     <!-- 結束新增業主 Modal -->
+    <!-- 新增支出的 Modal -->
+    <div class="modal fade"
+         tabindex="-1"
+         id="addExpenditureModal"
+         aria-labelledby="addExpenditureModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addExpenditureModalLabel">新增支出記錄</h5>
+                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                         @click="hideAddExpenditureModal"
+                         aria-label="Close">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitExpenditureForm" ref="expenditureForm">
+                        <div class="mb-5">
+                            <label class="form-label">
+                                支出日期<span class="text-danger">*</span>
+                            </label>
+                            <input type="date"
+                                   class="form-control"
+                                   v-model="newExpenditure.date"
+                                   required>
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">
+                                支出金額<span class="text-danger">*</span>
+                            </label>
+                            <input type="number"
+                                   class="form-control"
+                                   v-model="newExpenditure.amount"
+                                   min="0"
+                                   step="0.01"
+                                   required>
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">
+                                支出說明<span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control"
+                                      v-model="newExpenditure.description"
+                                      rows="3"
+                                      required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" @click="hideAddExpenditureModal">關閉</button>
+                            <button type="submit" class="btn btn-primary">新增支出</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 結束新增支出 Modal -->
 {% endblock content %}
 {% block extra_js %}
     <script src="{% static 'crm/js/pages/project_detail.js' %}"></script>

@@ -8,13 +8,23 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Owner, Project, Quotation, Invoice, Category
+from .models import (
+    Owner,
+    Project,
+    Quotation,
+    Invoice,
+    Category,
+    Expenditure,
+    ProjectChange,
+)
 from .serializers import (
     OwnerSerializer,
     ProjectSerializer,
     QuotationSerializer,
     InvoiceSerializer,
     CategorySerializer,
+    ExpenditureSerializer,
+    ProjectChangeSerializer,
 )
 
 
@@ -333,6 +343,32 @@ class InvoiceViewSet(BaseViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class ExpenditureViewSet(BaseViewSet):
+    queryset = Expenditure.objects.all().select_related("project", "created_by")
+    serializer_class = ExpenditureSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["description"]
+
+    def get_queryset(self):
+        queryset = Expenditure.objects.all().select_related("project", "created_by")
+
+        # 專案過濾
+        project_id = self.request.query_params.get("project", None)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        return queryset.order_by("-date")
+
+    def perform_create(self, serializer):
+        # 自動設置建立者為當前用戶
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        # 更新時保留原始建立者
+        serializer.save()
 
 
 @login_required(login_url="signin")

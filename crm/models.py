@@ -45,15 +45,14 @@ class Project(models.Model):
         max_length=255, blank=True, null=True
     )  # 其他繪圖人員名字
     contact_info = models.TextField(blank=True)  # 聯絡方式，設為非必填
-    # 移除 change_count 和 change_description 欄位
     notes = models.TextField(blank=True)  # 備註，設為非必填
     is_completed = models.BooleanField(default=False)  # 是否完成
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True
     )  # 案件類別
-    expenditure = models.DecimalField(
+    total_expenditure = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
-    )  # 支出，設定預設值
+    )  # 總支出，設定預設值
     is_invoiced = models.BooleanField(default=False)  # 是否請款
     invoice_date = models.DateField(null=True, blank=True)  # 請款日期
     invoice_amount = models.DecimalField(
@@ -108,6 +107,44 @@ class Project(models.Model):
         """計算專案變更次數"""
         return self.changes.count()
 
+    def update_total_expenditure(self):
+        """更新總支出金額"""
+        total = self.expenditures.aggregate(total=models.Sum("amount"))["total"] or 0
+        self.total_expenditure = total
+        self.save(update_fields=["total_expenditure"])
+
+
+class Expenditure(models.Model):
+    """專案支出模型"""
+
+    project = models.ForeignKey(
+        Project, related_name="expenditures", on_delete=models.CASCADE
+    )  # 關聯的專案
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 支出金額
+    description = models.TextField()  # 支出說明
+    date = models.DateField()  # 消費時間
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )  # 建立者
+    created_at = models.DateTimeField(auto_now_add=True)  # 建立時間
+
+    def __str__(self):
+        return f"{self.project.name} - {self.amount} - {self.date}"
+
+    class Meta:
+        ordering = ["-date"]  # 依日期排序，最新的在前
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # 更新專案的總支出
+        self.project.update_total_expenditure()
+
+    def delete(self, *args, **kwargs):
+        project = self.project
+        super().delete(*args, **kwargs)
+        # 更新專案的總支出
+        project.update_total_expenditure()
+
 
 class ProjectChange(models.Model):
     """專案變更記錄模型"""
@@ -116,7 +153,7 @@ class ProjectChange(models.Model):
         Project, related_name="changes", on_delete=models.CASCADE
     )  # 關聯的專案
     description = models.TextField()  # 變更說明
-    date_created = models.DateField(auto_now_add=True)  # 變更建立日期
+    created_at = models.DateField(auto_now_add=True)  # 變更建立日期
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True
     )  # 變更建立者
@@ -125,7 +162,7 @@ class ProjectChange(models.Model):
         return f"{self.project.name} - 變更 #{self.id}"
 
     class Meta:
-        ordering = ["-date_created"]  # 依建立日期排序，最新的在前
+        ordering = ["-created_at"]  # 依建立日期排序，最新的在前
 
 
 class Quotation(models.Model):
@@ -142,10 +179,58 @@ class Quotation(models.Model):
 
 
 class Invoice(models.Model):
-    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE)  # 所屬報價單
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 請款金額
+    invoice_number = models.CharField(max_length=50, unique=True)  # 請款單號
+    projects = models.ManyToManyField(
+        Project, through="InvoiceProject", related_name="invoices"
+    )  # 關聯多個專案
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 請款總金額
     date_issued = models.DateField()  # 發行日期
+    due_date = models.DateField(null=True, blank=True)  # 付款截止日期
     paid = models.BooleanField(default=False)  # 是否已付款
+    payment_date = models.DateField(null=True, blank=True)  # 實際付款日期
+    notes = models.TextField(blank=True, null=True)  # 備註
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )  # 建立者
+    created_at = models.DateTimeField(auto_now_add=True)  # 建立時間
 
     def __str__(self):
-        return f"Invoice for {self.quotation.project.name}"
+        return f"Invoice #{self.invoice_number}"
+
+    def get_total_amount(self):
+        """計算所有相關專案的請款金額總和"""
+        return sum(ip.amount for ip in self.invoiceproject_set.all())
+
+    def update_amount(self):
+        """更新請款總金額"""
+        self.amount = self.get_total_amount()
+        self.save(update_fields=["amount"])
+
+
+class InvoiceProject(models.Model):
+    """請款單與專案的關聯表"""
+
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)  # 關聯的請款單
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)  # 關聯的專案
+    quotation = models.ForeignKey(
+        Quotation, on_delete=models.SET_NULL, null=True, blank=True
+    )  # 引用的報價單（可選）
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 此專案的請款金額
+    description = models.TextField(blank=True, null=True)  # 此專案請款說明
+
+    def __str__(self):
+        return f"{self.invoice.invoice_number} - {self.project.name}"
+
+    class Meta:
+        unique_together = ("invoice", "project")  # 確保一個請款單中一個專案只出現一次
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # 更新請款單總金額
+        self.invoice.update_amount()
+
+    def delete(self, *args, **kwargs):
+        invoice = self.invoice
+        super().delete(*args, **kwargs)
+        # 更新請款單總金額
+        invoice.update_amount()
