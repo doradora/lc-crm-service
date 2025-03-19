@@ -3,11 +3,12 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
-router.register(r"categories", views.CategoryViewSet)
 router.register(r"owners", views.OwnerViewSet)
 router.register(r"projects", views.ProjectViewSet)
 router.register(r"quotations", views.QuotationViewSet)
+router.register(r"payments", views.PaymentViewSet)
 router.register(r"invoices", views.InvoiceViewSet)
+router.register(r"categories", views.CategoryViewSet)
 router.register(r"expenditures", views.ExpenditureViewSet)
 
 urlpatterns = [
@@ -16,9 +17,8 @@ urlpatterns = [
     path("owners/", views.owners, name="owners"),
     path("projects/", views.projects, name="projects"),
     path("quotations/", views.quotations, name="quotations"),
+    path("payments/", views.payments, name="payments"),
     path("invoices/", views.invoices, name="invoices"),
-    path("dashboard/", views.project_dashboard, name="project_dashboard"),
-    # 關聯路由
     path("owner/<int:owner_id>/projects/", views.owner_projects, name="owner_projects"),
     path(
         "project/<int:project_id>/quotations/",
@@ -26,16 +26,11 @@ urlpatterns = [
         name="project_quotations",
     ),
     path(
-        "project/<int:project_id>/invoices/",
-        views.project_invoices,
-        name="project_invoices",
+        "project/<int:project_id>/payments/",
+        views.project_payments,
+        name="project_payments",
     ),
-    # 新增專案詳情頁路由
-    path(
-        "project/<int:project_id>/details/",
-        views.project_details,
-        name="project_details",
-    ),
+    path("project/dashboard/", views.project_dashboard, name="project_dashboard"),
+    path("project/<int:project_id>/", views.project_details, name="project_details"),
     path("api/", include(router.urls)),
-    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]

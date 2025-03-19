@@ -3,11 +3,12 @@ from .models import (
     Owner,
     Project,
     Quotation,
+    Payment,
     Invoice,
     Category,
     ProjectChange,
     Expenditure,
-    InvoiceProject,
+    PaymentProject,
 )
 from django.contrib.auth.models import User
 
@@ -176,16 +177,16 @@ class QuotationSerializer(serializers.ModelSerializer):
         return Invoice.objects.filter(quotation=obj).exists()
 
 
-class InvoiceProjectSerializer(serializers.ModelSerializer):
-    """發票專案關聯序列化器"""
+class PaymentProjectSerializer(serializers.ModelSerializer):
+    """請款單專案關聯序列化器"""
 
     project_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model = InvoiceProject
+        model = PaymentProject
         fields = [
             "id",
-            "invoice",
+            "payment",
             "project",
             "project_name",
             "quotation",
@@ -197,20 +198,21 @@ class InvoiceProjectSerializer(serializers.ModelSerializer):
         return obj.project.name if obj.project else None
 
 
-class InvoiceSerializer(serializers.ModelSerializer):
+class PaymentSerializer(serializers.ModelSerializer):
     projects = serializers.SerializerMethodField(read_only=True)
     created_by_name = serializers.SerializerMethodField(read_only=True)
-    invoice_projects = InvoiceProjectSerializer(
-        source="invoiceproject_set", many=True, read_only=True
+    payment_projects = PaymentProjectSerializer(
+        source="paymentproject_set", many=True, read_only=True
     )
+    invoices = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model = Invoice
+        model = Payment
         fields = [
             "id",
-            "invoice_number",
+            "payment_number",
             "projects",
-            "invoice_projects",
+            "payment_projects",
             "amount",
             "date_issued",
             "due_date",
@@ -220,6 +222,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "created_by",
             "created_by_name",
             "created_at",
+            "invoices",
         ]
         read_only_fields = ["amount", "created_at"]
 
@@ -230,3 +233,40 @@ class InvoiceSerializer(serializers.ModelSerializer):
         if obj.created_by and hasattr(obj.created_by, "profile"):
             return obj.created_by.profile.name or obj.created_by.username
         return None if not obj.created_by else obj.created_by.username
+
+    def get_invoices(self, obj):
+        from .serializers import InvoiceSerializer
+
+        return InvoiceSerializer(obj.invoices.all(), many=True).data
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    """發票序列化器"""
+
+    created_by_name = serializers.SerializerMethodField(read_only=True)
+    payment_number = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Invoice
+        fields = [
+            "id",
+            "invoice_number",
+            "payment",
+            "payment_number",
+            "amount",
+            "issue_date",
+            "tax_amount",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "created_at",
+        ]
+        read_only_fields = ["created_at"]
+
+    def get_created_by_name(self, obj):
+        if obj.created_by and hasattr(obj.created_by, "profile"):
+            return obj.created_by.profile.name or obj.created_by.username
+        return None if not obj.created_by else obj.created_by.username
+
+    def get_payment_number(self, obj):
+        return obj.payment.payment_number if obj.payment else None

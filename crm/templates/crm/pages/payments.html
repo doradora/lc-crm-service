@@ -1,0 +1,266 @@
+{% extends 'crm/base.html' %}
+{% load static %}
+{% block title %}請款管理{% endblock %}
+{% block content %}
+    <div class="app-main flex-column flex-row-fluid" id="app_main">
+        <div id="app_toolbar" class="app-toolbar pt-7 pt-lg-10">
+            <div id="app_toolbar_container"
+                 class="app-container container-fluid d-flex align-items-stretch">
+                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
+                    <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
+                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">請款管理</h1>
+                        <!--begin::Breadcrumb-->
+                        <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">請款管理</li>
+                            <!--end::Item-->
+                        </ul>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 gap-lg-3">
+                        <button class="btn btn-primary"
+                                @click.prevent="showAddPaymentModal"
+                                :disabled="selectedProjects.size === 0">
+                            新增請款單 ([[ selectedProjects.size ]] 個專案)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="app_content" class="app-content flex-column-fluid">
+            <div id="app_content_container" class="app-container container-fluid">
+                <div class="row">
+                    <!-- 左側：篩選條件 -->
+                    <div class="col-md-4">
+                        <!-- 搜尋和篩選區塊 -->
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                <h6 class="m-0 fw-bold text-primary">篩選條件</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- 業主搜尋 -->
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">業主</label>
+                                        <select class="form-select" v-model="ownerFilter">
+                                            <option value="">全部業主</option>
+                                            <option v-for="owner in owners" :key="owner.id" :value="owner.id">[[ owner.company_name ]]</option>
+                                        </select>
+                                    </div>
+                                    <!-- 年份範圍搜尋 -->
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">年份範圍 (從)</label>
+                                        <select class="form-select" v-model="startYearFilter">
+                                            <option value="">全部</option>
+                                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">年份範圍 (至)</label>
+                                        <select class="form-select" v-model="endYearFilter">
+                                            <option value="">全部</option>
+                                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- 專案名稱搜尋 -->
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">專案名稱搜尋</label>
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="searchQuery"
+                                               placeholder="輸入關鍵字...">
+                                    </div>
+                                    <div class="col-12 mb-3 d-flex">
+                                        <button class="btn btn-primary me-2 flex-fill" @click="fetchProjects()">
+                                            <i class="ki-outline ki-magnifier fs-2"></i> 搜尋
+                                        </button>
+                                        <button class="btn btn-secondary flex-fill" @click="resetFilters()">
+                                            <i class="ki-outline ki-arrows-circle fs-2"></i> 重設
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 右側：專案清單 -->
+                    <div class="col-md-8">
+                        <!-- 專案清單區塊 -->
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                <h6 class="m-0 fw-bold text-primary">專案清單</h6>
+                            </div>
+                            <div class="card-body">
+                                <div v-if="isLoading" class="d-flex justify-content-center py-10">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">載入中...</span>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table align-middle table-row-dashed table-hover fs-6 gy-5">
+                                        <thead>
+                                            <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                                                <th>
+                                                    <input type="checkbox"
+                                                           @change="selectAllProjects"
+                                                           :checked="selectAllChecked">
+                                                </th>
+                                                <th>案件編號</th>
+                                                <th>案件名稱</th>
+                                                <th>業主</th>
+                                                <th>案件類別</th>
+                                                <th>負責人</th>
+                                                <th>請款金額</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="fw-semibold text-gray-600">
+                                            <tr v-if="projects.length === 0">
+                                                <td colspan="7" class="text-center">沒有符合條件的專案</td>
+                                            </tr>
+                                            <tr v-for="project in projects" :key="project.id">
+                                                <td>
+                                                    <input type="checkbox"
+                                                           :value="project.id"
+                                                           @change="toggleProjectSelection(project)"
+                                                           :checked="isProjectSelected(project.id)">
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-light">[[ project.year ]]-[[ project.project_number ]]</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="ms-5">
+                                                            <a :href="`/crm/project/${project.id}/details/`"
+                                                               class="text-gray-800 text-hover-primary fs-5 fw-bold">[[ project.name ]]</a>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>[[ project.owner_name || 'N/A' ]]</td>
+                                                <td>[[ project.category_name || 'N/A' ]]</td>
+                                                <td>[[ project.manager_name || 'N/A' ]]</td>
+                                                <td>
+                                                    <input type="number"
+                                                           v-model.number="projectAmounts[project.id]"
+                                                           class="form-control"
+                                                           min="0"
+                                                           step="1000">
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <!-- 分頁控制 -->
+                                    <ul class="pagination">
+                                        <li class="page-item btn"
+                                            @click="fetchProjects(currentPage - 1)"
+                                            :class="currentPage === 1 ? 'disabled' : ''"
+                                            :disabled="currentPage === 1">上一頁</li>
+                                        <li class="page-item">
+                                            <a>第 [[ currentPage ]] 頁 / 共 [[ totalPages ]] 頁</a>
+                                        </li>
+                                        <li class="page-item btn"
+                                            @click="fetchProjects(currentPage + 1)"
+                                            :class="currentPage === totalPages? 'disabled' : ''"
+                                            :disabled="currentPage === totalPages">下一頁</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 新增請款單 Modal -->
+        <div class="modal fade"
+             tabindex="-1"
+             id="addPaymentModal"
+             aria-labelledby="addPaymentModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addPaymentModalLabel">新增請款單</h5>
+                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                             @click="hideAddPaymentModal"
+                             aria-label="Close">
+                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="submitPaymentForm">
+                            <div class="mb-3">
+                                <label class="form-label required">請款單號</label>
+                                <input type="text"
+                                       class="form-control"
+                                       v-model="newPayment.payment_number"
+                                       required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label required">發行日期</label>
+                                <input type="date"
+                                       class="form-control"
+                                       v-model="newPayment.date_issued"
+                                       required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">付款截止日期</label>
+                                <input type="date" class="form-control" v-model="newPayment.due_date">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">備註</label>
+                                <textarea class="form-control" v-model="newPayment.notes" rows="3"></textarea>
+                            </div>
+                            <h5 class="mt-4 mb-3">已選擇的專案</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="selected-projects-table">
+                                    <thead>
+                                        <tr>
+                                            <th>案件名稱</th>
+                                            <th>請款金額</th>
+                                            <th>說明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="project in selectedProjectsList" :key="project.id">
+                                            <td>[[ project.name ]]</td>
+                                            <td>
+                                                <input type="number"
+                                                       class="form-control"
+                                                       v-model.number="projectAmounts[project.id]"
+                                                       min="0"
+                                                       step="1000"
+                                                       required>
+                                            </td>
+                                            <td>
+                                                <input type="text"
+                                                       class="form-control"
+                                                       v-model="projectDescriptions[project.id]"
+                                                       placeholder="請輸入說明...">
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" @click="hideAddPaymentModal">取消</button>
+                                <button type="submit" class="btn btn-primary">建立請款單</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="{% static 'crm/js/pages/payments.js' %}"></script>
+{% endblock extra_js %}

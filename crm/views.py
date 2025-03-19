@@ -12,19 +12,23 @@ from .models import (
     Owner,
     Project,
     Quotation,
+    Payment,
     Invoice,
     Category,
     Expenditure,
     ProjectChange,
+    PaymentProject,
 )
 from .serializers import (
     OwnerSerializer,
     ProjectSerializer,
     QuotationSerializer,
+    PaymentSerializer,
     InvoiceSerializer,
     CategorySerializer,
     ExpenditureSerializer,
     ProjectChangeSerializer,
+    PaymentProjectSerializer,
 )
 
 
@@ -46,6 +50,11 @@ def projects(request):
 @login_required(login_url="signin")
 def quotations(request):
     return render(request, "crm/pages/quotations.html")
+
+
+@login_required(login_url="signin")
+def payments(request):
+    return render(request, "crm/pages/payments.html")
 
 
 @login_required(login_url="signin")
@@ -72,6 +81,13 @@ def project_invoices(request, project_id):
     """顯示特定專案的請款列表"""
     project = get_object_or_404(Project, id=project_id)
     return render(request, "crm/pages/project_invoices.html", {"project": project})
+
+
+@login_required(login_url="signin")
+def project_payments(request, project_id):
+    """顯示特定專案的請款列表"""
+    project = get_object_or_404(Project, id=project_id)
+    return render(request, "crm/pages/project_payments.html", {"project": project})
 
 
 @login_required(login_url="signin")
@@ -313,28 +329,89 @@ class QuotationViewSet(BaseViewSet):
         return queryset.order_by("-date_issued")
 
 
-class InvoiceViewSet(BaseViewSet):
-    queryset = Invoice.objects.all().select_related("quotation", "quotation__project")
-    serializer_class = InvoiceSerializer
+class PaymentViewSet(BaseViewSet):
+    queryset = Payment.objects.all().prefetch_related(
+        "projects", "paymentproject_set", "paymentproject_set__project"
+    )
+    serializer_class = PaymentSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
+    search_fields = ["payment_number", "projects__name"]
 
     def get_queryset(self):
-        queryset = Invoice.objects.all().select_related(
-            "quotation", "quotation__project"
+        queryset = Payment.objects.all().prefetch_related(
+            "projects", "paymentproject_set", "paymentproject_set__project"
         )
 
         # 報價過濾
         quotation_id = self.request.query_params.get("quotation", None)
         if quotation_id:
-            queryset = queryset.filter(quotation_id=quotation_id)
+            queryset = queryset.filter(paymentproject__quotation_id=quotation_id)
 
         # 專案過濾
         project_id = self.request.query_params.get("project", None)
         if project_id:
-            queryset = queryset.filter(quotation__project_id=project_id)
+            queryset = queryset.filter(projects__id=project_id)
+
+        # 客戶過濾
+        owner_id = self.request.query_params.get("owner", None)
+        if owner_id:
+            queryset = queryset.filter(projects__owner_id=owner_id)
 
         return queryset.order_by("-date_issued")
+
+    def create(self, request, *args, **kwargs):
+        """
+        建立新請款單，同時處理關聯的專案
+        """
+        payment_data = {
+            "payment_number": request.data.get("payment_number"),
+            "date_issued": request.data.get("date_issued"),
+            "due_date": request.data.get("due_date"),
+            "paid": False,  # 新建請款單預設為未付款
+            "notes": request.data.get("notes", ""),
+            "created_by": request.user.id,
+            "amount": 0,  # 初始金額為0，稍後會更新
+        }
+
+        # 建立請款單
+        payment_serializer = self.get_serializer(data=payment_data)
+        payment_serializer.is_valid(raise_exception=True)
+        payment = payment_serializer.save(created_by=request.user, amount=0)
+
+        # 處理關聯的專案
+        payment_projects = request.data.get("payment_projects", [])
+        total_amount = 0
+
+        for project_item in payment_projects:
+            project_data = {
+                "payment": payment.id,
+                "project": project_item.get("project"),
+                "quotation": project_item.get("quotation", None),
+                "amount": project_item.get("amount"),
+                "description": project_item.get("description", ""),
+            }
+
+            # 建立請款單-專案關聯
+            payment_project_serializer = PaymentProjectSerializer(data=project_data)
+            if payment_project_serializer.is_valid():
+                payment_project_serializer.save()
+                total_amount += float(project_item.get("amount", 0))
+            else:
+                # 如果某個專案資料有誤，回滾整個交易
+                payment.delete()
+                return Response(
+                    payment_project_serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # 更新請款單總金額
+        payment.amount = total_amount
+        payment.save()
+
+        return Response(
+            self.get_serializer(payment).data, status=status.HTTP_201_CREATED
+        )
 
     def partial_update(self, request, *args, **kwargs):
         """支援 PATCH 方法來更新付款狀態"""
@@ -343,6 +420,27 @@ class InvoiceViewSet(BaseViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class InvoiceViewSet(BaseViewSet):
+    queryset = Invoice.objects.all().select_related("payment", "created_by")
+    serializer_class = InvoiceSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["invoice_number", "payment__payment_number"]
+
+    def get_queryset(self):
+        queryset = Invoice.objects.all().select_related("payment", "created_by")
+
+        # 請款單過濾
+        payment_id = self.request.query_params.get("payment", None)
+        if payment_id:
+            queryset = queryset.filter(payment_id=payment_id)
+
+        return queryset.order_by("-issue_date")
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
 
 class ExpenditureViewSet(BaseViewSet):

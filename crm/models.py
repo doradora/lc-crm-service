@@ -178,10 +178,10 @@ class Quotation(models.Model):
         return f"Quotation for {self.project.name}"
 
 
-class Invoice(models.Model):
-    invoice_number = models.CharField(max_length=50, unique=True)  # 請款單號
+class Payment(models.Model):
+    payment_number = models.CharField(max_length=50, unique=True)  # 請款單號
     projects = models.ManyToManyField(
-        Project, through="InvoiceProject", related_name="invoices"
+        Project, through="PaymentProject", related_name="payments"
     )  # 關聯多個專案
     amount = models.DecimalField(max_digits=10, decimal_places=2)  # 請款總金額
     date_issued = models.DateField()  # 發行日期
@@ -195,11 +195,11 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # 建立時間
 
     def __str__(self):
-        return f"Invoice #{self.invoice_number}"
+        return f"Payment #{self.payment_number}"
 
     def get_total_amount(self):
         """計算所有相關專案的請款金額總和"""
-        return sum(ip.amount for ip in self.invoiceproject_set.all())
+        return sum(pp.amount for pp in self.paymentproject_set.all())
 
     def update_amount(self):
         """更新請款總金額"""
@@ -207,11 +207,15 @@ class Invoice(models.Model):
         self.save(update_fields=["amount"])
 
 
-class InvoiceProject(models.Model):
+class PaymentProject(models.Model):
     """請款單與專案的關聯表"""
 
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)  # 關聯的請款單
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)  # 關聯的專案
+    payment = models.ForeignKey(
+        Payment, on_delete=models.CASCADE, null=True
+    )  # 關聯的請款單
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, null=True
+    )  # 關聯的專案
     quotation = models.ForeignKey(
         Quotation, on_delete=models.SET_NULL, null=True, blank=True
     )  # 引用的報價單（可選）
@@ -219,18 +223,38 @@ class InvoiceProject(models.Model):
     description = models.TextField(blank=True, null=True)  # 此專案請款說明
 
     def __str__(self):
-        return f"{self.invoice.invoice_number} - {self.project.name}"
+        return f"{self.payment.payment_number} - {self.project.name}"
 
     class Meta:
-        unique_together = ("invoice", "project")  # 確保一個請款單中一個專案只出現一次
+        unique_together = ("payment", "project")  # 確保一個請款單中一個專案只出現一次
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # 更新請款單總金額
-        self.invoice.update_amount()
+        self.payment.update_amount()
 
     def delete(self, *args, **kwargs):
-        invoice = self.invoice
+        payment = self.payment
         super().delete(*args, **kwargs)
         # 更新請款單總金額
-        invoice.update_amount()
+        payment.update_amount()
+
+
+class Invoice(models.Model):
+    """發票模型"""
+
+    invoice_number = models.CharField(max_length=50, unique=True)  # 發票號碼
+    payment = models.ForeignKey(
+        Payment, related_name="invoices", on_delete=models.CASCADE, null=True
+    )  # 關聯的請款單
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 發票金額
+    issue_date = models.DateField()  # 發票開立日期
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 稅額
+    notes = models.TextField(blank=True, null=True)  # 備註
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )  # 建立者
+    created_at = models.DateTimeField(auto_now_add=True)  # 建立時間
+
+    def __str__(self):
+        return f"Invoice #{self.invoice_number}"
