@@ -15,10 +15,21 @@ from django.contrib.auth.models import User
 
 class CategorySerializer(serializers.ModelSerializer):
     projects_count = serializers.IntegerField(read_only=True, default=0)
+    name = serializers.SerializerMethodField()  # 新增：用於顯示在下拉選單的名稱
 
     class Meta:
         model = Category
-        fields = ["id", "code", "description", "projects_count"]
+        fields = [
+            "id",
+            "code",
+            "description",
+            "projects_count",
+            "name",
+        ]  # 增加 name 欄位
+
+    def get_name(self, obj):
+        """返回類別代碼和描述的組合，用於顯示在下拉選單中"""
+        return f"{obj.code}: {obj.description}" if obj.code else obj.description
 
 
 class OwnerSerializer(serializers.ModelSerializer):

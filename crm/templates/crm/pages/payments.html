@@ -48,13 +48,58 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <!-- 業主搜尋 -->
+                                    <!-- 業主搜尋 (修改為自動完成) -->
                                     <div class="col-12 mb-3">
                                         <label class="form-label">業主</label>
-                                        <select class="form-select" v-model="ownerFilter">
-                                            <option value="">全部業主</option>
-                                            <option v-for="owner in owners" :key="owner.id" :value="owner.id">[[ owner.company_name ]]</option>
-                                        </select>
+                                        <div class="position-relative" v-click-outside="closeOwnerDropdown">
+                                            <div class="input-group">
+                                                <input type="text"
+                                                       class="form-control"
+                                                       v-model="ownerSearchText"
+                                                       @input="searchOwners"
+                                                       @focus="showOwnerDropdown = true"
+                                                       placeholder="搜尋業主...">
+                                                <button class="btn btn-light"
+                                                        type="button"
+                                                        @click="clearOwnerSelection"
+                                                        v-if="ownerFilter">
+                                                    <i class="ki-outline ki-cross fs-2"></i>
+                                                </button>
+                                            </div>
+                                            <!-- 自動完成下拉選單 -->
+                                            <div class="dropdown-menu w-100 position-absolute"
+                                                 :class="{'show': showOwnerDropdown}"
+                                                 style="max-height: 300px;
+                                                        overflow-y: auto">
+                                                <div v-if="filteredOwners.length === 0" class="dropdown-item text-muted">無符合條件的業主</div>
+                                                <a v-for="owner in filteredOwners"
+                                                   :key="owner.id"
+                                                   class="dropdown-item"
+                                                   href="#"
+                                                   @click.prevent="selectOwner(owner)">
+                                                    [[ owner.company_name ]]
+                                                    <span v-if="owner.tax_id" class="text-muted">([[ owner.tax_id ]])</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 類別搜尋 (修改為下拉選單) -->
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">案件類別</label>
+                                        <div class="input-group">
+                                            <select class="form-select" v-model="categoryFilter">
+                                                <option value="">全部類別</option>
+                                                <option v-for="category in categories"
+                                                        :key="category.id"
+                                                        :value="category.id">[[ category.name ]]</option>
+                                            </select>
+                                            <button class="btn btn-light"
+                                                    type="button"
+                                                    @click="clearCategorySelection"
+                                                    v-if="categoryFilter">
+                                                <i class="ki-outline ki-cross fs-2"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <!-- 年份範圍搜尋 -->
                                     <div class="col-6 mb-3">
@@ -73,6 +118,33 @@
                                     </div>
                                 </div>
                                 <div class="row">
+                                    <!-- 專案狀態篩選 (改為核取方塊) -->
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">專案狀態</label>
+                                        <div class="d-flex flex-column gap-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       id="isCompletedFilter"
+                                                       v-model="isCompletedFilter">
+                                                <label class="form-check-label" for="isCompletedFilter">已完成案件</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       id="isInvoicedFilter"
+                                                       v-model="isInvoicedFilter">
+                                                <label class="form-check-label" for="isInvoicedFilter">已請款案件</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       id="isPaidFilter"
+                                                       v-model="isPaidFilter">
+                                                <label class="form-check-label" for="isPaidFilter">已收款案件</label>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <!-- 專案名稱搜尋 -->
                                     <div class="col-12 mb-3">
                                         <label class="form-label">專案名稱搜尋</label>
@@ -120,12 +192,11 @@
                                                 <th>業主</th>
                                                 <th>案件類別</th>
                                                 <th>負責人</th>
-                                                <th>請款金額</th>
                                             </tr>
                                         </thead>
                                         <tbody class="fw-semibold text-gray-600">
                                             <tr v-if="projects.length === 0">
-                                                <td colspan="7" class="text-center">沒有符合條件的專案</td>
+                                                <td colspan="6" class="text-center">沒有符合條件的專案</td>
                                             </tr>
                                             <tr v-for="project in projects" :key="project.id">
                                                 <td>
@@ -135,7 +206,7 @@
                                                            :checked="isProjectSelected(project.id)">
                                                 </td>
                                                 <td>
-                                                    <span class="badge badge-light">[[ project.year ]]-[[ project.project_number ]]</span>
+                                                    <span class="badge badge-light">[[ project.year ]][[ project.category_code ]][[ project.project_number ]]</span>
                                                 </td>
                                                 <td>
                                                     <div class="d-flex align-items-center">
@@ -148,30 +219,9 @@
                                                 <td>[[ project.owner_name || 'N/A' ]]</td>
                                                 <td>[[ project.category_name || 'N/A' ]]</td>
                                                 <td>[[ project.manager_name || 'N/A' ]]</td>
-                                                <td>
-                                                    <input type="number"
-                                                           v-model.number="projectAmounts[project.id]"
-                                                           class="form-control"
-                                                           min="0"
-                                                           step="1000">
-                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>
-                                    <!-- 分頁控制 -->
-                                    <ul class="pagination">
-                                        <li class="page-item btn"
-                                            @click="fetchProjects(currentPage - 1)"
-                                            :class="currentPage === 1 ? 'disabled' : ''"
-                                            :disabled="currentPage === 1">上一頁</li>
-                                        <li class="page-item">
-                                            <a>第 [[ currentPage ]] 頁 / 共 [[ totalPages ]] 頁</a>
-                                        </li>
-                                        <li class="page-item btn"
-                                            @click="fetchProjects(currentPage + 1)"
-                                            :class="currentPage === totalPages? 'disabled' : ''"
-                                            :disabled="currentPage === totalPages">下一頁</li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>

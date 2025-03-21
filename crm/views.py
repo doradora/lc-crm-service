@@ -199,6 +199,18 @@ class ProjectViewSet(BaseViewSet):
             is_completed_bool = is_completed.lower() == "true"
             queryset = queryset.filter(is_completed=is_completed_bool)
 
+        # 發票狀態過濾
+        is_invoiced = self.request.query_params.get("is_invoiced", None)
+        if is_invoiced is not None:
+            is_invoiced = is_invoiced.lower() == "true"
+            queryset = queryset.filter(is_invoiced=is_invoiced)
+
+        # 付款狀態過濾
+        is_paid = self.request.query_params.get("is_paid", None)
+        if is_paid is not None:
+            is_paid = is_paid.lower() == "true"
+            queryset = queryset.filter(is_paid=is_paid)
+
         # 年份過濾 - 單一年份
         year = self.request.query_params.get("year", None)
         if year:

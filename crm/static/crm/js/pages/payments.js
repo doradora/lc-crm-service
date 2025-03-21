@@ -9,16 +9,21 @@ const paymentsList = createApp({
       isLoading: false,
       searchQuery: "",
       ownerFilter: "",
+      ownerSearchText: "", // 業主搜尋文字
+      filteredOwners: [], // 過濾後的業主列表
+      showOwnerDropdown: false, // 是否顯示業主下拉選單
+      selectedOwnerName: "", // 已選擇的業主名稱
+      categoryFilter: "", // 類別篩選 (保留)
       startYearFilter: "", // 開始年份
       endYearFilter: "", // 結束年份
-      currentPage: 1,
-      totalPages: 1,
-      pageSize: 10, // 每頁顯示的項目數，可調整
+      isCompletedFilter: false, // 新增：是否完成篩選
+      isInvoicedFilter: false, // 新增：是否請款篩選
+      isPaidFilter: false, // 新增：是否收款篩選
       selectedProjects: new Map(), // 使用 Map 儲存已選擇的專案
       availableYears: [], // 資料庫中現有的年份
       minYear: null, // 最小年份
       maxYear: null, // 最大年份
-      projectAmounts: {}, // 專案金額
+      projectAmounts: {}, // 專案金額 (在 Modal 中使用)
       projectDescriptions: {}, // 專案描述
       newPayment: {
         payment_number: "",
@@ -27,7 +32,24 @@ const paymentsList = createApp({
         notes: "", // 備註
       },
       selectAllChecked: false, // 全選狀態
+      paymentItems: [], // 新增：付款項目陣列初始化
     };
+  },
+  directives: {
+    // 點擊元素外部時觸發的自定義指令
+    clickOutside: {
+      mounted(el, binding) {
+        el._clickOutside = (event) => {
+          if (!(el === event.target || el.contains(event.target))) {
+            binding.value(event);
+          }
+        };
+        document.addEventListener("click", el._clickOutside);
+      },
+      unmounted(el) {
+        document.removeEventListener("click", el._clickOutside);
+      },
+    },
   },
   computed: {
     // 將 Map 轉換為陣列以便在模板中使用
@@ -52,13 +74,95 @@ const paymentsList = createApp({
     },
   },
   methods: {
-    // 重設篩選條件
+    // 搜尋業主 (更新為支援名稱和統一編號)
+    searchOwners() {
+      if (!this.ownerSearchText.trim()) {
+        this.filteredOwners = this.owners.slice(0, 10); // 顯示前10個
+        return;
+      }
+
+      const searchText = this.ownerSearchText.toLowerCase().trim();
+      this.filteredOwners = this.owners
+        .filter(
+          (owner) =>
+            owner.company_name.toLowerCase().includes(searchText) ||
+            (owner.tax_id && owner.tax_id.includes(searchText))
+        )
+        .slice(0, 10); // 最多顯示10個結果
+
+      this.showOwnerDropdown = true;
+    },
+
+    // 選擇業主
+    selectOwner(owner) {
+      this.ownerFilter = owner.id;
+      this.ownerSearchText = owner.company_name;
+      this.showOwnerDropdown = false;
+    },
+
+    // 清除業主選擇
+    clearOwnerSelection() {
+      this.ownerFilter = "";
+      this.ownerSearchText = "";
+      this.filteredOwners = [];
+      this.showOwnerDropdown = false;
+    },
+
+    // 關閉業主下拉選單
+    closeOwnerDropdown() {
+      this.showOwnerDropdown = false;
+
+      // 檢查輸入的業主名稱是否存在於業主清單中
+      if (this.ownerSearchText) {
+        const matchingOwner = this.owners.find(
+          (owner) =>
+            owner.company_name.toLowerCase() ===
+            this.ownerSearchText.toLowerCase()
+        );
+
+        if (matchingOwner) {
+          // 如果找到匹配的業主，直接選擇它
+          this.ownerFilter = matchingOwner.id;
+          this.ownerSearchText = matchingOwner.company_name; // 確保名稱大小寫與資料庫一致
+        } else {
+          // 如果沒有匹配的業主，保留搜索詞但清除業主ID
+          this.ownerFilter = "";
+        }
+      } else {
+        // 如果輸入框被清空，則重設業主ID
+        this.ownerFilter = "";
+      }
+    },
+
+    // 移除: searchCategories 方法
+
+    // 修改: 選擇類別 (簡化為直接使用下拉選單的值)
+    selectCategory(categoryId) {
+      this.categoryFilter = categoryId;
+    },
+
+    // 修改: 清除類別選擇
+    clearCategorySelection() {
+      this.categoryFilter = "";
+    },
+
+    // 移除: closeCategoryDropdown 方法
+
+    // 重設篩選條件 (修改)
     resetFilters() {
       this.searchQuery = "";
       this.ownerFilter = "";
+      this.ownerSearchText = "";
+      this.selectedOwnerName = "";
+      this.categoryFilter = ""; // 保留: 重設類別篩選
+      // 移除: this.categorySearchText = "";
       this.startYearFilter = "";
       this.endYearFilter = "";
-      this.fetchProjects(1); // 重新獲取第一頁數據
+      // 重設核取方塊
+      this.isCompletedFilter = false;
+      this.isInvoicedFilter = false;
+      this.isPaidFilter = false;
+      this.fetchProjects(); // 重新獲取數據
     },
     // 切換專案選擇狀態
     toggleProjectSelection(project) {
@@ -111,11 +215,11 @@ const paymentsList = createApp({
         this.selectAllChecked = false;
       }
     },
-    // 獲取專案列表
-    fetchProjects(page = 1) {
-      this.currentPage = page;
+    // 獲取專案列表 (更新以處理新增的篩選條件)
+    fetchProjects() {
       this.isLoading = true;
-      let url = `/crm/api/projects/?format=json&page=${page}&page_size=${this.pageSize}`;
+      // 移除分頁參數，增加載入數量限制為1000
+      let url = `/crm/api/projects/?format=json&page_size=1000`;
 
       // 添加搜尋條件
       if (this.searchQuery) {
@@ -127,6 +231,11 @@ const paymentsList = createApp({
         url += `&owner=${this.ownerFilter}`;
       }
 
+      // 新增：添加類別過濾條件
+      if (this.categoryFilter) {
+        url += `&category=${this.categoryFilter}`;
+      }
+
       // 使用年份區間過濾
       if (this.startYearFilter) {
         url += `&year_start=${this.startYearFilter}`;
@@ -136,46 +245,99 @@ const paymentsList = createApp({
         url += `&year_end=${this.endYearFilter}`;
       }
 
+      // 修改：使用獨立的核取方塊來篩選
+      if (this.isCompletedFilter) {
+        url += `&is_completed=true`;
+      }
+
+      if (this.isInvoicedFilter) {
+        url += `&is_invoiced=true`;
+      }
+
+      if (this.isPaidFilter) {
+        url += `&is_paid=true`;
+      }
+
       fetch(url)
         .then((response) => response.json())
         .then((data) => {
-          this.projects = data.results;
-          this.totalPages = Math.ceil(data.count / this.pageSize);
+          // 確保 data.results 存在
+          if (data && data.results) {
+            this.projects = data.results.map((project) => {
+              // 正確處理類別代碼
+              if (project.category) {
+                if (
+                  typeof project.category === "object" &&
+                  project.category.code
+                ) {
+                  // 如果 category 是包含 code 屬性的對象
+                  project.category_code = project.category.code;
+                } else if (project.category_name) {
+                  // 如果有 category_name，從中提取代碼
+                  const match = project.category_name.match(/^([^:]+):/);
+                  project.category_code = match ? match[1].trim() : "";
+                }
+              } else {
+                project.category_code = "";
+              }
+              return project;
+            });
+          } else {
+            this.projects = []; // 確保即使 data.results 不存在也會初始化陣列
+          }
 
           // 更新全選狀態
           this.updateSelectAllState();
         })
-        .catch((error) => console.error("Error fetching projects:", error))
+        .catch((error) => {
+          console.error("Error fetching projects:", error);
+          this.projects = []; // 錯誤處理時也初始化陣列
+        })
         .finally(() => {
           this.isLoading = false;
         });
     },
-    // 獲取業主列表
+    // 獲取業主列表時，確保有顯示前10筆
     fetchOwners() {
       fetch(`/crm/api/owners/?format=json&page_size=1000`)
         .then((response) => response.json())
         .then((data) => {
-          this.owners = data.results;
+          if (data && data.results) {
+            this.owners = data.results;
+            this.filteredOwners = this.owners.slice(0, 10); // 初始顯示前10個
+          } else {
+            this.owners = [];
+            this.filteredOwners = [];
+          }
         })
-        .catch((error) => console.error("Error fetching owners:", error));
+        .catch((error) => {
+          console.error("Error fetching owners:", error);
+          this.owners = [];
+          this.filteredOwners = [];
+        });
     },
-    // 獲取類別列表
     fetchCategories() {
       fetch(`/crm/api/categories/?format=json&page_size=1000`)
         .then((response) => response.json())
         .then((data) => {
-          this.categories = data.results;
+          this.categories = data && data.results ? data.results : [];
         })
-        .catch((error) => console.error("Error fetching categories:", error));
+        .catch((error) => {
+          console.error("Error fetching categories:", error);
+          this.categories = [];
+        });
     },
     // 獲取用戶列表
     fetchUsers() {
       fetch(`/users/api?format=json&page_size=1000`)
         .then((response) => response.json())
         .then((data) => {
-          this.users = data.results;
+          this.users = data && data.results ? data.results : [];
         })
-        .catch((error) => console.error("Error fetching users:", error));
+        .catch((error) => {
+          console.error("Error fetching users:", error);
+          this.users = [];
+        });
     },
     // 獲取可用年份
     fetchYears() {
@@ -318,10 +480,19 @@ const paymentsList = createApp({
     },
   },
   mounted() {
-    this.fetchProjects();
+    // 載入資料
     this.fetchOwners();
     this.fetchCategories();
     this.fetchUsers();
     this.fetchYears();
+    this.fetchProjects(); // 初始載入專案資料
+  },
+  unmounted() {
+    // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
+    document.querySelectorAll("[v-click-outside]").forEach((el) => {
+      if (el._clickOutside) {
+        document.removeEventListener("click", el._clickOutside);
+      }
+    });
   },
 }).mount("#app_main");

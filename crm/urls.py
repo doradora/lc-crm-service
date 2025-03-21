@@ -31,6 +31,10 @@ urlpatterns = [
         name="project_payments",
     ),
     path("project/dashboard/", views.project_dashboard, name="project_dashboard"),
-    path("project/<int:project_id>/", views.project_details, name="project_details"),
+    path(
+        "project/<int:project_id>/details/",
+        views.project_details,
+        name="project_details",
+    ),
     path("api/", include(router.urls)),
 ]
