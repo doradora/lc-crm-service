@@ -53,11 +53,6 @@ def quotations(request):
 
 
 @login_required(login_url="signin")
-def payments(request):
-    return render(request, "crm/pages/payments.html")
-
-
-@login_required(login_url="signin")
 def invoices(request):
     return render(request, "crm/pages/invoices.html")
 
@@ -116,6 +111,38 @@ def project_details(request, project_id):
     }
 
     return render(request, "crm/pages/project_detail.html", context)
+
+
+# 請款頁面
+
+
+@login_required(login_url="signin")
+def create_payment(request):
+    return render(request, "crm/pages/payments/create_payment.html")
+
+
+@login_required(login_url="signin")
+def payments(request):
+    return render(request, "crm/pages/payments/payments.html")
+
+
+@login_required(login_url="signin")
+def payment_details(request, payment_id):
+    """
+    顯示付款單詳情頁面
+    """
+    try:
+        payment = Payment.objects.get(id=payment_id)
+    except Payment.DoesNotExist:
+        messages.error(request, "付款單不存在")
+        return redirect("payments")
+
+    context = {
+        "payment_id": payment_id,
+        "page_title": f"請款單詳情 - {payment.payment_number}",
+    }
+
+    return render(request, "crm/pages/payments/payment_detail.html", context)
 
 
 # API
@@ -432,6 +459,43 @@ class PaymentViewSet(BaseViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class PaymentProjectViewSet(BaseViewSet):
+    queryset = PaymentProject.objects.all().select_related("project", "payment")
+    serializer_class = PaymentProjectSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        queryset = PaymentProject.objects.all().select_related("project", "payment")
+
+        # 請款單過濾
+        payment_id = self.request.query_params.get("payment", None)
+        if payment_id:
+            queryset = queryset.filter(payment_id=payment_id)
+
+        # 專案過濾
+        project_id = self.request.query_params.get("project", None)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        """創建時自動更新請款單總金額"""
+        payment_project = serializer.save()
+        payment_project.payment.update_amount()
+
+    def perform_update(self, serializer):
+        """更新時自動更新請款單總金額"""
+        payment_project = serializer.save()
+        payment_project.payment.update_amount()
+
+    def perform_destroy(self, instance):
+        """刪除時自動更新請款單總金額"""
+        payment = instance.payment
+        instance.delete()
+        payment.update_amount()
 
 
 class InvoiceViewSet(BaseViewSet):

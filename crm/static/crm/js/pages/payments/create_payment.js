@@ -423,17 +423,14 @@ const paymentsList = createApp({
 
       if (!isValid) return;
 
-      // 準備請款單資料
+      // 準備請款單資料 - 僅包含必要欄位
       const paymentData = {
         payment_number: this.newPayment.payment_number,
         date_issued: this.newPayment.date_issued,
-        due_date: this.newPayment.due_date || null,
-        notes: this.newPayment.notes,
         amount: totalAmount, // 後端會自動計算，這裡是為了完整性
         payment_projects: selectedProjectIds.map((projectId) => ({
           project: projectId,
           amount: this.projectAmounts[projectId],
-          description: this.projectDescriptions[projectId] || "",
         })),
       };
 
@@ -468,9 +465,11 @@ const paymentsList = createApp({
           this.updateSelectAllState();
 
           // 顯示成功提示
-          alert(`請款單 ${data.payment_number} 已成功建立`);
+          alert(
+            `請款單 ${data.payment_number} 已成功建立，請在詳情頁完善其他資訊`
+          );
 
-          // 導航到請款單列表頁面或詳情頁面
+          // 導航到請款單詳情頁面
           window.location.href = `/crm/payment/${data.id}/details/`;
         })
         .catch((error) => {

@@ -10,6 +10,9 @@ router.register(r"payments", views.PaymentViewSet)
 router.register(r"invoices", views.InvoiceViewSet)
 router.register(r"categories", views.CategoryViewSet)
 router.register(r"expenditures", views.ExpenditureViewSet)
+router.register(
+    r"payment-projects", views.PaymentProjectViewSet
+)  # 新增 PaymentProject 視圖集
 
 urlpatterns = [
     path("", views.index, name="index"),
@@ -17,6 +20,7 @@ urlpatterns = [
     path("owners/", views.owners, name="owners"),
     path("projects/", views.projects, name="projects"),
     path("quotations/", views.quotations, name="quotations"),
+    path("create_payment/", views.create_payment, name="create_payment"),
     path("payments/", views.payments, name="payments"),
     path("invoices/", views.invoices, name="invoices"),
     path("owner/<int:owner_id>/projects/", views.owner_projects, name="owner_projects"),
@@ -37,4 +41,9 @@ urlpatterns = [
         name="project_details",
     ),
     path("api/", include(router.urls)),
+    path(
+        "payment/<int:payment_id>/details/",
+        views.payment_details,
+        name="payment_details",
+    ),
 ]

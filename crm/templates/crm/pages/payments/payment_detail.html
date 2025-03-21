@@ -1,0 +1,394 @@
+{% extends "crm/base.html" %}
+{% load static %}
+{% block title %}請款單詳情{% endblock %}
+{% block content %}
+    {% csrf_token %}
+    <div class="app-main flex-column flex-row-fluid" id="app_main">
+        <div id="app_toolbar" class="app-toolbar pt-7 pt-lg-10">
+            <div id="app_toolbar_container"
+                 class="app-container container-fluid d-flex align-items-stretch">
+                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
+                    <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
+                        <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">
+                            請款單詳情：[[ payment.payment_number ]]
+                        </h1>
+                        <!--begin::Breadcrumb-->
+                        <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">
+                                <a href="{% url 'payments' %}" class="text-muted text-hover-primary">請款管理</a>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item">
+                                <span class="bullet bg-gray-500 w-5px h-2px"></span>
+                            </li>
+                            <!--end::Item-->
+                            <!--begin::Item-->
+                            <li class="breadcrumb-item text-muted">請款單詳情</li>
+                            <!--end::Item-->
+                        </ul>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 gap-lg-3">
+                        <button class="btn btn-sm btn-light-primary"
+                                @click="toggleEditMode"
+                                v-if="!isEditing">
+                            <i class="ki-outline ki-pencil fs-2"></i>編輯
+                        </button>
+                        <div v-if="isEditing">
+                            <button class="btn btn-sm btn-primary me-2" @click="saveChanges">
+                                <i class="ki-outline ki-check fs-2"></i>儲存
+                            </button>
+                            <button class="btn btn-sm btn-light" @click="cancelEdit">
+                                <i class="ki-outline ki-cross fs-2"></i>取消
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="app_content" class="app-content flex-column-fluid">
+            <div id="app_content_container" class="app-container container-fluid">
+                <div v-if="isLoading" class="d-flex justify-content-center py-10">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                </div>
+                <div v-else>
+                    <!-- 左右兩欄佈局 -->
+                    <div class="row">
+                        <!-- 左欄：請款單基本資訊卡片 -->
+                        <div class="col-xl-4 mb-5 mb-xl-0">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h3 class="card-title">請款單基本資訊</h3>
+                                    <div class="card-toolbar">
+                                        <div class="badge" :class="getStatusBadgeClass()">[[ payment.paid ? '已付款' : '未付款' ]]</div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <label class="form-label fw-semibold">請款單號</label>
+                                        <input v-if="isEditing"
+                                               type="text"
+                                               class="form-control"
+                                               v-model="payment.payment_number" />
+                                        <div v-else class="form-control-plaintext">[[ payment.payment_number ]]</div>
+                                    </div>
+                                    <div class="mb-5">
+                                        <label class="form-label fw-semibold">請款金額</label>
+                                        <div v-if="!isEditing" class="form-control-plaintext">[[ formatCurrency(payment.amount) ]]</div>
+                                        <div v-else class="form-control-plaintext">[[ formatCurrency(getTotalAmount()) ]] (從專案明細計算)</div>
+                                    </div>
+                                    <div class="mb-5">
+                                        <label class="form-label fw-semibold">建立者</label>
+                                        <div class="form-control-plaintext">[[ payment.created_by_name || '未知' ]]</div>
+                                    </div>
+                                    <div class="mb-5">
+                                        <label class="form-label fw-semibold">請款日期</label>
+                                        <input v-if="isEditing"
+                                               type="date"
+                                               class="form-control"
+                                               v-model="payment.date_issued" />
+                                        <div v-else class="form-control-plaintext">[[ formatDate(payment.date_issued) ]]</div>
+                                    </div>
+                                    <div class="mb-5">
+                                        <label class="form-label fw-semibold">到期日</label>
+                                        <input v-if="isEditing"
+                                               type="date"
+                                               class="form-control"
+                                               v-model="payment.due_date" />
+                                        <div v-else class="form-control-plaintext">[[ formatDate(payment.due_date) ]]</div>
+                                    </div>
+                                    <div class="mb-5">
+                                        <label class="form-check form-switch form-check-custom form-check-solid">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   v-model="payment.paid"
+                                                   :disabled="!isEditing" />
+                                            <span class="form-check-label fw-semibold">已付款</span>
+                                        </label>
+                                    </div>
+                                    <div class="mb-5" v-if="payment.paid">
+                                        <label class="form-label fw-semibold">付款日期</label>
+                                        <input v-if="isEditing"
+                                               type="date"
+                                               class="form-control"
+                                               v-model="payment.payment_date" />
+                                        <div v-else class="form-control-plaintext">[[ formatDate(payment.payment_date) ]]</div>
+                                    </div>
+                                    <div class="mb-5">
+                                        <label class="form-label fw-semibold">備註</label>
+                                        <textarea v-if="isEditing"
+                                                  class="form-control"
+                                                  v-model="payment.notes"
+                                                  rows="3"></textarea>
+                                        <div v-else class="form-control-plaintext">[[ payment.notes || '無備註' ]]</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 右欄：專案明細和關聯發票 Tab 分頁 -->
+                        <div class="col-xl-8">
+                            <div class="card">
+                                <div class="card-header card-header-stretch">
+                                    <!-- Tab 導航 -->
+                                    <div class="card-title">
+                                        <ul class="nav nav-tabs nav-line-tabs fs-6 border-0 me-auto">
+                                            <li class="nav-item">
+                                                <a class="nav-link active"
+                                                   data-bs-toggle="tab"
+                                                   href="#projects_tab"
+                                                   @click="handleTabChange('projects_tab')">專案明細</a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link"
+                                                   data-bs-toggle="tab"
+                                                   href="#invoices_tab"
+                                                   @click="handleTabChange('invoices_tab')">關聯發票</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- Tab 右側按鈕區域 -->
+                                    <div class="card-toolbar">
+                                        <button v-if="activeTab === 'projects_tab' && isEditing"
+                                                class="btn btn-sm btn-light-primary"
+                                                @click="addProjectItem">
+                                            <i class="ki-outline ki-plus fs-2"></i>新增專案
+                                        </button>
+                                        <button v-if="activeTab === 'invoices_tab'"
+                                                class="btn btn-sm btn-light-primary"
+                                                @click="createInvoice">
+                                            <i class="ki-outline ki-plus fs-2"></i>建立發票
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Tab 內容區域 -->
+                                <div class="card-body tab-content">
+                                    <!-- 專案明細 Tab -->
+                                    <div class="tab-pane fade show active" id="projects_tab" role="tabpanel">
+                                        <div class="table-responsive">
+                                            <table class="table table-row-bordered table-row-gray-100">
+                                                <thead>
+                                                    <tr class="fw-bold fs-6 text-gray-800">
+                                                        <th>專案名稱</th>
+                                                        <th>請款金額</th>
+                                                        <th>說明</th>
+                                                        <th v-if="isEditing">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="(projectItem, index) in payment.payment_projects"
+                                                        :key="projectItem.id || index">
+                                                        <td>
+                                                            <select v-if="isEditing" class="form-select" v-model="projectItem.project">
+                                                                <option value="">選擇專案</option>
+                                                                <option v-for="project in projects" :key="project.id" :value="project.id">[[ project.name ]]</option>
+                                                            </select>
+                                                            <div v-else>[[ projectItem.project_name ]]</div>
+                                                        </td>
+                                                        <td>
+                                                            <input v-if="isEditing"
+                                                                   type="number"
+                                                                   class="form-control"
+                                                                   v-model="projectItem.amount" />
+                                                            <div v-else>[[ formatCurrency(projectItem.amount) ]]</div>
+                                                        </td>
+                                                        <td>
+                                                            <input v-if="isEditing"
+                                                                   type="text"
+                                                                   class="form-control"
+                                                                   v-model="projectItem.description" />
+                                                            <div v-else>[[ projectItem.description || '-' ]]</div>
+                                                        </td>
+                                                        <td v-if="isEditing">
+                                                            <button class="btn btn-sm btn-icon btn-light-danger"
+                                                                    @click="removeProjectItem(index)">
+                                                                <i class="ki-outline ki-trash fs-2"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr v-if="payment.payment_projects && payment.payment_projects.length === 0">
+                                                        <td colspan="4" class="text-center py-5">尚無專案明細</td>
+                                                    </tr>
+                                                </tbody>
+                                                <tfoot v-if="payment.payment_projects && payment.payment_projects.length > 0">
+                                                    <tr>
+                                                        <th>總計</th>
+                                                        <th>[[ formatCurrency(getTotalAmount()) ]]</th>
+                                                        <th colspan="2"></th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <!-- 關聯發票 Tab -->
+                                    <div class="tab-pane fade" id="invoices_tab" role="tabpanel">
+                                        <div class="table-responsive">
+                                            <table class="table table-row-bordered table-row-gray-100">
+                                                <thead>
+                                                    <tr class="fw-bold fs-6 text-gray-800">
+                                                        <th>發票號碼</th>
+                                                        <th>發票金額</th>
+                                                        <th>稅額</th>
+                                                        <th>開立日期</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="invoice in payment.invoices || []" :key="invoice.id">
+                                                        <td>[[ invoice.invoice_number ]]</td>
+                                                        <td>[[ formatCurrency(invoice.amount) ]]</td>
+                                                        <td>[[ formatCurrency(invoice.tax_amount) ]]</td>
+                                                        <td>[[ formatDate(invoice.issue_date) ]]</td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-icon btn-light-primary me-2"
+                                                                    @click="editInvoice(invoice.id)">
+                                                                <i class="ki-outline ki-pencil fs-2"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-icon btn-light-danger"
+                                                                    @click="deleteInvoice(invoice.id)">
+                                                                <i class="ki-outline ki-trash fs-2"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr v-if="!payment.invoices || payment.invoices.length === 0">
+                                                        <td colspan="5" class="text-center py-5">尚無關聯發票</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 新增發票 Modal -->
+        <div class="modal fade"
+             id="addInvoiceModal"
+             tabindex="-1"
+             aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered mw-650px">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">[[ editingInvoice ? '編輯' : '新增' ]]發票</h5>
+                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                             @click="hideAddInvoiceModal">
+                            <i class="ki-outline ki-cross fs-2"></i>
+                        </div>
+                    </div>
+                    <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+                        <div class="form-group mb-5">
+                            <label class="form-label required">發票號碼</label>
+                            <input type="text"
+                                   class="form-control"
+                                   v-model="newInvoice.invoice_number"
+                                   required />
+                        </div>
+                        <div class="form-group mb-5">
+                            <label class="form-label required">發票金額</label>
+                            <input type="number"
+                                   class="form-control"
+                                   v-model="newInvoice.amount"
+                                   required />
+                        </div>
+                        <div class="form-group mb-5">
+                            <label class="form-label required">開立日期</label>
+                            <input type="date"
+                                   class="form-control"
+                                   v-model="newInvoice.issue_date"
+                                   required />
+                        </div>
+                        <div class="form-group mb-5">
+                            <label class="form-label">稅額</label>
+                            <input type="number" class="form-control" v-model="newInvoice.tax_amount" />
+                        </div>
+                        <div class="form-group mb-5">
+                            <label class="form-label">備註</label>
+                            <textarea class="form-control" rows="3" v-model="newInvoice.notes"></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button type="button" class="btn btn-light me-3" @click="hideAddInvoiceModal">取消</button>
+                            <button type="button" class="btn btn-primary" @click="submitInvoiceForm">確定儲存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 新增專案 Modal -->
+        <div class="modal fade"
+             id="addProjectModal"
+             tabindex="-1"
+             aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered mw-650px">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">新增專案</h5>
+                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                             @click="hideAddProjectModal">
+                            <i class="ki-outline ki-cross fs-2"></i>
+                        </div>
+                    </div>
+                    <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+                        <div class="form-group mb-5">
+                            <label class="form-label required">專案</label>
+                            <div class="position-relative" v-click-outside="closeProjectDropdown">
+                                <input type="text"
+                                       class="form-control"
+                                       v-model="projectSearchTerm"
+                                       @input="searchProjects"
+                                       @focus="showProjectDropdown = true"
+                                       placeholder="搜尋專案..." />
+                                <div class="dropdown-menu w-100 position-absolute"
+                                     :class="{'show': showProjectDropdown}"
+                                     style="max-height: 300px;
+                                            overflow-y: auto">
+                                    <div v-if="filteredProjects.length === 0" class="dropdown-item text-muted">無符合條件的專案</div>
+                                    <a v-for="project in filteredProjects"
+                                       :key="project.id"
+                                       class="dropdown-item"
+                                       href="#"
+                                       @click.prevent="selectProject(project)">
+                                        [[ project.name ]]
+                                        <span class="text-muted">([[ project.owner_name ]])</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mb-5">
+                            <label class="form-label required">請款金額</label>
+                            <input type="number"
+                                   class="form-control"
+                                   v-model="newProjectItem.amount"
+                                   required />
+                        </div>
+                        <div class="form-group mb-5">
+                            <label class="form-label">說明</label>
+                            <textarea class="form-control" rows="3" v-model="newProjectItem.description"></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button type="button" class="btn btn-light me-3" @click="hideAddProjectModal">取消</button>
+                            <button type="button" class="btn btn-primary" @click="submitProjectForm">確定新增</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="{% static 'crm/js/pages/payments/payment_detail.js' %}"></script>
+{% endblock extra_js %}

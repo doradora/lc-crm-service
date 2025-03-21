@@ -261,14 +261,6 @@
                                        v-model="newPayment.date_issued"
                                        required>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">付款截止日期</label>
-                                <input type="date" class="form-control" v-model="newPayment.due_date">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">備註</label>
-                                <textarea class="form-control" v-model="newPayment.notes" rows="3"></textarea>
-                            </div>
                             <h5 class="mt-4 mb-3">已選擇的專案</h5>
                             <div class="table-responsive">
                                 <table class="table table-bordered" id="selected-projects-table">
@@ -276,7 +268,6 @@
                                         <tr>
                                             <th>案件名稱</th>
                                             <th>請款金額</th>
-                                            <th>說明</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -289,12 +280,6 @@
                                                        min="0"
                                                        step="1000"
                                                        required>
-                                            </td>
-                                            <td>
-                                                <input type="text"
-                                                       class="form-control"
-                                                       v-model="projectDescriptions[project.id]"
-                                                       placeholder="請輸入說明...">
                                             </td>
                                         </tr>
                                     </tbody>
@@ -312,5 +297,5 @@
     </div>
 {% endblock content %}
 {% block extra_js %}
-    <script src="{% static 'crm/js/pages/payments.js' %}"></script>
+    <script src="{% static 'crm/js/pages/payments/create_payment.js' %}"></script>
 {% endblock extra_js %}
