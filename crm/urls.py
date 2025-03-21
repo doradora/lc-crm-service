@@ -46,4 +46,9 @@ urlpatterns = [
         views.payment_details,
         name="payment_details",
     ),
+    path(
+        "payment/<int:payment_id>/export_excel/",
+        views.export_payment_excel,
+        name="export_payment_excel",
+    ),
 ]

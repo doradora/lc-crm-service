@@ -30,6 +30,12 @@ from .serializers import (
     ProjectChangeSerializer,
     PaymentProjectSerializer,
 )
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import Alignment, Font, Border, Side
+from datetime import datetime
+from django.http import HttpResponse
 
 
 @login_required(login_url="signin")
@@ -548,3 +554,149 @@ class ExpenditureViewSet(BaseViewSet):
 @login_required(login_url="signin")
 def index(request):
     return render(request, "crm/index.html")
+
+
+@login_required(login_url="signin")
+def export_payment_excel(request, payment_id):
+    """匯出請款單為Excel檔案"""
+    try:
+        # 獲取請款單資訊
+        payment = get_object_or_404(Payment, id=payment_id)
+
+        # 獲取請款單關聯的專案明細
+        payment_projects = PaymentProject.objects.filter(
+            payment=payment
+        ).select_related("project")
+
+        # 獲取業主資訊 (假設使用第一個專案的業主)
+        owner = None
+        if (
+            payment_projects.exists()
+            and payment_projects.first().project
+            and payment_projects.first().project.owner
+        ):
+            owner = payment_projects.first().project.owner.company_name
+
+        # 設定公司基本資訊（可以從系統配置或硬編碼）
+        company_name = "立信工程顧問有限公司"
+
+        # 創建專案明細列表
+        project_details = []
+        for idx, pp in enumerate(payment_projects, 1):
+            # 檢查項目是否存在
+            if pp.project:
+                detail = {
+                    "項次": idx,
+                    "工程明細": f"{pp.project.name}\n{pp.description or ''}",
+                    "金額": pp.amount,
+                }
+                project_details.append(detail)
+
+        # 如果沒有專案明細，使用空列表
+        if not project_details:
+            project_details = [{"項次": 1, "工程明細": "無專案明細", "金額": 0}]
+
+        # 計算總金額
+        total_amount = sum(project["金額"] for project in project_details)
+
+        # 建立 DataFrame
+        df = pd.DataFrame(project_details)
+
+        # 創建 Excel 文件
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "請款單"
+
+        # 設置標題和基本資訊
+        ws.merge_cells("A1:C1")
+        ws["A1"] = f"{company_name}\n請款單"
+        ws["A1"].alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True
+        )
+        ws["A1"].font = Font(size=14, bold=True)
+
+        # 設置請款單編號和日期
+        ws["A2"] = "請款單號:"
+        ws["B2"] = payment.payment_number
+        ws["C2"] = (
+            f"日期: {payment.date_issued.strftime('%Y-%m-%d') if payment.date_issued else datetime.now().strftime('%Y-%m-%d')}"
+        )
+
+        # 設置業主資訊
+        ws["A3"] = "業主:"
+        ws["B3"] = owner or "未指定業主"
+
+        # 設置表頭
+        headers = ["項目", "工程明細", "金額"]
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=4, column=col_num, value=header)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = Border(
+                left=Side(style="thin"),
+                right=Side(style="thin"),
+                top=Side(style="thin"),
+                bottom=Side(style="thin"),
+            )
+
+        # 填入工程明細數據
+        for r_idx, row in enumerate(
+            dataframe_to_rows(df, index=False, header=False), 5
+        ):
+            for c_idx, value in enumerate(row, 1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=value)
+                cell.alignment = Alignment(wrap_text=True, vertical="center")
+                cell.border = Border(
+                    left=Side(style="thin"),
+                    right=Side(style="thin"),
+                    top=Side(style="thin"),
+                    bottom=Side(style="thin"),
+                )
+
+        # 添加總計
+        total_row = r_idx + 1
+        ws[f"B{total_row}"] = "總計"
+        ws[f"C{total_row}"] = total_amount
+        ws[f"B{total_row}"].font = Font(bold=True)
+        ws[f"C{total_row}"].font = Font(bold=True)
+
+        # 調整列寬
+        ws.column_dimensions["A"].width = 10
+        ws.column_dimensions["B"].width = 50
+        ws.column_dimensions["C"].width = 15
+
+        # 添加公司資訊
+        company_info = [
+            f"公司名稱：{company_name}",
+            "負責人：林育信",
+            "統一編號：45127101",
+            "地址：500 彰化市中山路二段356巷1號",
+            "電話：04-7234988分機138",
+            "傳真：04-7233033",
+            "聯絡人：吳小姐",
+        ]
+        start_row = total_row + 2
+        for idx, info in enumerate(company_info):
+            ws[f"A{start_row + idx}"] = info
+
+        # 添加備註
+        ws[f"A{start_row + len(company_info) + 1}"] = (
+            "隨文檢附本公司帳號，匯款後煩請電聯通知確認款項。承蒙核撥，不勝感激。"
+        )
+
+        # 建立 HTTP 回應
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="payment_{payment.payment_number}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+        )
+
+        # 儲存 Excel 到 response
+        wb.save(response)
+        return response
+
+    except Exception as e:
+        # 發生錯誤時返回錯誤信息
+        print(f"匯出Excel失敗: {str(e)}")
+        return HttpResponse(f"匯出Excel失敗: {str(e)}", status=500)

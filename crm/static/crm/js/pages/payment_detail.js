@@ -485,6 +485,22 @@ const paymentDetail = createApp({
         maximumFractionDigits: 2,
       });
     },
+
+    // 匯出Excel功能
+    exportToExcel() {
+      // 顯示載入中提示
+      this.$swal.fire({
+        title: "處理中...",
+        text: "正在生成Excel文件，請稍候",
+        allowOutsideClick: false,
+        didOpen: () => {
+          this.$swal.showLoading();
+        },
+      });
+
+      // 調用後端API
+      window.location.href = `/crm/payment/${this.paymentId}/export_excel/`;
+    },
   },
   mounted() {
     this.paymentId = this.getPaymentIdFromUrl();
