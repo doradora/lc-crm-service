@@ -160,23 +160,19 @@
                                         </ul>
                                     </div>
                                     <!-- Tab 右側按鈕區域 -->
-                                    <div class="card-toolbar">
-                                        <button v-if="activeTab === 'projects_tab' && isEditing"
-                                                class="btn btn-sm btn-light-primary"
-                                                @click="addProjectItem">
-                                            <i class="ki-outline ki-plus fs-2"></i>新增專案
-                                        </button>
-                                        <button v-if="activeTab === 'invoices_tab'"
-                                                class="btn btn-sm btn-light-primary"
-                                                @click="createInvoice">
-                                            <i class="ki-outline ki-plus fs-2"></i>建立發票
-                                        </button>
-                                    </div>
+                                    <div class="card-toolbar"></div>
                                 </div>
                                 <!-- Tab 內容區域 -->
                                 <div class="card-body tab-content">
                                     <!-- 專案明細 Tab -->
                                     <div class="tab-pane fade show active" id="projects_tab" role="tabpanel">
+                                        <div class="card-toolbar">
+                                            <button v-if="activeTab === 'projects_tab' && isEditing"
+                                                    class="btn btn-sm btn-light-primary"
+                                                    @click="addProjectItem">
+                                                <i class="ki-outline ki-plus fs-2"></i>新增專案
+                                            </button>
+                                        </div>
                                         <div class="table-responsive">
                                             <table class="table table-row-bordered table-row-gray-100">
                                                 <thead>
@@ -234,6 +230,11 @@
                                     </div>
                                     <!-- 關聯發票 Tab -->
                                     <div class="tab-pane fade" id="invoices_tab" role="tabpanel">
+                                        <button v-if="activeTab === 'invoices_tab'"
+                                                class="btn btn-sm btn-light-primary"
+                                                @click="createInvoice">
+                                            <i class="ki-outline ki-plus fs-2"></i>建立發票
+                                        </button>
                                         <div class="table-responsive">
                                             <table class="table table-row-bordered table-row-gray-100">
                                                 <thead>
@@ -333,7 +334,7 @@
              id="addProjectModal"
              tabindex="-1"
              aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered mw-650px">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">新增專案</h5>
@@ -342,46 +343,109 @@
                             <i class="ki-outline ki-cross fs-2"></i>
                         </div>
                     </div>
-                    <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
-                        <div class="form-group mb-5">
-                            <label class="form-label required">專案</label>
-                            <div class="position-relative" v-click-outside="closeProjectDropdown">
-                                <input type="text"
-                                       class="form-control"
-                                       v-model="projectSearchTerm"
-                                       @input="searchProjects"
-                                       @focus="showProjectDropdown = true"
-                                       placeholder="搜尋專案..." />
-                                <div class="dropdown-menu w-100 position-absolute"
-                                     :class="{'show': showProjectDropdown}"
-                                     style="max-height: 300px;
-                                            overflow-y: auto">
-                                    <div v-if="filteredProjects.length === 0" class="dropdown-item text-muted">無符合條件的專案</div>
-                                    <a v-for="project in filteredProjects"
-                                       :key="project.id"
-                                       class="dropdown-item"
-                                       href="#"
-                                       @click.prevent="selectProject(project)">
-                                        [[ project.name ]]
-                                        <span class="text-muted">([[ project.owner_name ]])</span>
-                                    </a>
+                    <div class="modal-body scroll-y mx-2 mx-lg-5">
+                        <!-- 篩選區域 -->
+                        <div class="mb-5">
+                            <div class="d-flex flex-wrap gap-3 mb-3">
+                                <!-- 專案名稱搜尋 -->
+                                <div class="flex-grow-1">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="ki-outline ki-magnifier fs-2"></i>
+                                        </span>
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="projectSearchTerm"
+                                               @input="searchProjects"
+                                               placeholder="搜尋專案名稱...">
+                                    </div>
+                                </div>
+                                <!-- 業主過濾 -->
+                                <div class="min-w-200px">
+                                    <div class="position-relative" v-click-outside="closeOwnerDropdown">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light">業主</span>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   v-model="ownerSearchText"
+                                                   @input="searchOwners"
+                                                   @focus="showOwnerDropdown = true"
+                                                   placeholder="搜尋業主...">
+                                            <button class="btn btn-light"
+                                                    type="button"
+                                                    @click="clearOwnerSelection"
+                                                    v-if="ownerFilter">
+                                                <i class="ki-outline ki-cross fs-2"></i>
+                                            </button>
+                                        </div>
+                                        <!-- 業主下拉選單 -->
+                                        <div class="dropdown-menu w-100 position-absolute"
+                                             :class="{'show': showOwnerDropdown}"
+                                             style="max-height: 300px;
+                                                    overflow-y: auto">
+                                            <div v-if="filteredOwners.length === 0" class="dropdown-item text-muted">無符合條件的業主</div>
+                                            <a v-for="owner in filteredOwners"
+                                               :key="owner.id"
+                                               class="dropdown-item"
+                                               href="#"
+                                               @click.prevent="selectOwner(owner)">
+                                                [[ owner.company_name ]]
+                                                <span v-if="owner.tax_id" class="text-muted">([[ owner.tax_id ]])</span>
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group mb-5">
-                            <label class="form-label required">請款金額</label>
-                            <input type="number"
-                                   class="form-control"
-                                   v-model="newProjectItem.amount"
-                                   required />
+                        <!-- 專案列表 -->
+                        <div class="table-responsive mb-5">
+                            <table class="table table-row-bordered table-row-gray-100">
+                                <thead>
+                                    <tr class="fw-bold fs-6 text-gray-800">
+                                        <th width="40px">
+                                            <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       v-model="selectAllChecked"
+                                                       @change="selectAllProjects">
+                                            </div>
+                                        </th>
+                                        <th>專案名稱</th>
+                                        <th>業主</th>
+                                        <th>案件編號</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="project in filteredProjectsForModal" :key="project.id">
+                                        <td>
+                                            <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       :value="project.id"
+                                                       v-model="selectedProjectIds"
+                                                       @change="updateSelectAllState">
+                                            </div>
+                                        </td>
+                                        <td>[[ project.name ]]</td>
+                                        <td>[[ project.owner_name || '-' ]]</td>
+                                        <td>
+                                            <span class="badge badge-light">[[ project.year ]][[ project.category_code ]][[ project.project_number ]]</span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="filteredProjectsForModal.length === 0">
+                                        <td colspan="4" class="text-center py-5">無符合條件的專案</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="form-group mb-5">
-                            <label class="form-label">說明</label>
-                            <textarea class="form-control" rows="3" v-model="newProjectItem.description"></textarea>
-                        </div>
-                        <div class="text-center">
+                        <div class="text-center mt-5">
                             <button type="button" class="btn btn-light me-3" @click="hideAddProjectModal">取消</button>
-                            <button type="button" class="btn btn-primary" @click="submitProjectForm">確定新增</button>
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    @click="addSelectedProjects"
+                                    :disabled="selectedProjectIds.length === 0">
+                                確定新增 ([[ selectedProjectIds.length ]] 個專案)
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -40,6 +40,20 @@ const paymentDetail = createApp({
       filteredProjects: [],
       // 目前活躍的Tab
       activeTab: "projects_tab", // 預設顯示專案明細分頁
+
+      // 新增專案相關資料 (擴充)
+      selectedProjectIds: [], // 新增：選中的專案ID列表
+      projectAmounts: {}, // 新增：專案金額
+      projectDescriptions: {}, // 新增：專案描述
+      selectAllChecked: false, // 新增：全選狀態
+      filteredProjectsForModal: [], // 新增：用於Modal的過濾後專案列表
+
+      // 業主搜索相關資料 (從create_payment借鑒)
+      ownerFilter: "", // 業主篩選條件
+      ownerSearchText: "", // 業主搜尋文字
+      filteredOwners: [], // 過濾後的業主列表
+      showOwnerDropdown: false, // 是否顯示業主下拉選單
+      owners: [], // 業主列表
     };
   },
   methods: {
@@ -73,6 +87,67 @@ const paymentDetail = createApp({
           this.projects = data.results;
         })
         .catch((error) => console.error("Error fetching projects:", error));
+    },
+
+    // 新增業主列表獲取方法
+    fetchOwners() {
+      fetch(`/crm/api/owners/?format=json&page_size=1000`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.results) {
+            this.owners = data.results;
+            this.filteredOwners = this.owners.slice(0, 10); // 初始顯示前10個
+          } else {
+            this.owners = [];
+            this.filteredOwners = [];
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching owners:", error);
+          this.owners = [];
+          this.filteredOwners = [];
+        });
+    },
+
+    // 搜尋業主
+    searchOwners() {
+      if (!this.ownerSearchText.trim()) {
+        this.filteredOwners = this.owners.slice(0, 10); // 顯示前10個
+        return;
+      }
+
+      const searchText = this.ownerSearchText.toLowerCase().trim();
+      this.filteredOwners = this.owners
+        .filter(
+          (owner) =>
+            owner.company_name.toLowerCase().includes(searchText) ||
+            (owner.tax_id && owner.tax_id.includes(searchText))
+        )
+        .slice(0, 10); // 最多顯示10個結果
+
+      this.showOwnerDropdown = true;
+    },
+
+    // 選擇業主
+    selectOwner(owner) {
+      this.ownerFilter = owner.id;
+      this.ownerSearchText = owner.company_name;
+      this.showOwnerDropdown = false;
+      this.filterProjectsForModal(); // 重新過濾專案列表
+    },
+
+    // 清除業主選擇
+    clearOwnerSelection() {
+      this.ownerFilter = "";
+      this.ownerSearchText = "";
+      this.filteredOwners = [];
+      this.showOwnerDropdown = false;
+      this.filterProjectsForModal(); // 重新過濾專案列表
+    },
+
+    // 關閉業主下拉選單
+    closeOwnerDropdown() {
+      this.showOwnerDropdown = false;
     },
 
     // 格式化日期顯示
@@ -250,21 +325,109 @@ const paymentDetail = createApp({
         });
     },
 
-    // 添加專案項目
+    // 添加專案項目 - 修改為打開多選對話框
     addProjectItem() {
-      this.newProjectItem = {
-        project: null,
-        amount: 0,
-        description: "",
-      };
+      // 重置相關狀態
       this.projectSearchTerm = "";
-      this.filteredProjects = [...this.projects];
-      this.showProjectDropdown = false; // 確保下拉框初始關閉
+      this.selectedProjectIds = [];
+      this.projectAmounts = {};
+      this.projectDescriptions = {};
+      this.selectAllChecked = false;
 
+      // 過濾可選專案 (排除已經在請款單中的專案)
+      this.filterProjectsForModal();
+
+      // 顯示模態對話框
       const modal = new bootstrap.Modal(
         document.getElementById("addProjectModal")
       );
       modal.show();
+    },
+
+    // 過濾Modal中的專案列表
+    filterProjectsForModal() {
+      // 排除已經在請款單中的專案
+      let existingProjectIds = this.payment.payment_projects
+        .map((item) => item.project)
+        .filter((id) => id); // 過濾掉可能的null或undefined值
+
+      // 篩選專案
+      let filtered = this.projects.filter((project) => {
+        // 排除已經在請款單中的專案
+        if (existingProjectIds.includes(project.id)) {
+          return false;
+        }
+
+        // 根據搜索詞過濾
+        const nameMatch =
+          !this.projectSearchTerm ||
+          project.name
+            .toLowerCase()
+            .includes(this.projectSearchTerm.toLowerCase());
+
+        // 根據業主過濾
+        const ownerMatch =
+          !this.ownerFilter || project.owner === parseInt(this.ownerFilter);
+
+        return nameMatch && ownerMatch;
+      });
+
+      // 更新過濾結果
+      this.filteredProjectsForModal = filtered;
+    },
+
+    // 搜尋專案 (用於Modal內的搜尋)
+    searchProjects() {
+      this.filterProjectsForModal();
+    },
+
+    // 全選/取消全選專案
+    selectAllProjects() {
+      if (this.selectAllChecked) {
+        // 全選
+        this.selectedProjectIds = this.filteredProjectsForModal.map(
+          (p) => p.id
+        );
+      } else {
+        // 取消全選
+        this.selectedProjectIds = [];
+      }
+    },
+
+    // 更新全選狀態
+    updateSelectAllState() {
+      if (this.filteredProjectsForModal.length > 0) {
+        this.selectAllChecked = this.filteredProjectsForModal.every((project) =>
+          this.selectedProjectIds.includes(project.id)
+        );
+      } else {
+        this.selectAllChecked = false;
+      }
+    },
+
+    // 根據ID獲取專案名稱
+    getProjectName(projectId) {
+      const project = this.projects.find((p) => p.id === projectId);
+      return project ? project.name : "";
+    },
+
+    // 確認添加選中的專案 (簡化版本，不再需要檢查金額)
+    addSelectedProjects() {
+      // 將選中的專案添加到請款單中，金額預設為0
+      this.selectedProjectIds.forEach((projectId) => {
+        const project = this.projects.find((p) => p.id === projectId);
+        if (project) {
+          this.payment.payment_projects.push({
+            project: projectId,
+            project_name: project.name,
+            amount: 0, // 預設金額為0
+            description: "", // 預設描述為空白
+          });
+        }
+      });
+
+      // 關閉對話框
+      this.hideAddProjectModal();
     },
 
     hideAddProjectModal() {
@@ -502,6 +665,7 @@ const paymentDetail = createApp({
     // 獲取資料
     this.fetchPaymentDetails();
     this.fetchProjects();
+    this.fetchOwners(); // 新增：獲取業主列表
 
     // 初始化 Bootstrap tabs
     this.$nextTick(() => {

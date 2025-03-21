@@ -86,7 +86,7 @@
                                 <tbody class="fw-semibold text-gray-600">
                                     <tr v-for="payment in payments" :key="payment.id">
                                         <td>
-                                            <span class="fw-bold">[[ payment.payment_number ]]</span>
+                                            <a class="menu-link px-3" :href="`/crm/payment/${payment.id}/details/`">[[ payment.payment_number ]]</a>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">
