@@ -180,6 +180,7 @@ class Quotation(models.Model):
 
 class Payment(models.Model):
     payment_number = models.CharField(max_length=50, unique=True)  # 請款單號
+    owner = models.ForeignKey(Owner, on_delete=models.CASCADE)
     projects = models.ManyToManyField(
         Project, through="PaymentProject", related_name="payments"
     )  # 關聯多個專案

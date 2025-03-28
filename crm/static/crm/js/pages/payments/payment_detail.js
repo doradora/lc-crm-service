@@ -190,13 +190,7 @@ const paymentDetail = createApp({
 
     // 切換編輯模式
     toggleEditMode() {
-      if (this.isEditing) {
-        this.saveChanges();
-        return;
-      }
-      this.isEditing = true;
-      // 深度複製當前資料，以便稍後取消時還原
-      this.originalPayment = JSON.parse(JSON.stringify(this.payment));
+      this.isEditing = !this.isEditing;
     },
 
     // 取消編輯
@@ -655,6 +649,11 @@ const paymentDetail = createApp({
     // Tab 切換處理
     handleTabChange(tabId) {
       this.activeTab = tabId;
+    },
+
+    // 匯出Excel功能
+    exportToExcel() {
+      window.location.href = `/crm/payment/${this.paymentId}/export_excel/`;
     },
   },
   mounted() {

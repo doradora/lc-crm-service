@@ -1,3 +1,5 @@
+import os
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count, Sum, F, Q, Min, Max
@@ -31,7 +33,10 @@ from .serializers import (
     PaymentProjectSerializer,
 )
 import pandas as pd
-from openpyxl import Workbook
+import traceback
+from openpyxl import Workbook, load_workbook
+from copy import copy
+from openpyxl.drawing.image import Image
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Alignment, Font, Border, Side
 from datetime import datetime
@@ -409,18 +414,8 @@ class PaymentViewSet(BaseViewSet):
         """
         建立新請款單，同時處理關聯的專案
         """
-        payment_data = {
-            "payment_number": request.data.get("payment_number"),
-            "date_issued": request.data.get("date_issued"),
-            "due_date": request.data.get("due_date"),
-            "paid": False,  # 新建請款單預設為未付款
-            "notes": request.data.get("notes", ""),
-            "created_by": request.user.id,
-            "amount": 0,  # 初始金額為0，稍後會更新
-        }
-
         # 建立請款單
-        payment_serializer = self.get_serializer(data=payment_data)
+        payment_serializer = self.get_serializer(data=request.data)
         payment_serializer.is_valid(raise_exception=True)
         payment = payment_serializer.save(created_by=request.user, amount=0)
 
@@ -560,6 +555,10 @@ def index(request):
 def export_payment_excel(request, payment_id):
     """匯出請款單為Excel檔案"""
     try:
+        template_file = os.path.join(settings.BASE_DIR, "crm", "excel", "invoice.xlsx")
+        wb = load_workbook(template_file)
+        ws = wb["請款單"]
+
         # 獲取請款單資訊
         payment = get_object_or_404(Payment, id=payment_id)
 
@@ -568,17 +567,8 @@ def export_payment_excel(request, payment_id):
             payment=payment
         ).select_related("project")
 
-        # 獲取業主資訊 (假設使用第一個專案的業主)
-        owner = None
-        if (
-            payment_projects.exists()
-            and payment_projects.first().project
-            and payment_projects.first().project.owner
-        ):
-            owner = payment_projects.first().project.owner.company_name
-
-        # 設定公司基本資訊（可以從系統配置或硬編碼）
-        company_name = "立信工程顧問有限公司"
+        # 獲取業主資訊
+        owner = payment.owner.company_name
 
         # 創建專案明細列表
         project_details = []
@@ -596,92 +586,35 @@ def export_payment_excel(request, payment_id):
         if not project_details:
             project_details = [{"項次": 1, "工程明細": "無專案明細", "金額": 0}]
 
-        # 計算總金額
-        total_amount = sum(project["金額"] for project in project_details)
-
-        # 建立 DataFrame
-        df = pd.DataFrame(project_details)
-
-        # 創建 Excel 文件
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "請款單"
-
-        # 設置標題和基本資訊
-        ws.merge_cells("A1:C1")
-        ws["A1"] = f"{company_name}\n請款單"
-        ws["A1"].alignment = Alignment(
-            horizontal="center", vertical="center", wrap_text=True
+        # 設置基本資訊
+        ws["B4"] = payment.payment_number
+        ws["C5"] = (
+            f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y/%m/%d')}"
         )
-        ws["A1"].font = Font(size=14, bold=True)
-
-        # 設置請款單編號和日期
-        ws["A2"] = "請款單號:"
-        ws["B2"] = payment.payment_number
-        ws["C2"] = (
-            f"日期: {payment.date_issued.strftime('%Y-%m-%d') if payment.date_issued else datetime.now().strftime('%Y-%m-%d')}"
-        )
-
-        # 設置業主資訊
-        ws["A3"] = "業主:"
-        ws["B3"] = owner or "未指定業主"
-
-        # 設置表頭
-        headers = ["項目", "工程明細", "金額"]
-        for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=4, column=col_num, value=header)
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = Border(
-                left=Side(style="thin"),
-                right=Side(style="thin"),
-                top=Side(style="thin"),
-                bottom=Side(style="thin"),
-            )
+        ws["B5"] = owner or "未指定業主"
 
         # 填入工程明細數據
-        for r_idx, row in enumerate(
-            dataframe_to_rows(df, index=False, header=False), 5
-        ):
-            for c_idx, value in enumerate(row, 1):
-                cell = ws.cell(row=r_idx, column=c_idx, value=value)
-                cell.alignment = Alignment(wrap_text=True, vertical="center")
-                cell.border = Border(
-                    left=Side(style="thin"),
-                    right=Side(style="thin"),
-                    top=Side(style="thin"),
-                    bottom=Side(style="thin"),
-                )
+        start_row = 7
+        for i, detail in enumerate(project_details):
+            row = start_row + i
+            ws.cell(row=row, column=1).value = detail["項次"]
 
-        # 添加總計
-        total_row = r_idx + 1
-        ws[f"B{total_row}"] = "總計"
-        ws[f"C{total_row}"] = total_amount
-        ws[f"B{total_row}"].font = Font(bold=True)
-        ws[f"C{total_row}"].font = Font(bold=True)
+            # 工程明細單元格
+            detail_cell = ws.cell(row=row, column=2)
+            detail_cell.value = detail["工程明細"]
+            detail_cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-        # 調整列寬
-        ws.column_dimensions["A"].width = 10
-        ws.column_dimensions["B"].width = 50
-        ws.column_dimensions["C"].width = 15
+            # 金額單元格
+            amount_cell = ws.cell(row=row, column=3)
+            amount_cell.value = detail["金額"]
+            amount_cell.number_format = "#,##0"
 
-        # 添加公司資訊
-        company_info = [
-            f"公司名稱：{company_name}",
-            "負責人：林育信",
-            "統一編號：45127101",
-            "地址：500 彰化市中山路二段356巷1號",
-            "電話：04-7234988分機138",
-            "傳真：04-7233033",
-            "聯絡人：吳小姐",
-        ]
-        start_row = total_row + 2
-        for idx, info in enumerate(company_info):
-            ws[f"A{start_row + idx}"] = info
-
-        # 添加備註
-        ws[f"A{start_row + len(company_info) + 1}"] = (
-            "隨文檢附本公司帳號，匯款後煩請電聯通知確認款項。承蒙核撥，不勝感激。"
+        # 設置邊框樣式
+        thin_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
         )
 
         # 建立 HTTP 回應
@@ -698,5 +631,6 @@ def export_payment_excel(request, payment_id):
 
     except Exception as e:
         # 發生錯誤時返回錯誤信息
-        print(f"匯出Excel失敗: {str(e)}")
+        error_details = traceback.format_exc()  # 獲取詳細錯誤訊息
+        print(f"匯出Excel失敗: {str(e)}\n{error_details}")
         return HttpResponse(f"匯出Excel失敗: {str(e)}", status=500)

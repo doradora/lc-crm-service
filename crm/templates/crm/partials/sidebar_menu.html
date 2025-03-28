@@ -44,7 +44,7 @@
     </div>
   </div>
 </div>
-<script>
+{% comment %} <script>
   // 選單數據
   const menuData = [
     {
@@ -53,8 +53,6 @@
       icon: "ki-outline ki-burger-menu fs-2",
       subItems: [
         { title: "所有案件", url: "{% url 'projects' %}" },
-        { title: "新增案件", url: "{% url 'projects' %}" },
-        { title: "我的案件", url: "{% url 'projects' %}" },
       ]
     },
     {
@@ -129,4 +127,4 @@
       })
     }
   }).mount('#app_sidebar_menu')
-</script>
+</script> {% endcomment %}

@@ -15,12 +15,58 @@
     {% include "crm/partials/head_styles.html" %}
     {% block extra_css %}
     {% endblock extra_css %}
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
       // Frame-busting to prevent site from being loaded within a frame without permission (click-jacking)
       if (window.top != window.self) {
         window.top.location.replace(window.self.location.href);
       }
-      const { createApp} = Vue
+      const { createApp } = Vue
+      window.menuData = [
+        {
+          id: "projects",
+          title: "案件管理",
+          icon: "ki-outline ki-burger-menu fs-2",
+          subItems: [{ title: "所有案件", url: "{% url 'projects' %}" }],
+        },
+        {
+          id: "owners",
+          title: "業主",
+          icon: "ki-outline ki-address-book fs-2x",
+          subItems: [{ title: "業主列表", url: "{% url 'owners' %}" }],
+        },
+        {
+          id: "users",
+          title: "公司人員",
+          icon: "ki-outline ki-user-square fs-2",
+          subItems: [
+            { title: "帳號管理", url: "{% url 'users_index' %}" },
+            { title: "其他聯絡人員 ", url: "{% url 'index' %}" },
+          ],
+        },
+        {
+          id: "accounting",
+          title: "帳務",
+          icon: "ki-outline ki-gear fs-2",
+          subItems: [
+            { title: "專案報價", url: "{% url 'create_payment' %}" },
+            { title: "請款管理", url: "{% url 'create_payment' %}" },
+            { title: "請款列表", url: "{% url 'payments' %}" },
+            { title: "發票", url: "{% url 'invoices' %}" },
+            { title: "收據", url: "{% url 'index' %}" },
+          ],
+        },
+        {
+          id: "settings",
+          title: "設定",
+          icon: "ki-outline ki-gear fs-2",
+          subItems: [
+            { title: "案件類別", url: "{% url 'category' %}" },
+            { title: "匯出檔案", url: "{% url 'index' %}" },
+          ],
+        },
+      ];
     </script>
   </head>
   <body id="app-body"
@@ -53,7 +99,96 @@
       </div>
     </div>
     {% include "crm/partials/scripts.html" %}
-    {% block extra_js %}
-    {% endblock extra_js %}
   </body>
+  {% block extra_js %}
+  {% endblock extra_js %}
+  <script>
+    // 創建 Vue 應用
+    const sideBar = createApp({
+      delimiters: ["[[", "]]"],
+      data() {
+        return {
+          menuItems: window.menuData,
+          activeMenus: {},
+          currentPath: window.location.pathname,
+        };
+      },
+      methods: {
+        isActive(item) {
+          if (!item.subItems) {
+            return this.currentPath === item.url;
+          }
+          return (
+            item.subItems.some((subItem) => this.currentPath === subItem.url) ||
+            this.currentPath === item.url
+          );
+        },
+        toggleSubmenu(item) {
+          if (item.subItems) {
+            this.activeMenus[item.id] = !this.activeMenus[item.id];
+          }
+        },
+      },
+      mounted() {
+        // 初始化時根據當前路徑展開相應的子選單
+        this.menuItems.forEach((item) => {
+          if (item.subItems && this.isActive(item)) {
+            this.activeMenus[item.id] = true;
+          }
+        });
+      },
+      }).mount("#app_sidebar_menu");
+
+    const breadcrumbApp = createApp({
+      delimiters: ["[[", "]]"],
+      data() {
+        return {
+          menuItems: window.menuData, // 將從 sidebar_menu 取得
+          currentPath: window.location.pathname,
+          currentMenu: null,
+          currentSubmenu: null,
+          currentPage: null,
+          pageBreadcrumbs: window.pageBreadcrumbs || null
+        };
+      },
+      methods: {
+        updateBreadcrumb() {
+          // 檢查是否有頁面特定的麵包屑
+          if (this.pageBreadcrumbs) {
+            this.currentMenu = {
+              title: this.pageBreadcrumbs.menu || null,
+              url: this.pageBreadcrumbs.menuUrl || null
+            };
+            this.currentSubmenu = {
+              title: this.pageBreadcrumbs.submenu || null,
+              url: this.pageBreadcrumbs.submenuUrl || null
+            };
+            this.currentPage = this.pageBreadcrumbs.currentPage || null;
+            return;
+          }
+          // 尋找當前路徑對應的選單項目
+          for (const menu of this.menuItems) {
+            if (menu.subItems) {
+              for (const submenu of menu.subItems) {
+                if (submenu.url === this.currentPath) {
+                  this.currentMenu = menu;
+                  this.currentSubmenu = submenu;
+                  return;
+                }
+              }
+            }
+            // 檢查主選單項目是否匹配
+            if (menu.url === this.currentPath) {
+              this.currentMenu = menu;
+              this.currentSubmenu = null;
+              return;
+            }
+          }
+        },
+      },
+      mounted() {
+        this.updateBreadcrumb();
+      },
+      }).mount("#app_breadcrumb");
+  </script>
 </html>

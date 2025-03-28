@@ -229,6 +229,14 @@ const paymentsList = createApp({
       // 添加業主過濾條件
       if (this.ownerFilter) {
         url += `&owner=${this.ownerFilter}`;
+      } else {
+        // 如果沒有選擇業主，顯示警告並停止獲取專案
+        Swal.fire({
+          icon: "warning",
+          title: "請先選擇業主",
+        });
+        this.isLoading = false;
+        return;
       }
 
       // 新增：添加類別過濾條件
@@ -264,7 +272,7 @@ const paymentsList = createApp({
           // 確保 data.results 存在
           if (data && data.results) {
             this.projects = data.results.map((project) => {
-              // 正確處理類別代碼
+              // 正確處理類別代碼 這裡不對
               if (project.category) {
                 if (
                   typeof project.category === "object" &&
@@ -290,6 +298,12 @@ const paymentsList = createApp({
           this.updateSelectAllState();
         })
         .catch((error) => {
+          // 如果沒有選擇業主，顯示警告並停止獲取專案
+          Swal.fire({
+            icon: "warning",
+            title: "獲取專案錯誤，聯絡工程師",
+          });
+          this.isLoading = false;
           console.error("Error fetching projects:", error);
           this.projects = []; // 錯誤處理時也初始化陣列
         })
@@ -408,30 +422,31 @@ const paymentsList = createApp({
       }
 
       // 檢查每個專案是否都有金額
-      let isValid = true;
-      let totalAmount = 0;
+      // let isValid = true;
+      // let totalAmount = 0;
 
-      selectedProjectIds.forEach((projectId) => {
-        const amount = this.projectAmounts[projectId];
-        if (!amount || amount <= 0) {
-          alert("請為每個專案輸入有效的請款金額");
-          isValid = false;
-          return;
-        }
-        totalAmount += Number(amount);
-      });
+      // selectedProjectIds.forEach((projectId) => {
+      //   const amount = this.projectAmounts[projectId];
+      //   if (!amount || amount <= 0) {
+      //     alert("請為每個專案輸入有效的請款金額");
+      //     isValid = false;
+      //     return;
+      //   }
+      //   totalAmount += Number(amount);
+      // });
 
-      if (!isValid) return;
+      // if (!isValid) return;
 
       // 準備請款單資料 - 僅包含必要欄位
       const paymentData = {
         payment_number: this.newPayment.payment_number,
         date_issued: this.newPayment.date_issued,
-        amount: totalAmount, // 後端會自動計算，這裡是為了完整性
+        // amount: totalAmount, // 後端會自動計算，這裡是為了完整性
         payment_projects: selectedProjectIds.map((projectId) => ({
           project: projectId,
           amount: this.projectAmounts[projectId],
         })),
+        owner: this.ownerFilter,
       };
 
       // 送出API請求創建請款單
@@ -484,7 +499,6 @@ const paymentsList = createApp({
     this.fetchCategories();
     this.fetchUsers();
     this.fetchYears();
-    this.fetchProjects(); // 初始載入專案資料
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏

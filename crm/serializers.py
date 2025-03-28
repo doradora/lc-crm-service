@@ -234,6 +234,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "created_by_name",
             "created_at",
             "invoices",
+            "owner",
         ]
         read_only_fields = ["amount", "created_at"]
 
