@@ -152,7 +152,7 @@ class ProjectChange(models.Model):
         Project, related_name="changes", on_delete=models.CASCADE
     )  # 關聯的專案
     description = models.TextField()  # 變更說明
-    created_at = models.DateField(auto_now_add=True)  # 變更建立日期
+    created_at = models.DateField()  # 變更建立日期，改為可選擇的日期欄位
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True
     )  # 變更建立者

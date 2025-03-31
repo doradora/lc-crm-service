@@ -546,6 +546,32 @@ class ExpenditureViewSet(BaseViewSet):
         serializer.save()
 
 
+class ProjectChangeViewSet(BaseViewSet):
+    queryset = ProjectChange.objects.all().select_related("project", "created_by")
+    serializer_class = ProjectChangeSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["description"]
+
+    def get_queryset(self):
+        queryset = ProjectChange.objects.all().select_related("project", "created_by")
+
+        # 專案過濾
+        project_id = self.request.query_params.get("project", None)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        return queryset.order_by("-created_at")
+
+    def perform_create(self, serializer):
+        # 自動設置建立者為當前用戶
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        # 更新時保留原始建立者
+        serializer.save()
+
+
 @login_required(login_url="signin")
 def index(request):
     return render(request, "crm/index.html")
@@ -589,7 +615,7 @@ def export_payment_excel(request, payment_id):
         # 設置基本資訊
         ws["B4"] = payment.payment_number
         ws["C5"] = (
-            f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y/%m/%d')}"
+            f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y%m/%d')}"
         )
         ws["B5"] = owner or "未指定業主"
 

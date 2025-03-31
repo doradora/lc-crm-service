@@ -11,6 +11,9 @@ router.register(r"invoices", views.InvoiceViewSet)
 router.register(r"categories", views.CategoryViewSet)
 router.register(r"expenditures", views.ExpenditureViewSet)
 router.register(
+    r"project-changes", views.ProjectChangeViewSet
+)  # 新增 ProjectChange 視圖集
+router.register(
     r"payment-projects", views.PaymentProjectViewSet
 )  # 新增 PaymentProject 視圖集
 

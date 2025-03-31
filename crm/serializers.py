@@ -76,11 +76,11 @@ class ProjectChangeSerializer(serializers.ModelSerializer):
             "id",
             "project",
             "description",
-            "created_at",  # 修正為 created_at，與模型對應
+            "created_at",
             "created_by",
             "created_by_name",
         ]
-        read_only_fields = ["created_at"]  # 修正為 created_at
+        read_only_fields = ["created_by"]
 
     def get_created_by_name(self, obj):
         if obj.created_by and hasattr(obj.created_by, "profile"):

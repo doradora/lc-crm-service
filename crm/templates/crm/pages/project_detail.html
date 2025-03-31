@@ -63,7 +63,7 @@
                                             <a class="nav-link active" data-bs-toggle="tab" href="#tab_basic_info">基本資料</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#tab_design_info">設計(變更)</a>
+                                            <a class="nav-link" data-bs-toggle="tab" href="#tab_design_info">設計變更</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" data-bs-toggle="tab" href="#tab_finance_info">費用支出</a>
@@ -171,48 +171,52 @@
                                         <!-- 設計(變更)標籤頁 -->
                                         <div class="tab-pane fade" id="tab_design_info" role="tabpanel">
                                             <!-- 變更紀錄區塊 -->
-                                            <div class="card-title mb-5">
+                                            <div class="card-title mb-5 d-flex justify-content-between align-items-center">
                                                 <h4>設計與變更紀錄</h4>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-primary"
+                                                        @click="showAddChangeModal">
+                                                    <i class="ki-outline ki-plus fs-2"></i>新增變更記錄
+                                                </button>
                                             </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-6 mb-5">
-                                                    <label class="form-label">變更次數</label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="project.change_count"
-                                                           min="0">
-                                                </div>
-                                                <div class="col-md-6 mb-5">
-                                                    <label class="form-label">變更說明</label>
-                                                    <textarea class="form-control" v-model="project.change_description" rows="3"></textarea>
-                                                </div>
+                                            <!-- 變更紀錄表格 -->
+                                            <div class="table-responsive">
+                                                <table class="table table-row-dashed table-row-gray-200 align-middle gs-0 gy-4">
+                                                    <thead>
+                                                        <tr class="fw-bold text-muted bg-light">
+                                                            <th class="min-w-100px">日期</th>
+                                                            <th class="min-w-200px">變更說明</th>
+                                                            <th class="min-w-100px">建立者</th>
+                                                            <th class="min-w-100px text-center">操作</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-if="!project.changes || project.changes.length === 0">
+                                                            <td colspan="4" class="text-center py-5">尚無變更記錄</td>
+                                                        </tr>
+                                                        <tr v-for="change in project.changes" :key="change.id">
+                                                            <td>[[ change.created_at ]]</td>
+                                                            <td>[[ change.description ]]</td>
+                                                            <td>[[ change.created_by_name ]]</td>
+                                                            <td class="text-center">
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-icon btn-light-primary me-2"
+                                                                        @click="editProjectChange(change)">
+                                                                    <i class="ki-outline ki-pencil fs-2"></i>
+                                                                </button>
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-icon btn-light-danger"
+                                                                        @click="deleteProjectChange(change.id)">
+                                                                    <i class="ki-outline ki-trash fs-2"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
                                             </div>
-                                            <!-- 此處可以添加其他與設計/變更相關的欄位 -->
                                         </div>
                                         <!-- 費用支出標籤頁 -->
                                         <div class="tab-pane fade" id="tab_finance_info" role="tabpanel">
-                                            <!-- 費用與請款區塊 -->
-                                            <div class="card-title mb-5">
-                                                <h4>費用與請款</h4>
-                                            </div>
-                                            <div class="row mb-5 ">
-                                                <div class="col-md-6 mb-5">
-                                                    <label class="form-label">支出金額</label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="project.expenditure"
-                                                           min="0"
-                                                           step="0.01">
-                                                </div>
-                                                <div class="col-md-6 mb-5">
-                                                    <label class="form-label">請款金額</label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="project.invoice_amount"
-                                                           min="0"
-                                                           step="0.01">
-                                                </div>
-                                            </div>
                                             <!-- 支出記錄列表區塊 -->
                                             <div class="card-title mb-5 d-flex justify-content-between align-items-center">
                                                 <h4>支出記錄</h4>
@@ -244,6 +248,11 @@
                                                             <td class="text-end fw-bold">NT$ [[ formatAmount(expenditure.amount) ]]</td>
                                                             <td>[[ expenditure.created_by_name ]]</td>
                                                             <td class="text-center">
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-icon btn-light-primary me-2"
+                                                                        @click="editExpenditure(expenditure)">
+                                                                    <i class="ki-outline ki-pencil fs-2"></i>
+                                                                </button>
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-icon btn-light-danger"
                                                                         @click="deleteExpenditure(expenditure.id)">
@@ -518,7 +527,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addExpenditureModalLabel">新增支出記錄</h5>
+                    <h5 class="modal-title" id="addExpenditureModalLabel">[[ isEditingExpenditure ? '編輯' : '新增' ]]支出記錄</h5>
                     <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
                          @click="hideAddExpenditureModal"
                          aria-label="Close">
@@ -558,7 +567,7 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-light" @click="hideAddExpenditureModal">關閉</button>
-                            <button type="submit" class="btn btn-primary">新增支出</button>
+                            <button type="submit" class="btn btn-primary">[[ isEditingExpenditure ? '更新' : '新增' ]]支出</button>
                         </div>
                     </form>
                 </div>
@@ -566,6 +575,52 @@
         </div>
     </div>
     <!-- 結束新增支出 Modal -->
+    <!-- 新增變更記錄的 Modal -->
+    <div class="modal fade"
+         tabindex="-1"
+         id="addChangeModal"
+         aria-labelledby="addChangeModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addChangeModalLabel">[[ isEditingChange ? '編輯' : '新增' ]]設計變更記錄</h5>
+                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                         @click="hideAddChangeModal"
+                         aria-label="Close">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitChangeForm" ref="changeForm">
+                        <div class="mb-5">
+                            <label class="form-label">
+                                變更日期<span class="text-danger">*</span>
+                            </label>
+                            <input type="date"
+                                   class="form-control"
+                                   v-model="newChange.created_at"
+                                   required>
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">
+                                變更說明<span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control"
+                                      v-model="newChange.description"
+                                      rows="5"
+                                      required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" @click="hideAddChangeModal">關閉</button>
+                            <button type="submit" class="btn btn-primary">[[ isEditingChange ? '更新' : '新增' ]]變更記錄</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 結束新增變更記錄 Modal -->
 {% endblock content %}
 {% block extra_js %}
     <script>

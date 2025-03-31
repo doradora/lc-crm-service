@@ -70,6 +70,16 @@ const projectDetail = createApp({
         amount: 0,
         description: "",
       },
+      isEditingExpenditure: false, // 是否在編輯支出記錄
+      editingExpenditureId: null, // 正在編輯的支出記錄ID
+
+      // 新增變更記錄相關數據
+      newChange: {
+        description: "",
+        created_at: new Date().toISOString().slice(0, 10), // 預設為今天
+      },
+      isEditingChange: false, // 是否在編輯變更記錄
+      editingChangeId: null, // 正在編輯的變更記錄ID
     };
   },
   computed: {
@@ -529,20 +539,6 @@ const projectDetail = createApp({
         });
     },
 
-    // 切換標籤頁
-    switchTab(tabId) {
-      this.activeTab = tabId;
-      // Bootstrap 已經處理了標籤切換的顯示邏輯，此方法僅用於記錄當前活動標籤
-    },
-
-    // 格式化金額顯示
-    formatAmount(amount) {
-      return parseFloat(amount).toLocaleString("zh-TW", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      });
-    },
-
     // 顯示新增支出Modal
     showAddExpenditureModal() {
       // 重置新支出表單
@@ -552,6 +548,10 @@ const projectDetail = createApp({
         description: "",
       };
 
+      // 設置為新增模式
+      this.isEditingExpenditure = false;
+      this.editingExpenditureId = null;
+
       // 顯示新增支出Modal
       const modal = new bootstrap.Modal(
         document.getElementById("addExpenditureModal")
@@ -559,7 +559,27 @@ const projectDetail = createApp({
       modal.show();
     },
 
-    // 隱藏新增支出Modal
+    // 顯示編輯支出Modal
+    editExpenditure(expenditure) {
+      // 設置為編輯模式
+      this.isEditingExpenditure = true;
+      this.editingExpenditureId = expenditure.id;
+
+      // 設定表單資料
+      this.newExpenditure = {
+        date: expenditure.date,
+        amount: expenditure.amount,
+        description: expenditure.description,
+      };
+
+      // 顯示編輯支出Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("addExpenditureModal")
+      );
+      modal.show();
+    },
+
+    // 隱藏新增/編輯支出Modal
     hideAddExpenditureModal() {
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("addExpenditureModal")
@@ -569,7 +589,7 @@ const projectDetail = createApp({
       }
     },
 
-    // 提交新增支出表單
+    // 提交新增或編輯支出表單
     submitExpenditureForm() {
       const expenditureData = {
         project: this.projectId,
@@ -578,8 +598,17 @@ const projectDetail = createApp({
         description: this.newExpenditure.description,
       };
 
-      fetch("/crm/api/expenditures/", {
-        method: "POST",
+      // 根據是新增還是編輯選擇不同的API呼叫方式
+      let url = "/crm/api/expenditures/";
+      let method = "POST";
+
+      if (this.isEditingExpenditure) {
+        url = `/crm/api/expenditures/${this.editingExpenditureId}/`;
+        method = "PATCH";
+      }
+
+      fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           "X-CSRFToken": document.querySelector(
@@ -597,18 +626,22 @@ const projectDetail = createApp({
           return response.json();
         })
         .then((data) => {
-          // 新增支出成功後，更新專案詳情以獲取最新支出記錄
+          // 操作成功後，更新專案詳情以獲取最新支出記錄
           this.fetchProjectDetails();
 
           // 關閉Modal
           this.hideAddExpenditureModal();
 
           // 顯示成功提示
-          alert(`支出記錄新增成功`);
+          alert(`支出記錄${this.isEditingExpenditure ? "更新" : "新增"}成功`);
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert(`新增支出失敗：${error.message}`);
+          alert(
+            `${this.isEditingExpenditure ? "更新" : "新增"}支出記錄失敗：${
+              error.message
+            }`
+          );
         });
     },
 
@@ -639,6 +672,149 @@ const projectDetail = createApp({
             alert(`刪除失敗: ${error.message}`);
           });
       }
+    },
+
+    // 顯示新增變更記錄Modal
+    showAddChangeModal() {
+      // 重置新變更記錄表單
+      this.newChange = {
+        description: "",
+        created_at: new Date().toISOString().slice(0, 10), // 預設為今天
+      };
+      this.isEditingChange = false;
+      this.editingChangeId = null;
+
+      // 顯示新增變更記錄Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("addChangeModal")
+      );
+      modal.show();
+    },
+
+    // 顯示編輯變更記錄Modal
+    editProjectChange(change) {
+      this.isEditingChange = true;
+      this.editingChangeId = change.id;
+
+      // 設定表單資料
+      this.newChange = {
+        description: change.description,
+        created_at: change.created_at,
+      };
+
+      // 顯示編輯變更記錄Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("addChangeModal")
+      );
+      modal.show();
+    },
+
+    // 隱藏新增變更記錄Modal
+    hideAddChangeModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("addChangeModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 提交新增或編輯變更記錄表單
+    submitChangeForm() {
+      const changeData = {
+        project: this.projectId,
+        description: this.newChange.description,
+        created_at: this.newChange.created_at,
+      };
+
+      // 根據是新增還是編輯選擇不同的API呼叫方式
+      let url = "/crm/api/project-changes/";
+      let method = "POST";
+
+      if (this.isEditingChange) {
+        url = `/crm/api/project-changes/${this.editingChangeId}/`;
+        method = "PATCH";
+      }
+
+      fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector(
+            'input[name="csrfmiddlewaretoken"]'
+          ).value,
+        },
+        body: JSON.stringify(changeData),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((err) => {
+              throw new Error(JSON.stringify(err));
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // 操作成功後，更新專案詳情以獲取最新變更記錄
+          this.fetchProjectDetails();
+
+          // 關閉Modal
+          this.hideAddChangeModal();
+
+          // 顯示成功提示
+          alert(`變更記錄${this.isEditingChange ? "更新" : "新增"}成功`);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert(
+            `${this.isEditingChange ? "更新" : "新增"}變更記錄失敗：${
+              error.message
+            }`
+          );
+        });
+    },
+
+    // 刪除變更記錄
+    deleteProjectChange(changeId) {
+      if (confirm("確定要刪除此變更記錄嗎？此操作無法還原！")) {
+        fetch(`/crm/api/project-changes/${changeId}/`, {
+          method: "DELETE",
+          headers: {
+            "X-CSRFToken": document.querySelector(
+              'input[name="csrfmiddlewaretoken"]'
+            ).value,
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("刪除失敗");
+            }
+
+            // 刪除成功後，更新專案詳情以獲取最新變更記錄
+            this.fetchProjectDetails();
+
+            // 顯示成功提示
+            alert("變更記錄已刪除");
+          })
+          .catch((error) => {
+            console.error("Error deleting project change:", error);
+            alert(`刪除失敗: ${error.message}`);
+          });
+      }
+    },
+
+    // 切換標籤頁
+    switchTab(tabId) {
+      this.activeTab = tabId;
+      // Bootstrap 已經處理了標籤切換的顯示邏輯，此方法僅用於記錄當前活動標籤
+    },
+
+    // 格式化金額顯示
+    formatAmount(amount) {
+      return parseFloat(amount).toLocaleString("zh-TW", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
     },
   },
   mounted() {
