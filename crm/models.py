@@ -98,7 +98,6 @@ class Project(models.Model):
                         self.project_number = "001"
             except (ValueError, AttributeError) as e:
                 # 處理例外情況，確保程式不會因編號產生錯誤而中斷
-                print(f"產生專案編號時出錯: {str(e)}")
                 self.project_number = "001"
 
         super().save(*args, **kwargs)

@@ -17,7 +17,7 @@ const projectList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
-      pageSize: 5, // 每頁顯示的項目數，可調整
+      pageSize: 10, // 修改為10，與payments頁面一致
       menuPosition: {
         x: 0,
         y: 0,
@@ -107,6 +107,36 @@ const projectList = createApp({
 
       // 按降序排列（最近的年份在前）
       return range.sort((a, b) => b - a);
+    },
+    // 計算需要顯示的頁碼
+    displayedPages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const delta = 2; // 當前頁的左右顯示頁數
+      let pages = [];
+
+      // 計算應該顯示哪些頁碼
+      for (let i = 1; i <= total; i++) {
+        if (
+          i === 1 ||
+          i === total ||
+          (i >= current - delta && i <= current + delta)
+        ) {
+          pages.push(i);
+        }
+      }
+
+      // 添加省略號
+      let result = [];
+      let prev = 0;
+      for (let page of pages) {
+        if (prev && page > prev + 1) {
+          result.push("...");
+        }
+        result.push(page);
+        prev = page;
+      }
+      return result;
     },
   },
   directives: {
@@ -640,6 +670,11 @@ const projectList = createApp({
           console.error("Error:", error);
           alert(`創建業主失敗：${error.message}`);
         });
+    },
+    // 處理每頁數量變更
+    pageSizeChanged() {
+      this.currentPage = 1; // 更改每頁數量時重置為第一頁
+      this.fetchProjects(1);
     },
   },
   mounted() {

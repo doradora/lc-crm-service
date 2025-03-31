@@ -12,7 +12,6 @@ def signin(request):
         password = request.POST.get("password")
         # 驗證帳號密碼
         user = authenticate(request, username=username, password=password)
-        print(user)
         if user is not None:
             login(request, user)  # 設置 session，登入成功
             return JsonResponse({"message": "登入成功！"}, status=200)

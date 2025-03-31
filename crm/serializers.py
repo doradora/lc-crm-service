@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from .models import (
     Owner,
     Project,
@@ -33,6 +34,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class OwnerSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Owner
         fields = [

@@ -37,10 +37,18 @@
                   </div>
                   <button class="btn btn-light" @click="fetchUsers()">搜尋</button>
                 </div>
+                <div class="d-flex align-items-center ms-auto">
+                  <span class="text-muted me-2">每頁顯示</span>
+                  <select class="form-select form-select-sm w-75px"
+                          v-model.number="pageSize"
+                          @change="pageSizeChanged">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
               </div>
-              {% comment %} <div class="card-toolbar flex-row-fluid justify-content-end gap-5">
-                <button class="btn btn-primary" @click.prevent="showAddUserModal">新增使用者</button>
-              </div> {% endcomment %}
             </div>
             <!--end::Card header-->
             <!--begin::Card body-->
@@ -108,19 +116,31 @@
                 </tbody>
               </table>
               <!-- 分頁控制 -->
-              <ul class="pagination">
-                <li class="page-item btn"
-                    @click="fetchUsers(currentPage - 1)"
-                    :class="currentPage === 1 ? 'disabled' : ''"
-                    :disabled="currentPage === 1">上一頁</li>
-                <li class="page-item">
-                  <a>第 [[ currentPage ]] 頁 / 共 [[ totalPages ]] 頁</a>
-                </li>
-                <li class="page-item btn"
-                    @click="fetchUsers(currentPage + 1)"
-                    :class="currentPage === totalPages? 'disabled' : ''"
-                    :disabled="currentPage === totalPages">下一頁</li>
-              </ul>
+              <div class="d-flex justify-content-center align-items-center flex-wrap">
+                <ul class="pagination">
+                  <li class="page-item previous"
+                      :class="currentPage === 1 ? 'disabled' : ''"
+                      @click="currentPage > 1 && fetchUsers(currentPage - 1)">
+                    <a href="#" class="page-link"><i class="previous"></i></a>
+                  </li>
+                  <template v-for="page in displayedPages" :key="page">
+                    <li v-if="page === '...'" class="page-item disabled">
+                      <span class="page-link">...</span>
+                    </li>
+                    <li v-else
+                        class="page-item"
+                        :class="currentPage === page ? 'active' : ''"
+                        @click="fetchUsers(page)">
+                      <a href="#" class="page-link">[[ page ]]</a>
+                    </li>
+                  </template>
+                  <li class="page-item next"
+                      :class="currentPage === totalPages ? 'disabled' : ''"
+                      @click="currentPage < totalPages && fetchUsers(currentPage + 1)">
+                    <a href="#" class="page-link"><i class="next"></i></a>
+                  </li>
+                </ul>
+              </div>
             </div>
             {% comment %} modal 新增使用者 {% endcomment %}
             <div class="modal fade"

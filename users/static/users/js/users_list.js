@@ -39,6 +39,38 @@ const userList = createApp({
       sortDirection: "asc", // 排序方向，asc 升序，desc 降序
     };
   },
+  computed: {
+    // 計算需要顯示的頁碼
+    displayedPages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const delta = 2; // 當前頁的左右顯示頁數
+      let pages = [];
+
+      // 計算應該顯示哪些頁碼
+      for (let i = 1; i <= total; i++) {
+        if (
+          i === 1 ||
+          i === total ||
+          (i >= current - delta && i <= current + delta)
+        ) {
+          pages.push(i);
+        }
+      }
+
+      // 添加省略號
+      let result = [];
+      let prev = 0;
+      for (let page of pages) {
+        if (prev && page > prev + 1) {
+          result.push("...");
+        }
+        result.push(page);
+        prev = page;
+      }
+      return result;
+    },
+  },
   methods: {
     deleteUser(userId) {
       if (confirm("確定要刪除此用戶嗎？")) {
@@ -296,6 +328,11 @@ const userList = createApp({
               : "創建使用者失敗，請稍後再試"
           );
         });
+    },
+    // 處理每頁數量變更
+    pageSizeChanged() {
+      this.currentPage = 1; // 更改每頁數量時重置為第一頁
+      this.fetchUsers(1);
     },
   },
   watch: {},

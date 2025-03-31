@@ -8,7 +8,7 @@ const ownerList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
-      pageSize: 5, // 每頁顯示的項目數，可調整
+      pageSize: 10, // 修改默認值，從5改為10
       menuPosition: {
         x: 0,
         y: 0,
@@ -27,6 +27,38 @@ const ownerList = createApp({
         contact_person: "",
       },
     };
+  },
+  computed: {
+    // 計算需要顯示的頁碼
+    displayedPages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const delta = 2; // 當前頁的左右顯示頁數
+      let pages = [];
+
+      // 計算應該顯示哪些頁碼
+      for (let i = 1; i <= total; i++) {
+        if (
+          i === 1 ||
+          i === total ||
+          (i >= current - delta && i <= current + delta)
+        ) {
+          pages.push(i);
+        }
+      }
+
+      // 添加省略號
+      let result = [];
+      let prev = 0;
+      for (let page of pages) {
+        if (prev && page > prev + 1) {
+          result.push("...");
+        }
+        result.push(page);
+        prev = page;
+      }
+      return result;
+    },
   },
   methods: {
     deleteOwner(ownerId) {
@@ -193,22 +225,58 @@ const ownerList = createApp({
         body: JSON.stringify(this.newOwner),
       })
         .then((response) => {
-          if (!response.ok)
-            throw new Error(this.isEditMode ? "更新業主失敗" : "創建業主失敗");
-          return response.json();
+          // 無論成功失敗都先讀取 JSON 響應
+          return response.json().then((data) => {
+            // 將原始響應和數據一起傳遞
+            return { status: response.status, ok: response.ok, data: data };
+          });
+        })
+        .then((result) => {
+          if (!result.ok) {
+            let errorDetails = [];
+            Object.keys(result.data).forEach((key) => {
+              console.log(result.data[key]);
+              if (key === "tax_id") {
+                errorDetails.push("統一編號錯誤，可能已經重複或有誤。");
+              }
+            });
+            if (errorDetails.length > 0) {
+              errorMsg = errorDetails.join("\n");
+            }
+            throw new Error(errorMsg);
+          } else if (result.status === 201) {
+            Swal.fire({
+              title: "成功!",
+              text: "業主新增成功！",
+              icon: "success",
+              confirmButtonText: "確認",
+            });
+          } else if (result.status === 200) {
+            Swal.fire({
+              title: "成功!",
+              text: "業主編輯成功！",
+              icon: "success",
+              confirmButtonText: "確認",
+            });
+          }
         })
         .then(() => {
           this.hideAddOwnerModal(); // 提交成功後關閉 Modal
           this.fetchOwners(this.currentPage); // 刷新業主列表
         })
         .catch((error) => {
-          console.error("Error:", error);
-          alert(
-            this.isEditMode
-              ? "更新業主失敗，請稍後再試"
-              : "創建業主失敗，請稍後再試"
-          );
+          Swal.fire({
+            title: "錯誤!",
+            text: error.message,
+            icon: "error",
+            confirmButtonText: "確認",
+          });
         });
+    },
+    // 處理每頁數量變更
+    pageSizeChanged() {
+      this.currentPage = 1; // 更改每頁數量時重置為第一頁
+      this.fetchOwners(1);
     },
   },
   mounted() {

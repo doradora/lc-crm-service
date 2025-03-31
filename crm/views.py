@@ -50,7 +50,7 @@ def category(request):
 
 @login_required(login_url="signin")
 def owners(request):
-    return render(request, "crm/pages/owners.html")
+    return render(request, "crm/pages/owner/owners.html")
 
 
 @login_required(login_url="signin")
@@ -72,7 +72,7 @@ def invoices(request):
 def owner_projects(request, owner_id):
     """顯示特定業主的專案列表"""
     owner = get_object_or_404(Owner, id=owner_id)
-    return render(request, "crm/pages/owner_projects.html", {"owner": owner})
+    return render(request, "crm/pages/owner/owner_projects.html", {"owner": owner})
 
 
 @login_required(login_url="signin")
