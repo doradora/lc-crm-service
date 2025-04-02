@@ -38,6 +38,10 @@ const projectDetail = createApp({
       projectManagers: [],
       designers: [],
 
+      // 自定義欄位相關
+      categoryFields: {}, // 類別定義的欄位結構
+      customFieldValues: {}, // 專案中的自定義欄位值
+
       // 搜尋與下拉選單相關數據
       ownerSearchTerm: "",
       managerSearchTerm: "",
@@ -105,6 +109,17 @@ const projectDetail = createApp({
       );
       return category ? `${category.code}: ${category.description}` : "未分類";
     },
+
+    // 獲取設計師名稱
+    getDesignerName() {
+      if (this.project.drawing && this.users) {
+        const designer = this.users.find((u) => u.id === this.project.drawing);
+        if (designer) {
+          return designer.profile.name || designer.username;
+        }
+      }
+      return null;
+    },
   },
   directives: {
     // 點擊元素外部時觸發的自定義指令
@@ -146,12 +161,53 @@ const projectDetail = createApp({
         .then((data) => {
           this.project = data;
 
+          // 初始化自定義欄位值
+          if (data.custom_fields) {
+            this.customFieldValues = { ...data.custom_fields };
+          }
+
+          // 如果有類別ID，獲取該類別的自定義欄位定義
+          if (data.category) {
+            this.fetchCategoryCustomFields(data.category);
+          }
+
           // 更新相關搜尋框的內容
           this.updateSearchTerms();
         })
         .catch((error) => {
           console.error("Error fetching project details:", error);
           alert("獲取專案資料失敗");
+        });
+    },
+
+    // 獲取類別的自定義欄位定義
+    fetchCategoryCustomFields(categoryId) {
+      fetch(`/crm/api/categories/${categoryId}/custom_fields/`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("無法獲取類別自定義欄位");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.categoryFields = data;
+
+          // 初始化欄位值
+          Object.keys(data).forEach((fieldName) => {
+            if (!(fieldName in this.customFieldValues)) {
+              // 根據欄位類型設置默認值
+              if (data[fieldName].type === "boolean") {
+                this.customFieldValues[fieldName] = false;
+              } else if (data[fieldName].type === "number") {
+                this.customFieldValues[fieldName] = 0;
+              } else {
+                this.customFieldValues[fieldName] = "";
+              }
+            }
+          });
+        })
+        .catch((error) => {
+          console.error("Error fetching category custom fields:", error);
         });
     },
 
@@ -253,6 +309,9 @@ const projectDetail = createApp({
       // 準備要提交的資料
       const formData = { ...this.project };
 
+      // 添加自定義欄位值
+      formData.custom_fields = this.customFieldValues;
+
       // 轉換日期格式（如果有日期字段）
       ["invoice_date", "payment_date", "invoice_issue_date"].forEach(
         (field) => {
@@ -282,6 +341,12 @@ const projectDetail = createApp({
         })
         .then((data) => {
           this.project = data;
+
+          // 更新自定義欄位的值
+          if (data.custom_fields) {
+            this.customFieldValues = { ...data.custom_fields };
+          }
+
           alert("專案資料已更新");
 
           // 儲存成功後，確保返回相同標籤頁
