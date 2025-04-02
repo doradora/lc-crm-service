@@ -8,7 +8,9 @@ router.register(r"projects", views.ProjectViewSet)
 router.register(r"quotations", views.QuotationViewSet)
 router.register(r"payments", views.PaymentViewSet)
 router.register(r"invoices", views.InvoiceViewSet)
-router.register(r"categories", views.CategoryViewSet)
+router.register(
+    r"categories", views.CategoryViewSet, basename="category"
+)  # 確保這裡有設定 basename
 router.register(r"expenditures", views.ExpenditureViewSet)
 router.register(
     r"project-changes", views.ProjectChangeViewSet

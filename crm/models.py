@@ -19,9 +19,33 @@ class Owner(models.Model):
 class Category(models.Model):
     code = models.CharField(max_length=50, unique=True)  # 編號
     description = models.TextField()  # 說明
+    custom_field_schema = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return self.code
+
+    def add_custom_field(self, name, display_name, field_type, required=False, order=0):
+        """添加自定義欄位定義"""
+        if not self.custom_field_schema:
+            self.custom_field_schema = {}
+
+        self.custom_field_schema[name] = {
+            "display_name": display_name,
+            "type": field_type,  # 'text', 'textarea', 'number', 'date', 'boolean'
+            "required": required,
+            "order": order,
+        }
+        self.save()
+
+    def remove_custom_field(self, name):
+        """移除自定義欄位定義"""
+        if self.custom_field_schema and name in self.custom_field_schema:
+            del self.custom_field_schema[name]
+            self.save()
+
+    def get_custom_fields(self):
+        """取得所有自定義欄位定義"""
+        return self.custom_field_schema or {}
 
 
 class Project(models.Model):
@@ -62,6 +86,7 @@ class Project(models.Model):
     invoice_issue_date = models.DateField(null=True, blank=True)  # 發票日期
     invoice_notes = models.TextField(null=True, blank=True)  # 請款備註
     is_paid = models.BooleanField(default=False)  # 是否收款
+    custom_fields = models.JSONField(default=dict, blank=True)
 
     class Meta:
         unique_together = (
@@ -111,6 +136,38 @@ class Project(models.Model):
         total = self.expenditures.aggregate(total=models.Sum("amount"))["total"] or 0
         self.total_expenditure = total
         self.save(update_fields=["total_expenditure"])
+
+    def set_custom_field(self, name, value):
+        """設置自定義欄位值"""
+        if not self.custom_fields:
+            self.custom_fields = {}
+
+        # 確認欄位存在於類別定義中
+        category_fields = self.category.get_custom_fields() if self.category else {}
+        if name in category_fields:
+            field_type = category_fields[name]["type"]
+
+            # 簡單類型驗證
+            if field_type == "number" and not isinstance(value, (int, float)):
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    raise ValueError(f"欄位 {name} 必須是數字")
+            elif field_type == "boolean" and not isinstance(value, bool):
+                value = bool(value)
+
+            self.custom_fields[name] = value
+            self.save(update_fields=["custom_fields"])
+            return True
+        return False
+
+    def get_custom_field(self, name):
+        """獲取自定義欄位值"""
+        return self.custom_fields.get(name) if self.custom_fields else None
+
+    def get_all_custom_fields(self):
+        """獲取所有自定義欄位值"""
+        return self.custom_fields or {}
 
 
 class Expenditure(models.Model):

@@ -183,6 +183,54 @@ class CategoryViewSet(BaseViewSet):
     def get_queryset(self):
         return Category.objects.annotate(projects_count=Count("project"))
 
+    @action(detail=True, methods=["get"])
+    def custom_fields(self, request, pk=None):
+        """取得類別的自定義欄位結構"""
+        category = self.get_object()
+        return Response(category.custom_field_schema or {})
+
+    @action(detail=True, methods=["post"])
+    def update_custom_fields(self, request, pk=None):
+        """更新類別的自定義欄位結構"""
+        category = self.get_object()
+        custom_fields = request.data
+
+        # 基本驗證
+        if not isinstance(custom_fields, dict):
+            return Response(
+                {"error": "自定義欄位必須是物件格式"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 驗證每個欄位的格式
+        for field_name, field_config in custom_fields.items():
+            if not isinstance(field_config, dict):
+                return Response(
+                    {"error": f"欄位 {field_name} 配置必須是物件格式"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            required_keys = ["display_name", "type"]
+            for key in required_keys:
+                if key not in field_config:
+                    return Response(
+                        {"error": f"欄位 {field_name} 缺少必要的配置 {key}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            valid_types = ["text", "textarea", "number", "date", "boolean"]
+            if field_config["type"] not in valid_types:
+                return Response(
+                    {"error": f"欄位 {field_name} 的類型不是有效類型: {valid_types}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # 更新自定義欄位結構
+        category.custom_field_schema = custom_fields
+        category.save(update_fields=["custom_field_schema"])
+
+        return Response(category.custom_field_schema)
+
 
 class OwnerViewSet(BaseViewSet):
     queryset = Owner.objects.all().order_by("tax_id")

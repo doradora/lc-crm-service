@@ -17,6 +17,7 @@ from django.contrib.auth.models import User
 class CategorySerializer(serializers.ModelSerializer):
     projects_count = serializers.IntegerField(read_only=True, default=0)
     name = serializers.SerializerMethodField()  # 新增：用於顯示在下拉選單的名稱
+    custom_field_schema = serializers.JSONField(required=False)
 
     class Meta:
         model = Category
@@ -26,7 +27,8 @@ class CategorySerializer(serializers.ModelSerializer):
             "description",
             "projects_count",
             "name",
-        ]  # 增加 name 欄位
+            "custom_field_schema",
+        ]  # 增加 custom_field_schema 欄位
 
     def get_name(self, obj):
         """返回類別代碼和描述的組合，用於顯示在下拉選單中"""
@@ -124,6 +126,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     total_expenditure = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True
     )
+    custom_fields = serializers.JSONField(required=False)
 
     class Meta:
         model = Project
@@ -154,6 +157,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "invoice_issue_date",
             "invoice_notes",
             "is_paid",
+            "custom_fields",  # 新增自定義欄位
         ]
         read_only_fields = [
             "project_number",

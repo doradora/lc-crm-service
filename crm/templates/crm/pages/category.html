@@ -33,6 +33,7 @@
                                         <th class="min-w-200px">編號</th>
                                         <th class="text-center min-w-100px">說明</th>
                                         <th class="text-center min-w-100px">已有案量</th>
+                                        <th class="text-center min-w-100px">自定義欄位</th>
                                         <th class="text-end min-w-70px">操作</th>
                                     </tr>
                                 </thead>
@@ -50,6 +51,14 @@
                                             <span class="fw-bold">[[ cg.description ]]</span>
                                         </td>
                                         <td class="text-center">[[ cg.projects_count ]]</td>
+                                        <td class="text-center">
+                                            <span class="badge badge-light-primary" v-if="getCustomFieldsCount(cg) > 0">[[ getCustomFieldsCount(cg) ]] 個欄位</span>
+                                            <span class="badge badge-light-secondary" v-else>無自定義欄位</span>
+                                            <button @click.prevent="manageCustomFields(cg)"
+                                                    class="btn btn-sm btn-icon btn-light-primary ms-2">
+                                                <i class="ki-outline ki-setting-3"></i>
+                                            </button>
+                                        </td>
                                         <td class="text-end">
                                             <a href="#"
                                                class="btn btn-sm btn-light btn-flex btn-center btn-active-light-primary"
@@ -63,6 +72,9 @@
                                                  :class="{'show': activeMenu === cg.id}">
                                                 <div class="menu-item px-3">
                                                     <a class="menu-link px-3" @click.prevent="editCategory(cg)">編輯資料</a>
+                                                </div>
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3" @click.prevent="manageCustomFields(cg)">管理自定義欄位</a>
                                                 </div>
                                                 <hr class="my-1" />
                                                 <div class="menu-item px-3">
@@ -141,6 +153,166 @@
                             </div>
                         </div>
                         {% comment %} end modal 新增類別 {% endcomment %}
+                        {% comment %} modal 管理自定義欄位 {% endcomment %}
+                        <div class="modal fade"
+                             tabindex="-1"
+                             id="customFieldsModal"
+                             aria-labelledby="customFieldsModalLabel"
+                             aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="customFieldsModalLabel">管理自定義欄位 - [[ currentCategory ? currentCategory.code : '' ]]</h5>
+                                        <!--begin::Close-->
+                                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                                             @click="hideCustomFieldsModal"
+                                             aria-label="Close">
+                                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                                        </div>
+                                        <!--end::Close-->
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="d-flex justify-content-between mb-5">
+                                            <h3 class="card-title">自定義欄位列表</h3>
+                                            <button class="btn btn-sm btn-primary" @click="addNewCustomField">
+                                                <i class="ki-outline ki-plus fs-2"></i> 新增欄位
+                                            </button>
+                                        </div>
+                                        <!-- 自定義欄位列表 -->
+                                        <div class="table-responsive" v-if="Object.keys(customFields).length > 0">
+                                            <table class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                                <thead>
+                                                    <tr class="fw-bold text-muted">
+                                                        <th class="min-w-150px">欄位名稱</th>
+                                                        <th class="min-w-150px">顯示名稱</th>
+                                                        <th class="min-w-100px">類型</th>
+                                                        <th class="min-w-80px">必填</th>
+                                                        <th class="min-w-80px">排序</th>
+                                                        <th class="min-w-100px text-end">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="(field, fieldName) in customFields" :key="fieldName">
+                                                        <td>[[ fieldName ]]</td>
+                                                        <td>[[ field.display_name ]]</td>
+                                                        <td>[[ getFieldTypeDisplay(field.type) ]]</td>
+                                                        <td>
+                                                            <span v-if="field.required" class="badge badge-light-primary">必填</span>
+                                                            <span v-else class="badge badge-light-secondary">選填</span>
+                                                        </td>
+                                                        <td>[[ field.order ]]</td>
+                                                        <td class="text-end">
+                                                            <button @click="editCustomField(fieldName, field)"
+                                                                    class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
+                                                                <i class="ki-outline ki-pencil fs-2"></i>
+                                                            </button>
+                                                            <button @click="deleteCustomField(fieldName)"
+                                                                    class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm">
+                                                                <i class="ki-outline ki-trash fs-2"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <!-- 無自定義欄位時顯示 -->
+                                        <div v-else class="text-center py-10">
+                                            <div class="text-muted fs-6 mb-5">尚未設定任何自定義欄位</div>
+                                            <button class="btn btn-primary" @click="addNewCustomField">
+                                                <i class="ki-outline ki-plus fs-2"></i> 新增第一個欄位
+                                            </button>
+                                        </div>
+                                        <!-- 添加/編輯欄位表單 -->
+                                        <div v-if="showFieldForm" class="card shadow-sm mt-5">
+                                            <div class="card-header">
+                                                <h3 class="card-title">[[ isFieldEditMode ? '編輯欄位' : '新增欄位' ]]</h3>
+                                                <div class="card-toolbar">
+                                                    <button type="button" class="btn btn-sm btn-light" @click="cancelFieldEdit">取消</button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <form @submit.prevent="saveCustomField">
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-6">
+                                                            <div class="form-floating">
+                                                                <input type="text"
+                                                                       class="form-control"
+                                                                       id="fieldName"
+                                                                       v-model="fieldForm.name"
+                                                                       :disabled="isFieldEditMode"
+                                                                       placeholder="欄位名稱"
+                                                                       required />
+                                                                <label for="fieldName">
+                                                                    欄位名稱<span class="text-danger">*</span>
+                                                                </label>
+                                                            </div>
+                                                            <div class="text-muted fs-7 mt-1">系統內部使用的欄位識別符，建議使用英文和數字</div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-floating">
+                                                                <input type="text"
+                                                                       class="form-control"
+                                                                       id="displayName"
+                                                                       v-model="fieldForm.display_name"
+                                                                       placeholder="顯示名稱"
+                                                                       required />
+                                                                <label for="displayName">
+                                                                    顯示名稱<span class="text-danger">*</span>
+                                                                </label>
+                                                            </div>
+                                                            <div class="text-muted fs-7 mt-1">表單中顯示的欄位名稱</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">
+                                                                欄位類型<span class="text-danger">*</span>
+                                                            </label>
+                                                            <select class="form-select" v-model="fieldForm.type" required>
+                                                                <option value="text">單行文字</option>
+                                                                <option value="textarea">多行文字</option>
+                                                                <option value="number">數字</option>
+                                                                <option value="date">日期</option>
+                                                                <option value="boolean">是/否</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">排序</label>
+                                                            <input type="number"
+                                                                   class="form-control"
+                                                                   v-model="fieldForm.order"
+                                                                   min="0"
+                                                                   step="1" />
+                                                            <div class="text-muted fs-7 mt-1">數字越小越靠前顯示</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-check mb-3">
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               id="requiredField"
+                                                               v-model="fieldForm.required">
+                                                        <label class="form-check-label" for="requiredField">設為必填欄位</label>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <button type="button" class="btn btn-light me-2" @click="cancelFieldEdit">取消</button>
+                                                        <button type="submit" class="btn btn-primary">儲存欄位</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button"
+                                                class="btn btn-secondary"
+                                                @click="hideCustomFieldsModal">關閉</button>
+                                        <button type="button"
+                                                class="btn btn-primary"
+                                                @click="saveCustomFieldsChanges">儲存變更</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% comment %} end modal 管理自定義欄位 {% endcomment %}
                     </div>
                 </div>
             </div>
