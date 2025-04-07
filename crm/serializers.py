@@ -120,7 +120,6 @@ class ProjectSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField(read_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
     manager_name = serializers.SerializerMethodField(read_only=True)
-    drawing_name = serializers.SerializerMethodField(read_only=True)
     changes = ProjectChangeSerializer(many=True, read_only=True)
     expenditures = ExpenditureSerializer(many=True, read_only=True)
     total_expenditure = serializers.DecimalField(
@@ -142,7 +141,6 @@ class ProjectSerializer(serializers.ModelSerializer):
             "manager",
             "manager_name",
             "drawing",
-            "drawing_name",
             "drawing_other",
             "contact_info",
             "changes",  # 變更記錄關聯
@@ -176,11 +174,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         if obj.manager and hasattr(obj.manager, "profile"):
             return obj.manager.profile.name or obj.manager.username
         return None if not obj.manager else obj.manager.username
-
-    def get_drawing_name(self, obj):
-        if obj.drawing and hasattr(obj.drawing, "profile"):
-            return obj.drawing.profile.name or obj.drawing.username
-        return None if not obj.drawing else obj.drawing.username
 
 
 class QuotationSerializer(serializers.ModelSerializer):

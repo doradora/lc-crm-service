@@ -36,7 +36,6 @@ const projectDetail = createApp({
       categories: [],
       users: [],
       projectManagers: [],
-      designers: [],
 
       // 自定義欄位相關
       categoryFields: {}, // 類別定義的欄位結構
@@ -45,13 +44,10 @@ const projectDetail = createApp({
       // 搜尋與下拉選單相關數據
       ownerSearchTerm: "",
       managerSearchTerm: "",
-      designerSearchTerm: "",
       showOwnerDropdown: false,
       showManagerDropdown: false,
-      showDesignerDropdown: false,
       filteredOwners: [],
       filteredManagers: [],
-      filteredDesigners: [],
 
       // 新增業主相關數據
       newOwner: {
@@ -112,13 +108,7 @@ const projectDetail = createApp({
 
     // 獲取設計師名稱
     getDesignerName() {
-      if (this.project.drawing && this.users) {
-        const designer = this.users.find((u) => u.id === this.project.drawing);
-        if (designer) {
-          return designer.profile.name || designer.username;
-        }
-      }
-      return null;
+      return this.project.drawing;
     },
   },
   directives: {
@@ -190,7 +180,21 @@ const projectDetail = createApp({
           return response.json();
         })
         .then((data) => {
-          this.categoryFields = data;
+          // 將物件轉換為有序的物件
+          const sortedFields = {};
+
+          // 將自定義欄位轉換為陣列並排序
+          const sortedEntries = Object.entries(data).sort(([, a], [, b]) => {
+            const orderA = a.order !== undefined ? a.order : 999;
+            const orderB = b.order !== undefined ? b.order : 999;
+            return orderA - orderB;
+          });
+
+          // 重新組建排序後的物件
+          sortedEntries.forEach(([key, value]) => {
+            sortedFields[key] = value;
+          });
+          this.categoryFields = sortedFields;
           // 初始化欄位值
           Object.keys(data).forEach((fieldName) => {
             if (!(fieldName in this.customFieldValues)) {
@@ -240,12 +244,8 @@ const projectDetail = createApp({
           this.projectManagers = this.users.filter(
             (user) => user.profile.is_project_manager
           );
-          this.designers = this.users.filter(
-            (user) => user.profile.is_designer
-          );
 
           this.filterManagers();
-          this.filterDesigners();
         })
         .catch((error) => console.error("Error fetching users:", error));
     },
@@ -265,14 +265,6 @@ const projectDetail = createApp({
         const manager = this.users.find((u) => u.id === this.project.manager);
         if (manager) {
           this.managerSearchTerm = manager.profile.name || manager.username;
-        }
-      }
-
-      // 設置繪圖人員搜尋框
-      if (this.project.drawing) {
-        const designer = this.users.find((u) => u.id === this.project.drawing);
-        if (designer) {
-          this.designerSearchTerm = designer.profile.name || designer.username;
         }
       }
     },
@@ -477,47 +469,6 @@ const projectDetail = createApp({
         const manager = this.users.find((u) => u.id === this.project.manager);
         if (manager) {
           this.managerSearchTerm = manager.profile.name || manager.username;
-        }
-      }
-    },
-
-    // 繪圖人員搜尋和選擇
-    filterDesigners() {
-      if (!this.designerSearchTerm) {
-        this.filteredDesigners = this.designers.slice(0, 10);
-        return;
-      }
-
-      const searchTerm = this.designerSearchTerm.toLowerCase();
-      this.filteredDesigners = this.designers
-        .filter(
-          (user) =>
-            (user.profile.name &&
-              user.profile.name.toLowerCase().includes(searchTerm)) ||
-            user.username.toLowerCase().includes(searchTerm)
-        )
-        .slice(0, 10);
-    },
-
-    selectDesigner(designer) {
-      this.project.drawing = designer.id;
-      this.designerSearchTerm = designer.profile.name || designer.username;
-      this.showDesignerDropdown = false;
-    },
-
-    closeDesignerDropdown() {
-      this.showDesignerDropdown = false;
-
-      // 如果已選擇了繪圖人員ID但輸入框被清空，則重設繪圖人員ID
-      if (this.project.drawing && !this.designerSearchTerm) {
-        this.project.drawing = "";
-      }
-
-      // 如果有繪圖人員ID，確保顯示正確的繪圖人員名稱
-      if (this.project.drawing) {
-        const designer = this.users.find((u) => u.id === this.project.drawing);
-        if (designer) {
-          this.designerSearchTerm = designer.profile.name || designer.username;
         }
       }
     },

@@ -366,43 +366,10 @@
                                 <!-- 繪圖人員 -->
                                 <div class="mb-5">
                                     <label class="form-label">繪圖人員</label>
-                                    <div class="position-relative" v-click-outside="closeDesignerDropdown">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <div class="symbol symbol-30px me-3" v-if="project.designer">
-                                                <div class="symbol-label bg-light-success">
-                                                    <i class="ki-outline ki-abstract-26 fs-5 text-success"></i>
-                                                </div>
-                                            </div>
-                                            <span class="fs-6 fw-bold" v-if="getDesignerName">[[ getDesignerName ]]</span>
-                                        </div>
-                                        <input type="text"
-                                               class="form-control"
-                                               v-model="designerSearchTerm"
-                                               @focus="showDesignerDropdown = true"
-                                               @input="filterDesigners"
-                                               placeholder="搜尋繪圖人員...">
-                                        <div class="dropdown-menu w-100"
-                                             :class="{ 'show': showDesignerDropdown }"
-                                             style="max-height: 200px;
-                                                    overflow-y: auto">
-                                            <div v-if="filteredDesigners.length === 0" class="dropdown-item disabled">沒有結果</div>
-                                            <a v-for="designer in filteredDesigners"
-                                               :key="designer.id"
-                                               class="dropdown-item"
-                                               href="#"
-                                               @click.prevent="selectDesigner(designer)">
-                                                [[ designer.profile.name || designer.username ]]
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- 其他繪圖人員 -->
-                                <div class="mb-5">
-                                    <label class="form-label">其他繪圖人員</label>
                                     <input type="text"
                                            class="form-control"
-                                           v-model="project.drawing_other"
-                                           placeholder="可輸入未在系統中的繪圖人員名稱">
+                                           v-model="project.drawing"
+                                           placeholder="請輸入繪圖人員名稱">
                                 </div>
                             </div>
                         </div>

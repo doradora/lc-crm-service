@@ -241,9 +241,9 @@ class OwnerViewSet(BaseViewSet):
 
 
 class ProjectViewSet(BaseViewSet):
-    queryset = Project.objects.all().select_related(
-        "owner", "category", "manager", "drawing"
-    )
+    queryset = Project.objects.select_related(
+        "owner", "manager", "category"
+    ).prefetch_related("changes", "expenditures")
     serializer_class = ProjectSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
@@ -255,9 +255,9 @@ class ProjectViewSet(BaseViewSet):
     ]
 
     def get_queryset(self):
-        queryset = Project.objects.all().select_related(
-            "owner", "category", "manager", "drawing"
-        )
+        queryset = Project.objects.select_related(
+            "owner", "manager", "category"
+        ).prefetch_related("changes", "expenditures")
 
         # 搜尋
         search_query = self.request.query_params.get("search", None)

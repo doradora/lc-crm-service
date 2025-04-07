@@ -329,6 +329,7 @@ const projectList = createApp({
     },
     getManagerName(managerId) {
       const manager = this.userMap[managerId];
+      console.log(manager);
       return manager ? manager.profile.name || manager.username : "未指派";
     },
     getStatusBadgeClass(project) {
