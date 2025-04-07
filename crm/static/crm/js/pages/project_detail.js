@@ -160,7 +160,7 @@ const projectDetail = createApp({
         })
         .then((data) => {
           this.project = data;
-
+          console.log(data);
           // 初始化自定義欄位值
           if (data.custom_fields) {
             this.customFieldValues = { ...data.custom_fields };
@@ -191,7 +191,6 @@ const projectDetail = createApp({
         })
         .then((data) => {
           this.categoryFields = data;
-
           // 初始化欄位值
           Object.keys(data).forEach((fieldName) => {
             if (!(fieldName in this.customFieldValues)) {

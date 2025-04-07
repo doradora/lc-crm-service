@@ -58,12 +58,8 @@ class Project(models.Model):
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )  # 案件負責人，設為非必填
-    drawing = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="drawing_user",
+    drawing = models.CharField(
+        max_length=255, blank=True, null=True
     )  # 繪圖，設為非必填
     drawing_other = models.CharField(
         max_length=255, blank=True, null=True
