@@ -55,15 +55,13 @@ class Project(models.Model):
         max_length=4, blank=True, null=True
     )  # 案件編號，隨年度自動遞增，設置為可空白和可為null
     name = models.CharField(max_length=255)  # 案件名稱
+    report_name = models.CharField(max_length=255)  # 報告名稱，設為非必填
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )  # 案件負責人，設為非必填
     drawing = models.CharField(
         max_length=255, blank=True, null=True
     )  # 繪圖，設為非必填
-    drawing_other = models.CharField(
-        max_length=255, blank=True, null=True
-    )  # 其他繪圖人員名字
     contact_info = models.TextField(blank=True)  # 聯絡方式，設為非必填
     notes = models.TextField(blank=True)  # 備註，設為非必填
     is_completed = models.BooleanField(default=False)  # 是否完成

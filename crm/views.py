@@ -39,6 +39,7 @@ from copy import copy
 from openpyxl.drawing.image import Image
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Alignment, Font, Border, Side
+from openpyxl.utils import get_column_letter
 from datetime import datetime
 from django.http import HttpResponse
 
@@ -629,9 +630,9 @@ def index(request):
 def export_payment_excel(request, payment_id):
     """匯出請款單為Excel檔案"""
     try:
-        template_file = os.path.join(settings.BASE_DIR, "crm", "excel", "invoice.xlsx")
+        template_file = os.path.join(settings.BASE_DIR, "crm", "excel", "payment.xlsx")
         wb = load_workbook(template_file)
-        ws = wb["請款單"]
+        original_ws = wb["請款單"]  # 保存原始模板工作表的引用
 
         # 獲取請款單資訊
         payment = get_object_or_404(Payment, id=payment_id)
@@ -639,7 +640,7 @@ def export_payment_excel(request, payment_id):
         # 獲取請款單關聯的專案明細
         payment_projects = PaymentProject.objects.filter(
             payment=payment
-        ).select_related("project")
+        ).select_related("project", "project__category")
 
         # 獲取業主資訊
         owner = payment.owner.company_name
@@ -653,43 +654,133 @@ def export_payment_excel(request, payment_id):
                     "項次": idx,
                     "工程明細": f"{pp.project.name}\n{pp.description or ''}",
                     "金額": pp.amount,
+                    "project": pp.project,  # 保存專案對象以便後續提取 custom_fields
                 }
                 project_details.append(detail)
 
         # 如果沒有專案明細，使用空列表
         if not project_details:
-            project_details = [{"項次": 1, "工程明細": "無專案明細", "金額": 0}]
+            project_details = [
+                {"項次": 1, "工程明細": "無專案明細", "金額": 0, "project": None}
+            ]
 
-        # 設置基本資訊
-        ws["B4"] = payment.payment_number
-        ws["C5"] = (
-            f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y%m/%d')}"
+        # 計算需要的頁數
+        total_pages = (len(project_details) + 9) // 10  # 向上取整，每頁最多10個專案
+
+        # 準備自定義欄位標頭和順序
+        all_custom_fields = {
+            "pcode": {"display_name": "案號", "order": 0}
+        }  # 預設類別欄位
+
+        # 掃描所有專案，收集不同的自定義欄位
+        for detail in project_details:
+            project = detail["project"]
+            if project and project.category and project.category.custom_field_schema:
+                for (
+                    field_name,
+                    field_props,
+                ) in project.category.custom_field_schema.items():
+                    if field_name not in all_custom_fields:
+                        all_custom_fields[field_name] = {
+                            "display_name": field_props.get("display_name", field_name),
+                            "order": field_props.get("order", 0),
+                        }
+
+        # 依照 order 排序自定義欄位
+        sorted_custom_fields = sorted(
+            all_custom_fields.items(), key=lambda x: x[1]["order"]
         )
-        ws["B5"] = owner or "未指定業主"
 
-        # 填入工程明細數據
-        start_row = 7
-        for i, detail in enumerate(project_details):
-            row = start_row + i
-            ws.cell(row=row, column=1).value = detail["項次"]
+        # 設定自定義欄位的欄號
+        custom_field_columns = {}
+        next_col = 4  # 從第4欄開始放置自定義欄位（項次、工程明細、金額後面）
 
-            # 工程明細單元格
-            detail_cell = ws.cell(row=row, column=2)
-            detail_cell.value = detail["工程明細"]
-            detail_cell.alignment = Alignment(wrap_text=True, vertical="top")
+        for field_name, field_props in sorted_custom_fields:
+            custom_field_columns[field_name] = next_col
+            next_col += 1
 
-            # 金額單元格
-            amount_cell = ws.cell(row=row, column=3)
-            amount_cell.value = detail["金額"]
-            amount_cell.number_format = "#,##0"
+        # 處理每一頁的數據
+        for page in range(total_pages):
+            # 對於第一頁，使用原始工作表；對於後續頁面，複製原始工作表
+            if page == 0:
+                ws = original_ws
+                # apply_print_settings(ws)
+            else:
+                # 創建新工作表並複製原始工作表的內容和格式
+                new_sheet_name = f"請款單-第{page+1}頁"
+                ws = wb.create_sheet(title=new_sheet_name)
+                # apply_print_settings(ws)
+                ws.print_area = "A1:C35"  # 設置列印範圍
+                ws.page_margins.left = 0.72  # 左邊界 0.5 吋
+                ws.page_margins.right = 0.72  # 右邊界 0.5 吋
+                ws.page_margins.top = 0.36  # 上邊界 1 吋
+                ws.page_margins.bottom = 0.36
+                ws.page_margins.header = 0.32  # 頁首 0.3 吋
+                ws.page_margins.footer = 0.32  # 頁尾 0.3 吋
 
-        # 設置邊框樣式
-        thin_border = Border(
-            left=Side(style="thin"),
-            right=Side(style="thin"),
-            top=Side(style="thin"),
-            bottom=Side(style="thin"),
-        )
+                # 複製原始工作表的列寬
+                for column in original_ws.columns:
+                    letter = get_column_letter(column[0].column)
+                    ws.column_dimensions[letter].width = original_ws.column_dimensions[
+                        letter
+                    ].width
+
+                # # 複製原始工作表的合併儲存格
+                # for merged_range in original_ws.merged_cells.ranges:
+                #     ws.merge_cells(str(merged_range))
+
+                # 複製原始工作表的內容和格式
+                for row in original_ws.rows:
+                    for cell in row:
+                        new_cell = ws.cell(row=cell.row, column=cell.column)
+                        new_cell.value = cell.value
+                        if cell.has_style:
+                            new_cell.font = copy(cell.font)
+                            new_cell.border = copy(cell.border)
+                            new_cell.fill = copy(cell.fill)
+                            new_cell.number_format = copy(cell.number_format)
+                            new_cell.alignment = copy(cell.alignment)
+                ws.sheet_properties.pageSetUpPr.fitToPage = True
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToWidth = 1
+                ws.page_setup.fitToHeight = 1
+                ws.page_setup.scale = None
+                ws.page_setup.horizontalCentered = True
+            # 設置基本資訊
+            ws["B4"] = payment.payment_number
+            ws["C5"] = (
+                f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y%m/%d')}"
+            )
+            ws["B5"] = owner or "未指定業主"
+            ws["C17"] = "=SUM(C7:C16)"  # 計算金額總和
+
+            # 如果是續頁，修改標題反映頁碼
+            if page > 0:
+                ws["A1"] = f"請款單 (第{page+1}頁)"
+
+            # 獲取此頁的專案明細
+            start_idx = page * 10
+            end_idx = min(start_idx + 10, len(project_details))
+            page_details = project_details[start_idx:end_idx]
+
+            # 加入自定義欄位標頭
+            if sorted_custom_fields:
+                header_row = 6
+                for field_name, field_props in sorted_custom_fields:
+                    col = custom_field_columns[field_name]
+                    cell = ws.cell(row=header_row, column=col)
+                    cell.value = field_props["display_name"]
+                    cell.font = Font(bold=True)
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.border = Border(
+                        left=Side(style="thin"),
+                        right=Side(style="thin"),
+                        top=Side(style="thin"),
+                        bottom=Side(style="thin"),
+                    )
+
+            # 填入此頁的工程明細數據
+            _fill_project_details(ws, page_details, 7, custom_field_columns)
 
         # 建立 HTTP 回應
         response = HttpResponse(
@@ -708,3 +799,67 @@ def export_payment_excel(request, payment_id):
         error_details = traceback.format_exc()  # 獲取詳細錯誤訊息
         print(f"匯出Excel失敗: {str(e)}\n{error_details}")
         return HttpResponse(f"匯出Excel失敗: {str(e)}", status=500)
+
+
+def _fill_project_details(ws, project_details, start_row, custom_field_columns):
+    """填入專案明細和自定義欄位資料
+
+    Args:
+        ws: Excel工作表
+        project_details: 專案明細列表
+        start_row: 起始行號
+        custom_field_columns: 自定義欄位的列號對應
+    """
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
+    )
+
+    for i, detail in enumerate(project_details):
+        row = start_row + i
+
+        # 基本資訊
+        item_cell = ws.cell(row=row, column=1)
+        item_cell.value = detail["項次"]
+        item_cell.border = thin_border
+
+        # 工程明細單元格
+        detail_cell = ws.cell(row=row, column=2)
+        detail_cell.value = detail["工程明細"]
+        detail_cell.alignment = Alignment(wrap_text=True, vertical="top")
+        detail_cell.border = thin_border
+
+        # 金額單元格
+        amount_cell = ws.cell(row=row, column=3)
+        amount_cell.value = detail["金額"]
+        amount_cell.number_format = "#,##0"
+        amount_cell.border = thin_border
+
+        amount_cell = ws.cell(row=row, column=4)
+        amount_cell.value = f"{detail['project'].year-1911}{detail["project"].category.code}{detail["project"].project_number}"
+        print(f"專案代碼: {detail['project'].year}")
+        amount_cell.number_format = "#,##0"
+        amount_cell.border = thin_border
+
+        # 填入自定義欄位資料
+        project = detail["project"]
+        if project and project.custom_fields and custom_field_columns:
+            for field_name, col in custom_field_columns.items():
+                if field_name in project.custom_fields:
+                    cell = ws.cell(row=row, column=col)
+                    cell.value = project.custom_fields[field_name]
+                    cell.border = thin_border
+
+                    # 根據欄位類型設置格式
+                    if project.category and project.category.custom_field_schema:
+                        field_type = project.category.custom_field_schema.get(
+                            field_name, {}
+                        ).get("type")
+                        if field_type == "number":
+                            cell.number_format = "#,##0.00"
+                        elif field_type == "date":
+                            cell.number_format = "yyyy-mm-dd"
+                        elif field_type == "boolean":
+                            cell.value = "是" if cell.value else "否"
