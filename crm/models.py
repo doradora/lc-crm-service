@@ -55,7 +55,7 @@ class Project(models.Model):
         max_length=4, blank=True, null=True
     )  # 案件編號，隨年度自動遞增，設置為可空白和可為null
     name = models.CharField(max_length=255)  # 案件名稱
-    report_name = models.CharField(max_length=255)  # 報告名稱，設為非必填
+    report_name = models.CharField(max_length=255, null=True)  # 報告名稱，設為非必填
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )  # 案件負責人，設為非必填
