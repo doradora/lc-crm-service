@@ -328,6 +328,7 @@ const projectList = createApp({
       return category ? `${category.code}: ${category.description}` : "未分類";
     },
     getCategoryCode(categoryId) {
+      if (!categoryId) return "N";
       const category = this.categoryMap[categoryId];
       return category ? category.code : "N";
     },

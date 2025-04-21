@@ -242,23 +242,23 @@ class OwnerViewSet(BaseViewSet):
 
 
 class ProjectViewSet(BaseViewSet):
-    queryset = Project.objects.select_related(
-        "owner", "manager", "category"
-    ).prefetch_related("changes", "expenditures")
+    queryset = Project.objects.select_related("owner", "category").prefetch_related(
+        "changes", "expenditures", "managers"
+    )
     serializer_class = ProjectSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = [
         "name",
         "owner__company_name",
-        "manager__username",
-        "manager__profile__name",
+        "managers__username",
+        "managers__profile__name",
     ]
 
     def get_queryset(self):
-        queryset = Project.objects.select_related(
-            "owner", "manager", "category"
-        ).prefetch_related("changes", "expenditures")
+        queryset = Project.objects.select_related("owner", "category").prefetch_related(
+            "changes", "expenditures", "managers"
+        )
 
         # 搜尋
         search_query = self.request.query_params.get("search", None)
@@ -266,9 +266,14 @@ class ProjectViewSet(BaseViewSet):
             queryset = queryset.filter(
                 Q(name__icontains=search_query)
                 | Q(owner__company_name__icontains=search_query)
-                | Q(manager__username__icontains=search_query)
-                | Q(manager__profile__name__icontains=search_query)
-            )
+                | Q(managers__username__icontains=search_query)
+                | Q(managers__profile__name__icontains=search_query)
+            ).distinct()
+
+        # 專案負責人過濾
+        manager_id = self.request.query_params.get("manager", None)
+        if manager_id:
+            queryset = queryset.filter(managers__id=manager_id)
 
         # 業主過濾
         owner_id = self.request.query_params.get("owner", None)
@@ -409,6 +414,16 @@ class ProjectViewSet(BaseViewSet):
                 "yearlyData": yearly_data,
             }
         )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # 確保返回更新後的完整資料，包括 managers_info
+        return Response(self.get_serializer(instance).data)
 
 
 class QuotationViewSet(BaseViewSet):
@@ -838,7 +853,7 @@ def _fill_project_details(ws, project_details, start_row, custom_field_columns):
         amount_cell.border = thin_border
 
         amount_cell = ws.cell(row=row, column=4)
-        amount_cell.value = f"{detail['project'].year-1911}{detail["project"].category.code}{detail["project"].project_number}"
+        amount_cell.value = f"{detail['project'].year-1911}{detail['project'].category.code}{detail['project'].project_number}"
         print(f"專案代碼: {detail['project'].year}")
         amount_cell.number_format = "#,##0"
         amount_cell.border = thin_border

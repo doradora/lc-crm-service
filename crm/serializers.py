@@ -119,7 +119,10 @@ class ProjectSerializer(serializers.ModelSerializer):
     # 在獲取時增加名稱字段
     owner_name = serializers.SerializerMethodField(read_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
-    manager_name = serializers.SerializerMethodField(read_only=True)
+    managers = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, required=False
+    )
+    managers_info = serializers.SerializerMethodField(read_only=True)
     changes = ProjectChangeSerializer(many=True, read_only=True)
     expenditures = ExpenditureSerializer(many=True, read_only=True)
     total_expenditure = serializers.DecimalField(
@@ -138,14 +141,13 @@ class ProjectSerializer(serializers.ModelSerializer):
             "year",
             "project_number",
             "name",
-            "manager",
-            "manager_name",
+            "managers",
+            "managers_info",
             "drawing",
-            # "drawing_other",
             "contact_info",
-            "changes",  # 變更記錄關聯
-            "expenditures",  # 支出記錄關聯
-            "total_expenditure",  # 總支出
+            "changes",
+            "expenditures",
+            "total_expenditure",
             "notes",
             "is_completed",
             "is_invoiced",
@@ -155,12 +157,12 @@ class ProjectSerializer(serializers.ModelSerializer):
             "invoice_issue_date",
             "invoice_notes",
             "is_paid",
-            "custom_fields",  # 新增自定義欄位
+            "custom_fields",
         ]
         read_only_fields = [
             "project_number",
             "total_expenditure",
-        ]  # 將 project_number 和 total_expenditure 設為唯讀欄位
+        ]
 
     def get_owner_name(self, obj):
         return obj.owner.company_name if obj.owner else None
@@ -170,10 +172,37 @@ class ProjectSerializer(serializers.ModelSerializer):
             f"{obj.category.code}: {obj.category.description}" if obj.category else None
         )
 
-    def get_manager_name(self, obj):
-        if obj.manager and hasattr(obj.manager, "profile"):
-            return obj.manager.profile.name or obj.manager.username
-        return None if not obj.manager else obj.manager.username
+    # 新增 get_managers_info 方法
+    def get_managers_info(self, obj):
+        """返回專案負責人的詳細資訊"""
+        managers_data = []
+        for manager in obj.managers.all():
+            manager_data = {
+                "id": manager.id,
+                "username": manager.username,
+                "profile": {
+                    "name": (
+                        manager.profile.name if hasattr(manager, "profile") else None
+                    )
+                },
+            }
+            managers_data.append(manager_data)
+        return managers_data
+
+    def update(self, instance, validated_data):
+        # 特別處理 managers 欄位
+        managers_data = validated_data.pop("managers", None)
+
+        # 更新其他欄位
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # 如果有提供 managers 欄位，更新多對多關係
+        if managers_data is not None:
+            instance.managers.set(managers_data)
+
+        instance.save()
+        return instance
 
 
 class QuotationSerializer(serializers.ModelSerializer):

@@ -56,9 +56,13 @@ class Project(models.Model):
     )  # 案件編號，隨年度自動遞增，設置為可空白和可為null
     name = models.CharField(max_length=255)  # 案件名稱
     report_name = models.CharField(max_length=255, null=True)  # 報告名稱，設為非必填
-    manager = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True
-    )  # 案件負責人，設為非必填
+    # manager = models.ForeignKey(
+    #     User, on_delete=models.SET_NULL, null=True, blank=True
+    # )  # 案件負責人，設為非必填
+    # 新增多對多關係
+    managers = models.ManyToManyField(
+        User, related_name="managed_projects", blank=True, verbose_name="專案負責人"
+    )
     drawing = models.CharField(
         max_length=255, blank=True, null=True
     )  # 繪圖，設為非必填

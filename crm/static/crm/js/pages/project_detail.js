@@ -10,7 +10,8 @@ const projectDetail = createApp({
         year: new Date().getFullYear(),
         project_number: "",
         name: "",
-        manager: "",
+        managers: [], // 儲存專案負責人IDs
+        selected_managers: [], // 儲存完整的專案負責人資料
         drawing: "",
         drawing_other: "",
         contact_info: "",
@@ -150,7 +151,18 @@ const projectDetail = createApp({
         })
         .then((data) => {
           this.project = data;
-          console.log(data);
+
+          // 更新自定義欄位的值
+          if (data.custom_fields) {
+            this.customFieldValues = { ...data.custom_fields };
+          }
+
+          // 確保 managers 欄位正確更新
+          if (data.managers) {
+            this.project.managers = data.managers;
+            this.project.selected_managers = data.managers_info || [];
+          }
+
           // 初始化自定義欄位值
           if (data.custom_fields) {
             this.customFieldValues = { ...data.custom_fields };
@@ -159,6 +171,14 @@ const projectDetail = createApp({
           // 如果有類別ID，獲取該類別的自定義欄位定義
           if (data.category) {
             this.fetchCategoryCustomFields(data.category);
+          }
+
+          // 初始化選中的專案負責人
+          if (data.managers) {
+            this.project.managers = data.managers;
+            this.project.selected_managers = data.managers_info || [];
+          } else {
+            this.project.selected_managers = [];
           }
 
           // 更新相關搜尋框的內容
@@ -260,12 +280,11 @@ const projectDetail = createApp({
         }
       }
 
-      // 設置專案負責人搜尋框
-      if (this.project.manager) {
-        const manager = this.users.find((u) => u.id === this.project.manager);
-        if (manager) {
-          this.managerSearchTerm = manager.profile.name || manager.username;
-        }
+      // 設置專案負責人資料
+      if (this.project.managers && this.project.managers.length > 0) {
+        this.project.selected_managers = this.users.filter((u) =>
+          this.project.managers.includes(u.id)
+        );
       }
     },
 
@@ -299,6 +318,18 @@ const projectDetail = createApp({
 
       // 準備要提交的資料
       const formData = { ...this.project };
+      console.log("formData", [...formData["managers"]]);
+      // 確保 managers 欄位存在且為陣列
+      if (!formData.managers) {
+        formData.managers = [];
+      } else if (!Array.isArray(formData.managers)) {
+        // 如果 managers 不是陣列，確保將其轉換為陣列
+        formData.managers = [formData.managers];
+      }
+
+      // 移除不需要傳送給 API 的欄位
+      delete formData.selected_managers; // 只傳送 ID 列表，不傳送完整物件
+      delete formData.manager_info; // 如果存在此欄位也移除
 
       // 添加自定義欄位值
       formData.custom_fields = this.customFieldValues;
@@ -336,6 +367,12 @@ const projectDetail = createApp({
           // 更新自定義欄位的值
           if (data.custom_fields) {
             this.customFieldValues = { ...data.custom_fields };
+          }
+
+          // 確保 managers 欄位正確更新
+          if (data.managers) {
+            this.project.managers = data.managers;
+            this.project.selected_managers = data.managers_info || [];
           }
 
           alert("專案資料已更新");
@@ -450,27 +487,25 @@ const projectDetail = createApp({
         .slice(0, 10);
     },
 
-    selectManager(manager) {
-      this.project.manager = manager.id;
-      this.managerSearchTerm = manager.profile.name || manager.username;
+    addManager(manager) {
+      // 檢查是否已存在
+      if (!this.project.managers.includes(manager.id)) {
+        this.project.managers.push(manager.id);
+        console.log("Managers after add:", [...this.project.managers]);
+        this.project.selected_managers.push(manager);
+      }
+      this.managerSearchTerm = "";
       this.showManagerDropdown = false;
+    },
+
+    removeManager(index) {
+      const managerId = this.project.selected_managers[index].id;
+      this.project.managers.splice(this.project.managers.indexOf(managerId), 1);
+      this.project.selected_managers.splice(index, 1);
     },
 
     closeManagerDropdown() {
       this.showManagerDropdown = false;
-
-      // 如果已選擇了負責人ID但輸入框被清空，則重設負責人ID
-      if (this.project.manager && !this.managerSearchTerm) {
-        this.project.manager = "";
-      }
-
-      // 如果有負責人ID，確保顯示正確的負責人名稱
-      if (this.project.manager) {
-        const manager = this.users.find((u) => u.id === this.project.manager);
-        if (manager) {
-          this.managerSearchTerm = manager.profile.name || manager.username;
-        }
-      }
     },
 
     // 顯示新增業主Modal
@@ -847,7 +882,7 @@ const projectDetail = createApp({
     this.fetchUsers();
     this.fetchProjectDetails();
 
-    // 監聽標籤頁切換事件
+    // 監聴標籤頁切換事件
     document.querySelectorAll('a[data-bs-toggle="tab"]').forEach((tab) => {
       tab.addEventListener("shown.bs.tab", (event) => {
         // 從 href 中獲取標籤頁 ID
