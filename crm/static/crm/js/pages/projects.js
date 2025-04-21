@@ -327,6 +327,10 @@ const projectList = createApp({
       const category = this.categoryMap[categoryId];
       return category ? `${category.code}: ${category.description}` : "未分類";
     },
+    getCategoryCode(categoryId) {
+      const category = this.categoryMap[categoryId];
+      return category ? category.code : "N";
+    },
     getManagerName(managerId) {
       const manager = this.userMap[managerId];
       console.log(manager);

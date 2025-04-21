@@ -141,7 +141,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "manager",
             "manager_name",
             "drawing",
-            "drawing_other",
+            # "drawing_other",
             "contact_info",
             "changes",  # 變更記錄關聯
             "expenditures",  # 支出記錄關聯

@@ -9,14 +9,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         test_users = [
             {
-                "username": "admin",
-                "email": "admin@example.com",
-                "password": "admin123",
+                "username": "dora",
+                "email": "a5893674@example.com",
+                "password": "43675461",
                 "first_name": "系統",
                 "last_name": "管理員",
                 "profile": {
                     "name": "系統管理員",
-                    "phone": "0900123456",
+                    "phone": "0921129796",
                     "is_admin": True,
                     "is_designer": False,
                     "is_project_manager": True,

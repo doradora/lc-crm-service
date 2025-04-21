@@ -3,56 +3,16 @@
     "model": "crm.category",
     "pk": 1,
     "fields": {
-      "code": "ARCH",
-      "description": "建築設計案件"
+      "code": "A",
+      "description": "建築"
     }
   },
   {
     "model": "crm.category",
     "pk": 2,
     "fields": {
-      "code": "INT",
-      "description": "室內設計案件"
-    }
-  },
-  {
-    "model": "crm.category",
-    "pk": 3,
-    "fields": {
-      "code": "STRUC",
-      "description": "結構設計案件"
-    }
-  },
-  {
-    "model": "crm.category",
-    "pk": 4,
-    "fields": {
-      "code": "LAND",
-      "description": "景觀設計案件"
-    }
-  },
-  {
-    "model": "crm.category",
-    "pk": 5,
-    "fields": {
-      "code": "MECH",
-      "description": "機電設計案件"
-    }
-  },
-  {
-    "model": "crm.category",
-    "pk": 6,
-    "fields": {
-      "code": "CONS",
-      "description": "顧問諮詢服務"
-    }
-  },
-  {
-    "model": "crm.category",
-    "pk": 7,
-    "fields": {
-      "code": "OTHER",
-      "description": "其他類型案件"
+      "code": "D",
+      "description": "其他"
     }
   }
 ]

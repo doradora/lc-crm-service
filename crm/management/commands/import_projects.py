@@ -289,7 +289,6 @@ class Command(BaseCommand):
                             )
 
                         drawing_name = row.get("繪圖", "").strip()
-                        drawing_other = None
 
                         # 檢查繪圖人員是否為「無」
                         if drawing_name and drawing_name.lower() == "無":
@@ -301,13 +300,9 @@ class Command(BaseCommand):
                             user_exists = User.objects.filter(
                                 username=drawing_name
                             ).exists()
-                            if not user_exists:
-                                # 如果使用者不存在，但有繪圖資料，將其作為其他繪圖人員
-                                drawing_other = drawing_name
-                                # 不要設置 drawing_name 為 None，保留原始值
 
                             self.debug_log(
-                                f"繪圖人員: '{drawing_name}' -> {'在系統中' if user_exists else f'不在系統中，設為繪圖其他: {drawing_other}'}"
+                                f"繪圖人員: '{drawing_name}' -> {'在系統中' if user_exists else '不在系統中'}"
                             )
 
                         # 建立或更新Project，使用文字欄位
@@ -316,7 +311,6 @@ class Command(BaseCommand):
                             "name": row.get("案件名稱", ""),
                             "manager": manager,
                             "drawing": drawing_name,  # 直接使用文字，不再嘗試關聯使用者
-                            "drawing_other": drawing_other,
                             "contact_info": row.get("聯絡方式", ""),
                             "notes": row.get("備註", ""),
                             "is_completed": self.parse_boolean(row.get("是否完成", "")),
