@@ -81,6 +81,9 @@ const projectDetail = createApp({
       },
       isEditingChange: false, // 是否在編輯變更記錄
       editingChangeId: null, // 正在編輯的變更記錄ID
+
+      // 新增編輯模式狀態
+      isEditMode: false,
     };
   },
   computed: {
@@ -915,6 +918,15 @@ const projectDetail = createApp({
             });
           });
       }
+    },
+
+    // 切換編輯模式
+    toggleEditMode() {
+      if (this.isEditMode) {
+        // 從編輯模式切換到查看模式，重新載入資料
+        this.fetchProjectDetails();
+      }
+      this.isEditMode = !this.isEditMode;
     },
 
     // 切換標籤頁

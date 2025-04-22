@@ -27,7 +27,15 @@
                                         </div>
                                     </div>
                                     <div class="d-flex flex-wrap my-2">
-                                        <button class="btn btn-sm btn-primary me-2" @click.prevent="saveProject">儲存變更</button>
+                                        <button v-if="isEditMode"
+                                                class="btn btn-sm btn-primary me-2"
+                                                @click.prevent="saveProject">儲存變更</button>
+                                        <button v-if="isEditMode"
+                                                class="btn btn-sm btn-light-primary me-2"
+                                                @click.prevent="toggleEditMode">取消編輯</button>
+                                        <button v-if="!isEditMode"
+                                                class="btn btn-sm btn-primary me-2"
+                                                @click.prevent="toggleEditMode">編輯資料</button>
                                         <div class="btn-group">
                                             <button type="button"
                                                     class="btn btn-sm btn-light dropdown-toggle"
@@ -95,7 +103,9 @@
                                             <div class="row mb-5">
                                                 <div class="col-md-12">
                                                     <label class="form-label">業主</label>
-                                                    <div class="position-relative" v-click-outside="closeOwnerDropdown">
+                                                    <div v-if="isEditMode"
+                                                         class="position-relative"
+                                                         v-click-outside="closeOwnerDropdown">
                                                         <div class="input-group">
                                                             <input type="text"
                                                                    class="form-control"
@@ -125,24 +135,28 @@
                                                             </a>
                                                         </div>
                                                     </div>
+                                                    <div v-else class="form-control-plaintext">[[ getOwnerName ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">年份</label>
-                                                    <input type="number"
+                                                    <input v-if="isEditMode"
+                                                           type="number"
                                                            class="form-control"
                                                            v-model="project.year"
                                                            min="2000"
                                                            max="2099">
+                                                    <div v-else class="form-control-plaintext">[[ project.year ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">專案類別</label>
-                                                    <select class="form-select" v-model="project.category">
+                                                    <select v-if="isEditMode" class="form-select" v-model="project.category">
                                                         <option v-for="category in categories"
                                                                 :key="category.id"
                                                                 :value="category.id">
                                                             [[ category.code ]]: [[ category.description ]]
                                                         </option>
                                                     </select>
+                                                    <div v-else class="form-control-plaintext">[[ getCategoryName ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">專案編號</label>
@@ -155,7 +169,11 @@
                                             <div class="row mb-5">
                                                 <div class="col-md-12">
                                                     <label class="form-label">專案名稱</label>
-                                                    <input type="text" class="form-control" v-model="project.name">
+                                                    <input v-if="isEditMode"
+                                                           type="text"
+                                                           class="form-control"
+                                                           v-model="project.name">
+                                                    <div v-else class="form-control-plaintext">[[ project.name ]]</div>
                                                 </div>
                                             </div>
                                             <!-- 自定義欄位區塊 -->
@@ -168,40 +186,53 @@
                                                         <div class="col-md-6 mb-5">
                                                             <label class="form-label">
                                                                 [[ field.display_name ]]
-                                                                <span class="text-danger" v-if="field.required">*</span>
+                                                                <span v-if="isEditMode && field.required" class="text-danger">*</span>
                                                             </label>
-                                                            <!-- 單行文字欄位 -->
-                                                            <input v-if="field.type === 'text'"
-                                                                   type="text"
-                                                                   class="form-control"
-                                                                   v-model="customFieldValues[fieldName]"
-                                                                   :required="field.required">
-                                                            <!-- 多行文字欄位 -->
-                                                            <textarea v-else-if="field.type === 'textarea'"
-                                                                      class="form-control"
-                                                                      v-model="customFieldValues[fieldName]"
-                                                                      rows="3"
-                                                                      :required="field.required"></textarea>
-                                                            <!-- 數字欄位 -->
-                                                            <input v-else-if="field.type === 'number'"
-                                                                   type="number"
-                                                                   class="form-control"
-                                                                   v-model="customFieldValues[fieldName]"
-                                                                   :required="field.required">
-                                                            <!-- 日期欄位 -->
-                                                            <input v-else-if="field.type === 'date'"
-                                                                   type="date"
-                                                                   class="form-control"
-                                                                   v-model="customFieldValues[fieldName]"
-                                                                   :required="field.required">
-                                                            <!-- 是/否欄位 -->
-                                                            <div v-else-if="field.type === 'boolean'"
-                                                                 class="form-check form-switch form-check-custom form-check-solid">
-                                                                <input class="form-check-input"
-                                                                       type="checkbox"
-                                                                       :id="'customField_' + fieldName"
-                                                                       v-model="customFieldValues[fieldName]">
-                                                                <label class="form-check-label" :for="'customField_' + fieldName">是/否</label>
+                                                            <!-- 編輯模式下的表單欄位 -->
+                                                            <div v-if="isEditMode">
+                                                                <!-- 單行文字欄位 -->
+                                                                <input v-if="field.type === 'text'"
+                                                                       type="text"
+                                                                       class="form-control"
+                                                                       v-model="customFieldValues[fieldName]"
+                                                                       :required="field.required">
+                                                                <!-- 多行文字欄位 -->
+                                                                <textarea v-else-if="field.type === 'textarea'"
+                                                                          class="form-control"
+                                                                          v-model="customFieldValues[fieldName]"
+                                                                          rows="3"
+                                                                          :required="field.required"></textarea>
+                                                                <!-- 數字欄位 -->
+                                                                <input v-else-if="field.type === 'number'"
+                                                                       type="number"
+                                                                       class="form-control"
+                                                                       v-model="customFieldValues[fieldName]"
+                                                                       :required="field.required">
+                                                                <!-- 日期欄位 -->
+                                                                <input v-else-if="field.type === 'date'"
+                                                                       type="date"
+                                                                       class="form-control"
+                                                                       v-model="customFieldValues[fieldName]"
+                                                                       :required="field.required">
+                                                                <!-- 是/否欄位 -->
+                                                                <div v-else-if="field.type === 'boolean'"
+                                                                     class="form-check form-switch form-check-custom form-check-solid">
+                                                                    <input class="form-check-input"
+                                                                           type="checkbox"
+                                                                           :id="'customField_' + fieldName"
+                                                                           v-model="customFieldValues[fieldName]">
+                                                                    <label class="form-check-label" :for="'customField_' + fieldName">是/否</label>
+                                                                </div>
+                                                            </div>
+                                                            <!-- 查看模式下的顯示 -->
+                                                            <div v-else class="form-control-plaintext">
+                                                                <template v-if="field.type === 'boolean'">
+                                                                    <span v-if="customFieldValues[fieldName]" class="badge badge-light-success">是</span>
+                                                                    <span v-else class="badge badge-light-danger">否</span>
+                                                                </template>
+                                                                <template v-else>
+                                                                    [[ customFieldValues[fieldName] || "無資料" ]]
+                                                                </template>
                                                             </div>
                                                         </div>
                                                     </template>
@@ -214,11 +245,19 @@
                                             <div class="row mb-5">
                                                 <div class="col-md-6 mb-5">
                                                     <label class="form-label">聯絡方式</label>
-                                                    <textarea class="form-control" v-model="project.contact_info" rows="3"></textarea>
+                                                    <textarea v-if="isEditMode"
+                                                              class="form-control"
+                                                              v-model="project.contact_info"
+                                                              rows="3"></textarea>
+                                                    <div v-else class="form-control-plaintext" style="white-space: pre-line;">[[ project.contact_info || "無資料" ]]</div>
                                                 </div>
                                                 <div class="col-md-6 mb-5">
                                                     <label class="form-label">備註</label>
-                                                    <textarea class="form-control" v-model="project.notes" rows="5"></textarea>
+                                                    <textarea v-if="isEditMode"
+                                                              class="form-control"
+                                                              v-model="project.notes"
+                                                              rows="5"></textarea>
+                                                    <div v-else class="form-control-plaintext" style="white-space: pre-line;">[[ project.notes || "無資料" ]]</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -327,8 +366,12 @@
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-end mt-5">
-                                        <a href="{% url 'projects' %}" class="btn btn-light me-3">取消</a>
-                                        <button type="submit" class="btn btn-primary">儲存變更</button>
+                                        <a href="{% url 'projects' %}" class="btn btn-light me-3">返回列表</a>
+                                        <button v-if="isEditMode" type="submit" class="btn btn-primary">儲存變更</button>
+                                        <button v-if="!isEditMode"
+                                                type="button"
+                                                class="btn btn-primary"
+                                                @click="toggleEditMode">編輯資料</button>
                                     </div>
                                 </form>
                             </div>
@@ -346,7 +389,9 @@
                                 <!-- 專案負責人 -->
                                 <div class="mb-5">
                                     <label class="form-label">專案設計</label>
-                                    <div class="input-group mb-2" v-click-outside="closeManagerDropdown">
+                                    <div v-if="isEditMode"
+                                         class="input-group mb-2"
+                                         v-click-outside="closeManagerDropdown">
                                         <input type="text"
                                                class="form-control"
                                                v-model="managerSearchTerm"
@@ -359,14 +404,15 @@
                                              :key="manager.id"
                                              class="mb-2 d-flex align-items-center">
                                             <span class="badge badge-light-primary me-2">[[ manager.profile.name || manager.username ]]</span>
-                                            <button type="button"
+                                            <button v-if="isEditMode"
+                                                    type="button"
                                                     class="btn btn-sm btn-icon btn-light-danger"
                                                     @click.prevent="removeManager(index)">
                                                 <i class="ki-outline ki-cross fs-2"></i>
                                             </button>
                                         </div>
                                     </div>
-                                    <div>
+                                    <div v-if="isEditMode">
                                         <div>
                                             <div class="dropdown-menu w-100"
                                                  :class="{ 'show': showManagerDropdown }"
@@ -383,14 +429,16 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- 繪圖人員 -->
-                                    <div class="mb-5">
-                                        <label class="form-label">繪圖人員</label>
-                                        <input type="text"
-                                               class="form-control"
-                                               v-model="project.drawing"
-                                               placeholder="請輸入繪圖人員名稱">
-                                    </div>
+                                </div>
+                                <!-- 繪圖人員 -->
+                                <div class="mb-5">
+                                    <label class="form-label">繪圖人員</label>
+                                    <input v-if="isEditMode"
+                                           type="text"
+                                           class="form-control"
+                                           v-model="project.drawing"
+                                           placeholder="請輸入繪圖人員名稱">
+                                    <div v-else class="form-control-plaintext">[[ project.drawing || "未指定" ]]</div>
                                 </div>
                             </div>
                             <div class="d-flex flex-row flex-row-fluid">
