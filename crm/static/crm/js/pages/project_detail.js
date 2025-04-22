@@ -186,7 +186,12 @@ const projectDetail = createApp({
         })
         .catch((error) => {
           console.error("Error fetching project details:", error);
-          alert("獲取專案資料失敗");
+          Swal.fire({
+            title: "錯誤!",
+            text: "獲取專案資料失敗",
+            icon: "error",
+            confirmButtonText: "確定",
+          });
         });
     },
 
@@ -375,7 +380,12 @@ const projectDetail = createApp({
             this.project.selected_managers = data.managers_info || [];
           }
 
-          alert("專案資料已更新");
+          Swal.fire({
+            title: "成功!",
+            text: "專案資料已更新",
+            icon: "success",
+            confirmButtonText: "確定",
+          });
 
           // 儲存成功後，確保返回相同標籤頁
           this.$nextTick(() => {
@@ -392,7 +402,12 @@ const projectDetail = createApp({
         })
         .catch((error) => {
           console.error("Error saving project:", error);
-          alert(`儲存失敗: ${error.message}`);
+          Swal.fire({
+            title: "失敗!",
+            text: `儲存失敗: ${error.message}`,
+            icon: "error",
+            confirmButtonText: "確定",
+          });
         });
     },
 
@@ -416,7 +431,12 @@ const projectDetail = createApp({
           })
           .catch((error) => {
             console.error("Error deleting project:", error);
-            alert(`刪除失敗: ${error.message}`);
+            Swal.fire({
+              title: "失敗!",
+              text: `刪除失敗: ${error.message}`,
+              icon: "error",
+              confirmButtonText: "確定",
+            });
           });
       }
     },
@@ -581,11 +601,19 @@ const projectDetail = createApp({
           this.hideAddOwnerModal();
 
           // 顯示成功提示
-          alert(`業主「${data.company_name}」新增成功`);
+          Swal.fire({
+            title: "成功!",
+            text: `業主「${data.company_name}」新增成功`,
+            icon: "success",
+          });
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert(`創建業主失敗：${error.message}`);
+          Swal.fire({
+            title: "失敗!",
+            text: `創建業主失敗：${error.message}`,
+            icon: "error",
+          });
         });
     },
 
@@ -683,15 +711,23 @@ const projectDetail = createApp({
           this.hideAddExpenditureModal();
 
           // 顯示成功提示
-          alert(`支出記錄${this.isEditingExpenditure ? "更新" : "新增"}成功`);
+          Swal.fire({
+            title: "新支出!",
+            text: `支出記錄${this.isEditingExpenditure ? "更新" : "新增"}成功`,
+            icon: "success",
+            confirmButtonText: "確定",
+          });
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert(
-            `${this.isEditingExpenditure ? "更新" : "新增"}支出記錄失敗：${
-              error.message
-            }`
-          );
+          Swal.fire({
+            title: "錯誤!",
+            text: `${
+              this.isEditingExpenditure ? "更新" : "新增"
+            }支出記錄失敗：${error.message}`,
+            icon: "error",
+            confirmButtonText: "確認",
+          });
         });
     },
 
@@ -715,11 +751,21 @@ const projectDetail = createApp({
             this.fetchProjectDetails();
 
             // 顯示成功提示
-            alert("支出記錄已刪除");
+            Swal.fire({
+              title: "刪除!",
+              text: "支出記錄已刪除",
+              icon: "warning",
+              confirmButtonText: "確定",
+            });
           })
           .catch((error) => {
             console.error("Error deleting expenditure:", error);
-            alert(`刪除失敗: ${error.message}`);
+            Swal.fire({
+              title: "錯誤!",
+              text: `刪除失敗: ${error.message}`,
+              icon: "error",
+              confirmButtonText: "確定",
+            });
           });
       }
     },
@@ -812,15 +858,23 @@ const projectDetail = createApp({
           this.hideAddChangeModal();
 
           // 顯示成功提示
-          alert(`變更記錄${this.isEditingChange ? "更新" : "新增"}成功`);
+          Swal.fire({
+            title: "成功!",
+            text: `變更記錄${this.isEditingChange ? "更新" : "新增"}成功`,
+            icon: "success",
+            confirmButtonText: "確定",
+          });
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert(
-            `${this.isEditingChange ? "更新" : "新增"}變更記錄失敗：${
+          Swal.fire({
+            title: "失敗!",
+            text: `${this.isEditingChange ? "更新" : "新增"}變更記錄失敗：${
               error.message
-            }`
-          );
+            }`,
+            icon: "error",
+            confirmButtonText: "確定",
+          });
         });
     },
 
@@ -844,11 +898,21 @@ const projectDetail = createApp({
             this.fetchProjectDetails();
 
             // 顯示成功提示
-            alert("變更記錄已刪除");
+            Swal.fire({
+              title: "已刪除!",
+              text: "變更記錄已刪除",
+              icon: "warning", // 使用 warning 圖示表示刪除
+              confirmButtonText: "確定",
+            });
           })
           .catch((error) => {
             console.error("Error deleting project change:", error);
-            alert(`刪除失敗: ${error.message}`);
+            Swal.fire({
+              title: "失敗!",
+              text: `刪除失敗: ${error.message}`,
+              icon: "error",
+              confirmButtonText: "確定",
+            });
           });
       }
     },
@@ -871,8 +935,15 @@ const projectDetail = createApp({
     this.projectId = this.getProjectIdFromUrl();
 
     if (!this.projectId) {
-      alert("無效的專案 ID");
-      window.location.href = "/crm/projects/";
+      Swal.fire({
+        title: "錯誤!",
+        text: "無效的專案 ID",
+        icon: "error",
+        confirmButtonText: "確定",
+      }).then(() => {
+        // 在用戶點擊確定後才跳轉
+        window.location.href = "/crm/projects/";
+      });
       return;
     }
 

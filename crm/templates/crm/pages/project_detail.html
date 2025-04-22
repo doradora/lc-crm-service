@@ -4,7 +4,7 @@
     <div class="app-main flex-column flex-row-fluid" id="app_main">
         <div id="app_content" class="app-content flex-column-fluid">
             <div id="app_content_container"
-                 class="app-container container-fluid d-flex flex-column">
+                 class="container-fluid d-flex flex-column p-0">
                 <!-- 專案狀態概覽卡片 -->
                 <div class="card">
                     <div class="card-body pb-0">
@@ -103,11 +103,6 @@
                                                                    @focus="showOwnerDropdown = true"
                                                                    @input="filterOwners"
                                                                    placeholder="搜尋業主...">
-                                                            <button type="button"
-                                                                    class="btn btn-light-primary"
-                                                                    @click="showAddOwnerModal">
-                                                                <i class="ki-outline ki-plus fs-2"></i>
-                                                            </button>
                                                         </div>
                                                         <div class="dropdown-menu w-100"
                                                              :class="{ 'show': showOwnerDropdown }"
@@ -121,6 +116,12 @@
                                                                @click.prevent="selectOwner(owner)">
                                                                 [[ owner.company_name ]]
                                                                 <span v-if="owner.tax_id" class="text-muted">([[ owner.tax_id ]])</span>
+                                                            </a>
+                                                            <div class="dropdown-divider"></div>
+                                                            <a class="dropdown-item text-primary"
+                                                               href="#"
+                                                               @click.prevent="showAddOwnerModal">
+                                                                <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
                                                             </a>
                                                         </div>
                                                     </div>
@@ -338,14 +339,22 @@
                         <div class="card m-5 mb-3 me-0">
                             <div class="card-header">
                                 <div class="card-title">
-                                    <h4 class="fw-bold">專案團隊成員</h4>
+                                    <h4 class="fw-bold">專案負責人員</h4>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <!-- 專案負責人 -->
                                 <div class="mb-5">
-                                    <label class="form-label">專案負責人</label>
-                                    <div class="position-relative">
+                                    <label class="form-label">專案設計</label>
+                                    <div class="input-group mb-2" v-click-outside="closeManagerDropdown">
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="managerSearchTerm"
+                                               @focus="showManagerDropdown = true"
+                                               @input="filterManagers"
+                                               placeholder="新增專案負責人...">
+                                    </div>
+                                    <div class="d-flex">
                                         <div v-for="(manager, index) in project.selected_managers"
                                              :key="manager.id"
                                              class="mb-2 d-flex align-items-center">
@@ -356,123 +365,119 @@
                                                 <i class="ki-outline ki-cross fs-2"></i>
                                             </button>
                                         </div>
-                                        <div class="input-group mt-2" v-click-outside="closeManagerDropdown">
-                                            <input type="text"
-                                                   class="form-control"
-                                                   v-model="managerSearchTerm"
-                                                   @focus="showManagerDropdown = true"
-                                                   @input="filterManagers"
-                                                   placeholder="新增專案負責人...">
-                                        </div>
-                                        <div class="dropdown-menu w-100"
-                                             :class="{ 'show': showManagerDropdown }"
-                                             style="max-height: 200px;
-                                                    overflow-y: auto">
-                                            <div v-if="filteredManagers.length === 0" class="dropdown-item disabled">沒有結果</div>
-                                            <a v-for="manager in filteredManagers"
-                                               :key="manager.id"
-                                               class="dropdown-item"
-                                               href="#"
-                                               @click.prevent="addManager(manager)">
-                                                [[ manager.profile.name || manager.username ]]
-                                            </a>
+                                    </div>
+                                    <div>
+                                        <div>
+                                            <div class="dropdown-menu w-100"
+                                                 :class="{ 'show': showManagerDropdown }"
+                                                 style="max-height: 200px;
+                                                        overflow-y: auto">
+                                                <div v-if="filteredManagers.length === 0" class="dropdown-item disabled">沒有結果</div>
+                                                <a v-for="manager in filteredManagers"
+                                                   :key="manager.id"
+                                                   class="dropdown-item"
+                                                   href="#"
+                                                   @click.prevent="addManager(manager)">
+                                                    [[ manager.profile.name || manager.username ]]
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <!-- 繪圖人員 -->
-                                <div class="mb-5">
-                                    <label class="form-label">繪圖人員</label>
-                                    <input type="text"
-                                           class="form-control"
-                                           v-model="project.drawing"
-                                           placeholder="請輸入繪圖人員名稱">
+                                    <!-- 繪圖人員 -->
+                                    <div class="mb-5">
+                                        <label class="form-label">繪圖人員</label>
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="project.drawing"
+                                               placeholder="請輸入繪圖人員名稱">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="d-flex flex-row flex-row-fluid">
-                            <!-- 請款狀態卡片 -->
-                            <div class="card m-5 mb-3 w-100 me-0">
-                                <div class="card-header">
-                                    <div class="card-title">
-                                        <h4 class="fw-bold">請款狀態</h4>
+                            <div class="d-flex flex-row flex-row-fluid">
+                                <!-- 請款狀態卡片 -->
+                                <div class="card m-5 mb-3 w-100 me-0">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <h4 class="fw-bold">請款狀態</h4>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="card-body">
-                                    <!-- 請款狀態 -->
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="symbol symbol-30px me-3">
-                                            <div class="symbol-label"
-                                                 :class="project.is_invoiced ? 'bg-light-success' : 'bg-light-warning'">
-                                                <i class="ki-outline ki-document fs-5"
-                                                   :class="project.is_invoiced ? 'text-success' : 'text-warning'"></i>
+                                    <div class="card-body">
+                                        <!-- 請款狀態 -->
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="symbol symbol-30px me-3">
+                                                <div class="symbol-label"
+                                                     :class="project.is_invoiced ? 'bg-light-success' : 'bg-light-warning'">
+                                                    <i class="ki-outline ki-document fs-5"
+                                                       :class="project.is_invoiced ? 'text-success' : 'text-warning'"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="fs-6 fw-bold d-block">請款狀態</span>
+                                                <span class="badge"
+                                                      :class="project.is_invoiced ? 'badge-light-success' : 'badge-light-warning'">
+                                                    [[ project.is_invoiced ? '已請款' : '未請款' ]]
+                                                </span>
                                             </div>
                                         </div>
-                                        <div>
-                                            <span class="fs-6 fw-bold d-block">請款狀態</span>
-                                            <span class="badge"
-                                                  :class="project.is_invoiced ? 'badge-light-success' : 'badge-light-warning'">
-                                                [[ project.is_invoiced ? '已請款' : '未請款' ]]
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <!-- 請款日期 -->
-                                    <div class="d-flex align-items-center mb-3" v-if="project.invoice_date">
-                                        <div class="symbol symbol-30px me-3">
-                                            <div class="symbol-label bg-light-primary">
-                                                <i class="ki-outline ki-calendar fs-5 text-primary"></i>
+                                        <!-- 請款日期 -->
+                                        <div class="d-flex align-items-center mb-3" v-if="project.invoice_date">
+                                            <div class="symbol symbol-30px me-3">
+                                                <div class="symbol-label bg-light-primary">
+                                                    <i class="ki-outline ki-calendar fs-5 text-primary"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="fs-6 fw-bold d-block">請款日期</span>
+                                                <span class="text-gray-700">[[ project.invoice_date ]]</span>
                                             </div>
                                         </div>
-                                        <div>
-                                            <span class="fs-6 fw-bold d-block">請款日期</span>
-                                            <span class="text-gray-700">[[ project.invoice_date ]]</span>
-                                        </div>
-                                    </div>
-                                    <!-- 發票日期 -->
-                                    <div class="d-flex align-items-center mb-3"
-                                         v-if="project.invoice_issue_date">
-                                        <div class="symbol symbol-30px me-3">
-                                            <div class="symbol-label bg-light-primary">
-                                                <i class="ki-outline ki-document-2 fs-5 text-primary"></i>
+                                        <!-- 發票日期 -->
+                                        <div class="d-flex align-items-center mb-3"
+                                             v-if="project.invoice_issue_date">
+                                            <div class="symbol symbol-30px me-3">
+                                                <div class="symbol-label bg-light-primary">
+                                                    <i class="ki-outline ki-document-2 fs-5 text-primary"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="fs-6 fw-bold d-block">發票日期</span>
+                                                <span class="text-gray-700">[[ project.invoice_issue_date ]]</span>
                                             </div>
                                         </div>
-                                        <div>
-                                            <span class="fs-6 fw-bold d-block">發票日期</span>
-                                            <span class="text-gray-700">[[ project.invoice_issue_date ]]</span>
-                                        </div>
-                                    </div>
-                                    <!-- 收款狀態 -->
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="symbol symbol-30px me-3">
-                                            <div class="symbol-label"
-                                                 :class="project.is_paid ? 'bg-light-success' : 'bg-light-warning'">
-                                                <i class="ki-outline ki-dollar fs-5"
-                                                   :class="project.is_paid ? 'text-success' : 'text-warning'"></i>
+                                        <!-- 收款狀態 -->
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="symbol symbol-30px me-3">
+                                                <div class="symbol-label"
+                                                     :class="project.is_paid ? 'bg-light-success' : 'bg-light-warning'">
+                                                    <i class="ki-outline ki-dollar fs-5"
+                                                       :class="project.is_paid ? 'text-success' : 'text-warning'"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="fs-6 fw-bold d-block">收款狀態</span>
+                                                <span class="badge"
+                                                      :class="project.is_paid ? 'badge-light-success' : 'badge-light-warning'">
+                                                    [[ project.is_paid ? '已收款' : '未收款' ]]
+                                                </span>
                                             </div>
                                         </div>
-                                        <div>
-                                            <span class="fs-6 fw-bold d-block">收款狀態</span>
-                                            <span class="badge"
-                                                  :class="project.is_paid ? 'badge-light-success' : 'badge-light-warning'">
-                                                [[ project.is_paid ? '已收款' : '未收款' ]]
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <!-- 收款日期 -->
-                                    <div class="d-flex align-items-center mb-3" v-if="project.payment_date">
-                                        <div class="symbol symbol-30px me-3">
-                                            <div class="symbol-label bg-light-success">
-                                                <i class="ki-outline ki-calendar-tick fs-5 text-success"></i>
+                                        <!-- 收款日期 -->
+                                        <div class="d-flex align-items-center mb-3" v-if="project.payment_date">
+                                            <div class="symbol symbol-30px me-3">
+                                                <div class="symbol-label bg-light-success">
+                                                    <i class="ki-outline ki-calendar-tick fs-5 text-success"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="fs-6 fw-bold d-block">收款日期</span>
+                                                <span class="text-gray-700">[[ project.payment_date ]]</span>
                                             </div>
                                         </div>
-                                        <div>
-                                            <span class="fs-6 fw-bold d-block">收款日期</span>
-                                            <span class="text-gray-700">[[ project.payment_date ]]</span>
+                                        <!-- 請款備註 -->
+                                        <div class="mb-3 mt-5" v-if="project.invoice_notes">
+                                            <div class="fs-6 fw-bold mb-2">請款備註</div>
+                                            <div class="text-gray-700 bg-light p-3 rounded">[[ project.invoice_notes ]]</div>
                                         </div>
-                                    </div>
-                                    <!-- 請款備註 -->
-                                    <div class="mb-3 mt-5" v-if="project.invoice_notes">
-                                        <div class="fs-6 fw-bold mb-2">請款備註</div>
-                                        <div class="text-gray-700 bg-light p-3 rounded">[[ project.invoice_notes ]]</div>
                                     </div>
                                 </div>
                             </div>
@@ -481,181 +486,180 @@
                 </div>
             </div>
         </div>
-    </div>
-    <!-- 新增業主的 Modal -->
-    <div class="modal fade"
-         tabindex="-1"
-         id="addOwnerModal"
-         aria-labelledby="addOwnerModalLabel"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addOwnerModalLabel">新增業主</h5>
-                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                         @click="hideAddOwnerModal"
-                         aria-label="Close">
-                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+        <!-- 新增業主的 Modal -->
+        <div class="modal fade"
+             tabindex="-1"
+             id="addOwnerModal"
+             aria-labelledby="addOwnerModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addOwnerModalLabel">新增業主</h5>
+                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                             @click="hideAddOwnerModal"
+                             aria-label="Close">
+                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="submitOwnerForm" ref="ownerForm">
-                        <div class="mb-5">
-                            <label class="form-label">
-                                公司名稱<span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   class="form-control"
-                                   v-model="newOwner.company_name"
-                                   required>
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">統一編號</label>
-                            <input type="text"
-                                   class="form-control"
-                                   v-model="newOwner.tax_id"
-                                   maxlength="8">
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">聯絡人</label>
-                            <input type="text" class="form-control" v-model="newOwner.contact_person">
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">電話</label>
-                            <input type="text" class="form-control" v-model="newOwner.phone">
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">手機</label>
-                            <input type="text" class="form-control" v-model="newOwner.mobile">
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">傳真</label>
-                            <input type="text" class="form-control" v-model="newOwner.fax">
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">地址</label>
-                            <input type="text" class="form-control" v-model="newOwner.address">
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" v-model="newOwner.email">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
-                            <button type="submit" class="btn btn-primary">送出</button>
-                        </div>
-                    </form>
+                    <div class="modal-body">
+                        <form @submit.prevent="submitOwnerForm" ref="ownerForm">
+                            <div class="mb-5">
+                                <label class="form-label">
+                                    公司名稱<span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       v-model="newOwner.company_name"
+                                       required>
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">統一編號</label>
+                                <input type="text"
+                                       class="form-control"
+                                       v-model="newOwner.tax_id"
+                                       maxlength="8">
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">聯絡人</label>
+                                <input type="text" class="form-control" v-model="newOwner.contact_person">
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">電話</label>
+                                <input type="text" class="form-control" v-model="newOwner.phone">
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">手機</label>
+                                <input type="text" class="form-control" v-model="newOwner.mobile">
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">傳真</label>
+                                <input type="text" class="form-control" v-model="newOwner.fax">
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">地址</label>
+                                <input type="text" class="form-control" v-model="newOwner.address">
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" v-model="newOwner.email">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
+                                <button type="submit" class="btn btn-primary">送出</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- 結束新增業主 Modal -->
-    <!-- 新增支出的 Modal -->
-    <div class="modal fade"
-         tabindex="-1"
-         id="addExpenditureModal"
-         aria-labelledby="addExpenditureModalLabel"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addExpenditureModalLabel">[[ isEditingExpenditure ? '編輯' : '新增' ]]支出記錄</h5>
-                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                         @click="hideAddExpenditureModal"
-                         aria-label="Close">
-                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+        <!-- 結束新增業主 Modal -->
+        <!-- 新增支出的 Modal -->
+        <div class="modal fade"
+             tabindex="-1"
+             id="addExpenditureModal"
+             aria-labelledby="addExpenditureModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addExpenditureModalLabel">[[ isEditingExpenditure ? '編輯' : '新增' ]]支出記錄</h5>
+                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                             @click="hideAddExpenditureModal"
+                             aria-label="Close">
+                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="submitExpenditureForm" ref="expenditureForm">
-                        <div class="mb-5">
-                            <label class="form-label">
-                                支出日期<span class="text-danger">*</span>
-                            </label>
-                            <input type="date"
-                                   class="form-control"
-                                   v-model="newExpenditure.date"
-                                   required>
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">
-                                支出金額<span class="text-danger">*</span>
-                            </label>
-                            <input type="number"
-                                   class="form-control"
-                                   v-model="newExpenditure.amount"
-                                   min="0"
-                                   step="0.01"
-                                   required>
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">
-                                支出說明<span class="text-danger">*</span>
-                            </label>
-                            <textarea class="form-control"
-                                      v-model="newExpenditure.description"
-                                      rows="3"
-                                      required></textarea>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-light" @click="hideAddExpenditureModal">關閉</button>
-                            <button type="submit" class="btn btn-primary">[[ isEditingExpenditure ? '更新' : '新增' ]]支出</button>
-                        </div>
-                    </form>
+                    <div class="modal-body">
+                        <form @submit.prevent="submitExpenditureForm" ref="expenditureForm">
+                            <div class="mb-5">
+                                <label class="form-label">
+                                    支出日期<span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="form-control"
+                                       v-model="newExpenditure.date"
+                                       required>
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">
+                                    支出金額<span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       class="form-control"
+                                       v-model="newExpenditure.amount"
+                                       min="0"
+                                       step="0.01"
+                                       required>
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">
+                                    支出說明<span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control"
+                                          v-model="newExpenditure.description"
+                                          rows="3"
+                                          required></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" @click="hideAddExpenditureModal">關閉</button>
+                                <button type="submit" class="btn btn-primary">[[ isEditingExpenditure ? '更新' : '新增' ]]支出</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- 結束新增支出 Modal -->
-    <!-- 新增變更記錄的 Modal -->
-    <div class="modal fade"
-         tabindex="-1"
-         id="addChangeModal"
-         aria-labelledby="addChangeModalLabel"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addChangeModalLabel">[[ isEditingChange ? '編輯' : '新增' ]]設計變更記錄</h5>
-                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                         @click="hideAddChangeModal"
-                         aria-label="Close">
-                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+        <!-- 結束新增支出 Modal -->
+        <!-- 新增變更記錄的 Modal -->
+        <div class="modal fade"
+             tabindex="-1"
+             id="addChangeModal"
+             aria-labelledby="addChangeModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addChangeModalLabel">[[ isEditingChange ? '編輯' : '新增' ]]設計變更記錄</h5>
+                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                             @click="hideAddChangeModal"
+                             aria-label="Close">
+                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="submitChangeForm" ref="changeForm">
-                        <div class="mb-5">
-                            <label class="form-label">
-                                變更日期<span class="text-danger">*</span>
-                            </label>
-                            <input type="date"
-                                   class="form-control"
-                                   v-model="newChange.created_at"
-                                   required>
-                        </div>
-                        <div class="mb-5">
-                            <label class="form-label">
-                                變更說明<span class="text-danger">*</span>
-                            </label>
-                            <textarea class="form-control"
-                                      v-model="newChange.description"
-                                      rows="5"
-                                      required></textarea>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-light" @click="hideAddChangeModal">關閉</button>
-                            <button type="submit" class="btn btn-primary">[[ isEditingChange ? '更新' : '新增' ]]變更記錄</button>
-                        </div>
-                    </form>
+                    <div class="modal-body">
+                        <form @submit.prevent="submitChangeForm" ref="changeForm">
+                            <div class="mb-5">
+                                <label class="form-label">
+                                    變更日期<span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="form-control"
+                                       v-model="newChange.created_at"
+                                       required>
+                            </div>
+                            <div class="mb-5">
+                                <label class="form-label">
+                                    變更說明<span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control"
+                                          v-model="newChange.description"
+                                          rows="5"
+                                          required></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" @click="hideAddChangeModal">關閉</button>
+                                <button type="submit" class="btn btn-primary">[[ isEditingChange ? '更新' : '新增' ]]變更記錄</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- 結束新增變更記錄 Modal -->
-{% endblock content %}
-{% block extra_js %}
-    <script>
+        <!-- 結束新增變更記錄 Modal -->
+    {% endblock content %}
+    {% block extra_js %}
+        <script>
     // 定義此頁面專用的麵包屑資訊
     window.pageBreadcrumbs = {
         menu: "專案",
@@ -671,6 +675,6 @@
         breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
         breadcrumbApp.updateBreadcrumb();
     }
-    </script>
-    <script src="{% static 'crm/js/pages/project_detail.js' %}"></script>
-{% endblock extra_js %}
+        </script>
+        <script src="{% static 'crm/js/pages/project_detail.js' %}"></script>
+    {% endblock extra_js %}
