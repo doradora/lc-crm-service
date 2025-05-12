@@ -118,7 +118,6 @@ class ExpenditureSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     # 在獲取時增加名稱字段
     owner_name = serializers.SerializerMethodField(read_only=True)
-    # category_name = serializers.SerializerMethodField(read_only=True)
     category = CategorySerializer(read_only=True)
     managers = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
@@ -181,11 +180,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             manager_data = {
                 "id": manager.id,
                 "username": manager.username,
-                "profile": {
-                    "name": (
+                "name": (
                         manager.profile.name if hasattr(manager, "profile") else None
-                    )
-                },
+                    ),
             }
             managers_data.append(manager_data)
         return managers_data

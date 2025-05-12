@@ -20,10 +20,10 @@
             </div>
         </div>
         <div id="app_content" class="app-content flex-column-fluid">
-            <div id="app_content_container" class="app-container container-fluid">
+            <div id="app_content_container" class=" container-fluid p-0">
                 <div class="row">
                     <!-- 左側：篩選條件 -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <!-- 搜尋和篩選區塊 -->
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -74,7 +74,7 @@
                                                 <option value="">全部類別</option>
                                                 <option v-for="category in categories"
                                                         :key="category.id"
-                                                        :value="category.id">[[ category.name ]]</option>
+                                                        :value="category.id">[[ category.code ]]:[[category.description]]</option>
                                             </select>
                                             <button class="btn btn-light"
                                                     type="button"
@@ -115,9 +115,9 @@
                                             <div class="form-check">
                                                 <input class="form-check-input"
                                                        type="checkbox"
-                                                       id="isInvoicedFilter"
-                                                       v-model="isInvoicedFilter">
-                                                <label class="form-check-label" for="isInvoicedFilter">已請款案件</label>
+                                                       id="isUninvoicedFilter"
+                                                       v-model="isUninvoicedFilter">
+                                                <label class="form-check-label" for="isUninvoicedFilter">未請款案件</label>
                                             </div>
                                             <div class="form-check">
                                                 <input class="form-check-input"
@@ -149,7 +149,7 @@
                         </div>
                     </div>
                     <!-- 右側：專案清單 -->
-                    <div class="col-md-8">
+                    <div class="col-md-9">
                         <!-- 專案清單區塊 -->
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -194,14 +194,34 @@
                                                 <td>
                                                     <div class="d-flex align-items-center">
                                                         <div class="ms-5">
-                                                            <a :href="`/crm/project/${project.id}/details/`"
-                                                               class="text-gray-800 text-hover-primary fs-5 fw-bold">[[ project.name ]]</a>
+                                                            <a :href="`/crm/project/${project.id}/details/`" class="text-gray-800 text-hover-primary fs-5 fw-bold">
+                                                                <i class="ki-duotone ki-medal-star" :class="{ 'text-warning': project.is_completed }">
+                                                                    <span class="path1"></span>
+                                                                    <span class="path2"></span>
+                                                                    <span class="path3"></span>
+                                                                    <span class="path4"></span>
+                                                                </i>
+                                                                [[ project.name ]]
+                                                                <i v-if="project.is_invoiced" class="ki-duotone ki-archive-tick text-success">
+                                                                    <span class="path1"></span>
+                                                                    <span class="path2"></span>
+                                                                </i>
+                                                            </a>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>[[ project.owner_name || 'N/A' ]]</td>
-                                                <td>[[ project.category_name || 'N/A' ]]</td>
-                                                <td>[[ project.manager_name || 'N/A' ]]</td>
+                                                <td>[[ project.category.code || 'N/A' ]][[project.category.description]]</td>
+                                                <td>
+                                                <span v-if="project.managers_info && project.managers_info.length > 0">
+                                                    <span v-for="(mgr, index) in project.managers_info" :key="mgr.id || index">
+                                                        [[ mgr.name ]]<span v-if="index < project.managers_info.length - 1">, </span>
+                                                    </span>
+                                                </span>
+                                                <span v-else>
+                                                    N/A
+                                                </span>
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>

@@ -16,8 +16,8 @@ const paymentsList = createApp({
       categoryFilter: "", // 類別篩選 (保留)
       startYearFilter: "", // 開始年份
       endYearFilter: "", // 結束年份
-      isCompletedFilter: false, // 新增：是否完成篩選
-      isInvoicedFilter: false, // 新增：是否請款篩選
+      isCompletedFilter: true, // 新增：是否完成篩選
+      isUninvoicedFilter: true, // 新增：是否請款篩選
       isPaidFilter: false, // 新增：是否收款篩選
       selectedProjects: new Map(), // 使用 Map 儲存已選擇的專案
       availableYears: [], // 資料庫中現有的年份
@@ -159,8 +159,8 @@ const paymentsList = createApp({
       this.startYearFilter = "";
       this.endYearFilter = "";
       // 重設核取方塊
-      this.isCompletedFilter = false;
-      this.isInvoicedFilter = false;
+      this.isCompletedFilter = true;
+      this.isUninvoicedFilter = true;
       this.isPaidFilter = false;
       this.fetchProjects(); // 重新獲取數據
     },
@@ -258,8 +258,8 @@ const paymentsList = createApp({
         url += `&is_completed=true`;
       }
 
-      if (this.isInvoicedFilter) {
-        url += `&is_invoiced=true`;
+      if (this.isUninvoicedFilter) {
+        url += `&is_invoiced=false`;
       }
 
       if (this.isPaidFilter) {
