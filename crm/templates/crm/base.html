@@ -23,8 +23,12 @@
         window.top.location.replace(window.self.location.href);
       }
       const currentUserId = {{ request.user.id|default:'null' }};
-      const is_superuser = {{ request.user.is_superuser|default:'false' }};
-      const is_staff = {{ request.user.is_staff|default:'false' }};
+      {% if user.is_superuser or user.profile.is_admin %}                      
+      const is_superuser = true;
+      {% endif %}  
+      {% if user.profile.can_request_payment %}
+      const is_payment = true;
+      {% endif %}
       const { createApp } = Vue
     </script>
   </head>

@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 
 class CategorySerializer(serializers.ModelSerializer):
     projects_count = serializers.IntegerField(read_only=True, default=0)
-    name = serializers.SerializerMethodField()  # 新增：用於顯示在下拉選單的名稱
+    # name = serializers.SerializerMethodField()  # 新增：用於顯示在下拉選單的名稱
     custom_field_schema = serializers.JSONField(required=False)
 
     class Meta:
@@ -26,13 +26,13 @@ class CategorySerializer(serializers.ModelSerializer):
             "code",
             "description",
             "projects_count",
-            "name",
+            # "name",
             "custom_field_schema",
         ]  # 增加 custom_field_schema 欄位
 
-    def get_name(self, obj):
-        """返回類別代碼和描述的組合，用於顯示在下拉選單中"""
-        return f"{obj.code}: {obj.description}" if obj.code else obj.description
+    # def get_name(self, obj):
+    #     """返回類別代碼和描述的組合，用於顯示在下拉選單中"""
+    #     return f"{obj.code}: {obj.description}" if obj.code else obj.description
 
 
 class OwnerSerializer(serializers.ModelSerializer):
@@ -118,7 +118,8 @@ class ExpenditureSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     # 在獲取時增加名稱字段
     owner_name = serializers.SerializerMethodField(read_only=True)
-    category_name = serializers.SerializerMethodField(read_only=True)
+    # category_name = serializers.SerializerMethodField(read_only=True)
+    category = CategorySerializer(read_only=True)
     managers = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
     )
@@ -137,7 +138,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "owner",
             "owner_name",
             "category",
-            "category_name",
+            # "category_name",
             "year",
             "project_number",
             "name",

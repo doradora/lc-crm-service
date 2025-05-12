@@ -114,6 +114,28 @@ const projectDetail = createApp({
     getDesignerName() {
       return this.project.drawing;
     },
+
+    // 新增計算屬性以檢查編輯權限
+    canEditProject() {
+      // 檢查 currentUserId 是否有效 (非 null，代表已登入)
+      if (typeof currentUserId === 'undefined' || currentUserId === null) {
+        return false;
+      }
+
+      // 檢查使用者是否為 superuser (全域變數來自 base.html)
+      // 'is_superuser' 只在使用者是 superuser 時才會被定義為 true
+      if (typeof is_superuser !== 'undefined' && is_superuser) {
+        return true;
+      }
+
+      // 檢查目前使用者是否為專案負責人之一
+      // 確保 project 和 project.managers 已載入且為陣列
+      if (this.project && this.project.managers && Array.isArray(this.project.managers)) {
+        return this.project.managers.includes(currentUserId);
+      }
+
+      return false;
+    }
   },
   directives: {
     // 點擊元素外部時觸發的自定義指令
@@ -173,7 +195,8 @@ const projectDetail = createApp({
 
           // 如果有類別ID，獲取該類別的自定義欄位定義
           if (data.category) {
-            this.fetchCategoryCustomFields(data.category);
+            console.log("Category ID:", data.category.id);
+            this.fetchCategoryCustomFields(data.category.id);
           }
 
           // 初始化選中的專案負責人
@@ -402,6 +425,7 @@ const projectDetail = createApp({
               this.activeTab = currentTab;
             }
           });
+          this.toggleEditMode();
         })
         .catch((error) => {
           console.error("Error saving project:", error);

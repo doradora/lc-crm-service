@@ -12,13 +12,14 @@
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start flex-wrap mb-2">
                                     <div class="d-flex flex-column">
+                                        <div class="d-flex align-items-center mb-0">
+                                            <span class="text-gray-900 fs-3 me-1">[[ project.year ]][[ project.category.code ]][[ project.project_number ]]</span>
+                                        </div>
                                         <div class="d-flex align-items-center mb-2">
                                             <span class="text-gray-900 fs-2 fw-bold me-1">[[ project.name ]]</span>
                                             <span class="badge" :class="getStatusBadgeClass">[[ project.is_completed ? '已完成' : '進行中' ]]</span>
                                         </div>
                                         <div class="d-flex flex-wrap fw-semibold mb-4">
-                                            <span class="badge badge-light me-2">[[ project.year ]]-[[ project.project_number ]]</span>
-                                            <span class="badge badge-light me-2">[[ getCategoryName ]]</span>
                                             <span class="badge badge-light me-2">[[ getOwnerName ]]</span>
                                             <span v-for="manager in project.selected_managers"
                                                   class="badge badge-light-primary me-2">
@@ -26,7 +27,7 @@
                                             </span>
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap my-2">
+                                    <div class="d-flex flex-wrap my-2" v-if="canEditProject">
                                         <button v-if="isEditMode"
                                                 class="btn btn-sm btn-primary me-2"
                                                 @click.prevent="saveProject">儲存變更</button>
@@ -87,7 +88,9 @@
                                         <input class="form-check-input"
                                                type="checkbox"
                                                id="projectCompletedSwitch"
-                                               v-model="project.is_completed">
+                                               v-model="project.is_completed"
+                                               v-if="isEditMode"
+                                               :disabled="!isEditMode">
                                         <label class="form-check-label" for="projectCompletedSwitch">
                                             <span class="badge" :class="getStatusBadgeClass">[[ project.is_completed ? '已完成' : '進行中' ]]</span>
                                         </label>
@@ -135,35 +138,37 @@
                                                             </a>
                                                         </div>
                                                     </div>
-                                                    <div v-else class="form-control-plaintext">[[ getOwnerName ]]</div>
+                                                    <div v-else class="form-control-plaintext fs-3 ms-2">[[ getOwnerName ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">年份</label>
-                                                    <input v-if="isEditMode"
+                                                    <!-- <input v-if="isEditMode"
                                                            type="number"
                                                            class="form-control"
                                                            v-model="project.year"
                                                            min="2000"
-                                                           max="2099">
-                                                    <div v-else class="form-control-plaintext">[[ project.year ]]</div>
+                                                           max="2099"> -->
+                                                    <div class="form-control-plaintext">[[ project.year ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">專案類別</label>
-                                                    <select v-if="isEditMode" class="form-select" v-model="project.category">
+                                                    <!-- <select v-if="isEditMode" class="form-select" v-model="project.category">
                                                         <option v-for="category in categories"
                                                                 :key="category.id"
                                                                 :value="category.id">
-                                                            [[ category.code ]]: [[ category.description ]]
+                                                            [[ project.category.code ]]: [[ project.category.description ]]
                                                         </option>
-                                                    </select>
-                                                    <div v-else class="form-control-plaintext">[[ getCategoryName ]]</div>
+                                                    </select> -->
+                                                    <div class="form-control-plaintext">[[ project.category.code ]]: [[ project.category.description ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
+                                                    
                                                     <label class="form-label">專案編號</label>
-                                                    <input type="text"
+                                                    <div class="form-control-plaintext">[[ project.project_number ]]</div>
+                                                    <!-- <input type="text"
                                                            class="form-control"
                                                            v-model="project.project_number"
-                                                           readonly>
+                                                           readonly> -->
                                                 </div>
                                             </div>
                                             <div class="row mb-5">
@@ -267,8 +272,9 @@
                                             <div class="card-title mb-5 d-flex justify-content-between align-items-center">
                                                 <h4>設計與變更紀錄</h4>
                                                 <button type="button"
-                                                        class="btn btn-sm btn-primary"
-                                                        @click="showAddChangeModal">
+                                                    v-if="isEditMode"
+                                                    class="btn btn-sm btn-primary"
+                                                    @click="showAddChangeModal">
                                                     <i class="ki-outline ki-plus fs-2"></i>新增變更記錄
                                                 </button>
                                             </div>
@@ -280,7 +286,7 @@
                                                             <th class="min-w-100px">日期</th>
                                                             <th class="min-w-200px">變更說明</th>
                                                             <th class="min-w-100px">建立者</th>
-                                                            <th class="min-w-100px text-center">操作</th>
+                                                            <th class="min-w-100px text-center" v-if="isEditMode">操作</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -291,7 +297,7 @@
                                                             <td>[[ change.created_at ]]</td>
                                                             <td>[[ change.description ]]</td>
                                                             <td>[[ change.created_by_name ]]</td>
-                                                            <td class="text-center">
+                                                            <td class="text-center" v-if="isEditMode">
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-icon btn-light-primary me-2"
                                                                         @click="editProjectChange(change)">
@@ -315,6 +321,7 @@
                                                 <h4>支出記錄</h4>
                                                 <button type="button"
                                                         class="btn btn-sm btn-primary"
+                                                        v-if="isEditMode"
                                                         @click="showAddExpenditureModal">
                                                     <i class="ki-outline ki-plus fs-2"></i>新增支出
                                                 </button>
@@ -328,7 +335,7 @@
                                                             <th class="min-w-150px">說明</th>
                                                             <th class="min-w-100px text-end">金額</th>
                                                             <th class="min-w-100px">建立者</th>
-                                                            <th class="min-w-100px text-center">操作</th>
+                                                            <th class="min-w-100px text-center" v-if="isEditMode">操作</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -340,7 +347,7 @@
                                                             <td>[[ expenditure.description ]]</td>
                                                             <td class="text-end fw-bold">NT$ [[ formatAmount(expenditure.amount) ]]</td>
                                                             <td>[[ expenditure.created_by_name ]]</td>
-                                                            <td class="text-center">
+                                                            <td class="text-center" v-if="isEditMode">
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-icon btn-light-primary me-2"
                                                                         @click="editExpenditure(expenditure)">
@@ -367,17 +374,103 @@
                                     </div>
                                     <div class="d-flex justify-content-end mt-5">
                                         <a href="{% url 'projects' %}" class="btn btn-light me-3">返回列表</a>
-                                        <button v-if="isEditMode" type="submit" class="btn btn-primary">儲存變更</button>
-                                        <button v-if="!isEditMode"
+                                        <!-- <button v-if="isEditMode" type="submit" class="btn btn-primary">儲存變更</button> -->
+                                        <!-- <button v-if="!isEditMode"
                                                 type="button"
                                                 class="btn btn-primary"
-                                                @click="toggleEditMode">編輯資料</button>
+                                                @click="toggleEditMode">編輯資料</button> -->
                                     </div>
                                 </form>
                             </div>
                         </div>
                     </div>
                     <div class="d-flex flex-column  w-xl-50">
+                        <!-- 請款狀態卡片 -->
+                        <div v-if="project.is_completed" class="card m-5 mb-3 mt-2 me-0">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <h4 class="fw-bold">請款狀態</h4>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- 請款狀態 -->
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="symbol symbol-30px me-3">
+                                        <div class="symbol-label"
+                                                :class="project.is_invoiced ? 'bg-light-success' : 'bg-light-warning'">
+                                            <i class="ki-outline ki-document fs-5"
+                                                :class="project.is_invoiced ? 'text-success' : 'text-warning'"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="fs-6 fw-bold d-block">請款狀態</span>
+                                        <span class="badge"
+                                                :class="project.is_invoiced ? 'badge-light-success' : 'badge-light-warning'">
+                                            [[ project.is_invoiced ? '已請款' : '未請款' ]]
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- 請款日期 -->
+                                <div class="d-flex align-items-center mb-3" v-if="project.invoice_date">
+                                    <div class="symbol symbol-30px me-3">
+                                        <div class="symbol-label bg-light-primary">
+                                            <i class="ki-outline ki-calendar fs-5 text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="fs-6 fw-bold d-block">請款日期</span>
+                                        <span class="text-gray-700">[[ project.invoice_date ]]</span>
+                                    </div>
+                                </div>
+                                <!-- 發票日期 -->
+                                <div class="d-flex align-items-center mb-3"
+                                        v-if="project.invoice_issue_date">
+                                    <div class="symbol symbol-30px me-3">
+                                        <div class="symbol-label bg-light-primary">
+                                            <i class="ki-outline ki-document-2 fs-5 text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="fs-6 fw-bold d-block">發票日期</span>
+                                        <span class="text-gray-700">[[ project.invoice_issue_date ]]</span>
+                                    </div>
+                                </div>
+                                <!-- 收款狀態 -->
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="symbol symbol-30px me-3">
+                                        <div class="symbol-label"
+                                                :class="project.is_paid ? 'bg-light-success' : 'bg-light-warning'">
+                                            <i class="ki-outline ki-dollar fs-5"
+                                                :class="project.is_paid ? 'text-success' : 'text-warning'"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="fs-6 fw-bold d-block">收款狀態</span>
+                                        <span class="badge"
+                                                :class="project.is_paid ? 'badge-light-success' : 'badge-light-warning'">
+                                            [[ project.is_paid ? '已收款' : '未收款' ]]
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- 收款日期 -->
+                                <div class="d-flex align-items-center mb-3" v-if="project.payment_date">
+                                    <div class="symbol symbol-30px me-3">
+                                        <div class="symbol-label bg-light-success">
+                                            <i class="ki-outline ki-calendar-tick fs-5 text-success"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="fs-6 fw-bold d-block">收款日期</span>
+                                        <span class="text-gray-700">[[ project.payment_date ]]</span>
+                                    </div>
+                                </div>
+                                <!-- 請款備註 -->
+                                <div class="mb-3 mt-5" v-if="project.invoice_notes">
+                                    <div class="fs-6 fw-bold mb-2">請款備註</div>
+                                    <div class="text-gray-700 bg-light p-3 rounded">[[ project.invoice_notes ]]</div>
+                                </div>
+                            </div>
+                        </div>
                         <!-- 專案負責人卡片 -->
                         <div class="card m-5 mb-3 me-0">
                             <div class="card-header">
@@ -441,95 +534,8 @@
                                     <div v-else class="form-control-plaintext">[[ project.drawing || "未指定" ]]</div>
                                 </div>
                             </div>
-                            <div class="d-flex flex-row flex-row-fluid">
-                                <!-- 請款狀態卡片 -->
-                                <div class="card m-5 mb-3 w-100 me-0">
-                                    <div class="card-header">
-                                        <div class="card-title">
-                                            <h4 class="fw-bold">請款狀態</h4>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <!-- 請款狀態 -->
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="symbol symbol-30px me-3">
-                                                <div class="symbol-label"
-                                                     :class="project.is_invoiced ? 'bg-light-success' : 'bg-light-warning'">
-                                                    <i class="ki-outline ki-document fs-5"
-                                                       :class="project.is_invoiced ? 'text-success' : 'text-warning'"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span class="fs-6 fw-bold d-block">請款狀態</span>
-                                                <span class="badge"
-                                                      :class="project.is_invoiced ? 'badge-light-success' : 'badge-light-warning'">
-                                                    [[ project.is_invoiced ? '已請款' : '未請款' ]]
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <!-- 請款日期 -->
-                                        <div class="d-flex align-items-center mb-3" v-if="project.invoice_date">
-                                            <div class="symbol symbol-30px me-3">
-                                                <div class="symbol-label bg-light-primary">
-                                                    <i class="ki-outline ki-calendar fs-5 text-primary"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span class="fs-6 fw-bold d-block">請款日期</span>
-                                                <span class="text-gray-700">[[ project.invoice_date ]]</span>
-                                            </div>
-                                        </div>
-                                        <!-- 發票日期 -->
-                                        <div class="d-flex align-items-center mb-3"
-                                             v-if="project.invoice_issue_date">
-                                            <div class="symbol symbol-30px me-3">
-                                                <div class="symbol-label bg-light-primary">
-                                                    <i class="ki-outline ki-document-2 fs-5 text-primary"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span class="fs-6 fw-bold d-block">發票日期</span>
-                                                <span class="text-gray-700">[[ project.invoice_issue_date ]]</span>
-                                            </div>
-                                        </div>
-                                        <!-- 收款狀態 -->
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="symbol symbol-30px me-3">
-                                                <div class="symbol-label"
-                                                     :class="project.is_paid ? 'bg-light-success' : 'bg-light-warning'">
-                                                    <i class="ki-outline ki-dollar fs-5"
-                                                       :class="project.is_paid ? 'text-success' : 'text-warning'"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span class="fs-6 fw-bold d-block">收款狀態</span>
-                                                <span class="badge"
-                                                      :class="project.is_paid ? 'badge-light-success' : 'badge-light-warning'">
-                                                    [[ project.is_paid ? '已收款' : '未收款' ]]
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <!-- 收款日期 -->
-                                        <div class="d-flex align-items-center mb-3" v-if="project.payment_date">
-                                            <div class="symbol symbol-30px me-3">
-                                                <div class="symbol-label bg-light-success">
-                                                    <i class="ki-outline ki-calendar-tick fs-5 text-success"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span class="fs-6 fw-bold d-block">收款日期</span>
-                                                <span class="text-gray-700">[[ project.payment_date ]]</span>
-                                            </div>
-                                        </div>
-                                        <!-- 請款備註 -->
-                                        <div class="mb-3 mt-5" v-if="project.invoice_notes">
-                                            <div class="fs-6 fw-bold mb-2">請款備註</div>
-                                            <div class="text-gray-700 bg-light p-3 rounded">[[ project.invoice_notes ]]</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
+
                     </div>
                 </div>
             </div>
