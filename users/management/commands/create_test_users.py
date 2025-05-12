@@ -11,7 +11,7 @@ class Command(BaseCommand):
             {
                 "username": "dora",
                 "email": "a5893674@example.com",
-                "password": "43675461",
+                "password": "a12345678",
                 "first_name": "系統",
                 "last_name": "管理員",
                 "profile": {

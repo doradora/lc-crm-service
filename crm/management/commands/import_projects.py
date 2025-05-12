@@ -309,7 +309,6 @@ class Command(BaseCommand):
                         project_data = {
                             "owner": owner,
                             "name": row.get("案件名稱", ""),
-                            "manager": manager,
                             "drawing": drawing_name,  # 直接使用文字，不再嘗試關聯使用者
                             "contact_info": row.get("聯絡方式", ""),
                             "notes": row.get("備註", ""),
@@ -335,6 +334,12 @@ class Command(BaseCommand):
                             defaults=project_data,
                         )
 
+                        # 設定專案負責人 (managers)
+                        if manager:
+                            project.managers.set([manager])
+                        else:
+                            project.managers.clear()  # 如果CSV中沒有指定負責人，則清空
+
                         # 處理變更記錄
                         changes_text = row.get("變更次數及說明", "")
                         if changes_text:
@@ -343,7 +348,7 @@ class Command(BaseCommand):
                                 description=changes_text,
                                 defaults={
                                     "created_at": datetime.now().date(),
-                                    "created_by": manager,
+                                    "created_by": manager,  # ProjectChange 的 created_by 仍可使用單一 manager
                                 },
                             )
 
