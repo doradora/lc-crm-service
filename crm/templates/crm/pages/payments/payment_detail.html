@@ -174,7 +174,7 @@
                                     <!-- 專案明細 Tab -->
                                     <div class="tab-pane fade show active" id="projects_tab" role="tabpanel">
                                         <div class="card-toolbar">
-                                            <button v-if="activeTab === 'projects_tab' && isEditing"
+                                            <button v-if="isEditing"
                                                     class="btn btn-sm btn-light-primary"
                                                     @click="addProjectItem">
                                                 <i class="ki-outline ki-plus fs-2"></i>新增專案
@@ -237,7 +237,7 @@
                                     </div>
                                     <!-- 關聯發票 Tab -->
                                     <div class="tab-pane fade" id="invoices_tab" role="tabpanel">
-                                        <button v-if="activeTab === 'invoices_tab'"
+                                        <button v-if="isEditing"
                                                 class="btn btn-sm btn-light-primary"
                                                 @click="createInvoice">
                                             <i class="ki-outline ki-plus fs-2"></i>建立發票
@@ -250,7 +250,7 @@
                                                         <th>發票金額</th>
                                                         <th>稅額</th>
                                                         <th>開立日期</th>
-                                                        <th>操作</th>
+                                                        <th  v-if="isEditing">操作</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -259,7 +259,7 @@
                                                         <td>[[ formatCurrency(invoice.amount) ]]</td>
                                                         <td>[[ formatCurrency(invoice.tax_amount) ]]</td>
                                                         <td>[[ formatDate(invoice.issue_date) ]]</td>
-                                                        <td>
+                                                        <td  v-if="isEditing">
                                                             <button class="btn btn-sm btn-icon btn-light-primary me-2"
                                                                     @click="editInvoice(invoice.id)">
                                                                 <i class="ki-outline ki-pencil fs-2"></i>
