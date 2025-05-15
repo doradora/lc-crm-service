@@ -274,6 +274,8 @@ const userList = createApp({
         email: this.newUser.email,
         first_name: this.newUser.firstName,
         last_name: this.newUser.lastName,
+        password: this.newUser.password,
+        password_confirm: this.newUser.passwordConfirm,
         profile: {
           // 改為物件管理多值角色
           name: `${this.newUser.firstName} ${this.newUser.lastName}`,
@@ -285,16 +287,16 @@ const userList = createApp({
         },
       };
 
-      if (this.newUser.password != "*****") {
-        if (
-          this.newUser.password &&
-          this.newUser.password.length > 8 &&
-          this.newUser.password === this.newUser.passwordConfirm
-        ) {
-          formData.password = this.newUser.password;
-          formData.password_confirm = this.newUser.passwordConfirm;
-        }
-      }
+      // if (this.newUser.password != "*****") {
+      //   if (
+      //     this.newUser.password &&
+      //     this.newUser.password.length > 8 &&
+      //     this.newUser.password === this.newUser.passwordConfirm
+      //   ) {
+      //     formData.password = this.newUser.password;
+      //     formData.password_confirm = this.newUser.passwordConfirm;
+      //   }
+      // }
 
       const url = this.isEditMode
         ? `/users/api/${this.editUserId}/`
