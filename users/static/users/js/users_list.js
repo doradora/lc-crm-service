@@ -75,9 +75,11 @@ const userList = createApp({
     deleteUser(userId) {
       if (confirm("確定要刪除此用戶嗎？")) {
         fetch(`/users/api/${userId}/`, {
-          method: "PUT",
+          method: "DELETE",
           headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
+            "X-CSRFToken": document.querySelector(
+              'input[name="csrfmiddlewaretoken"]'
+            ).value,
           },
         })
           .then(() => {
