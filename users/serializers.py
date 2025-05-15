@@ -36,10 +36,10 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "password",
             "email",
-            "profile",
-            "password_confirm",
             "first_name",
             "last_name",
+            "profile",
+            "password_confirm",
         ]
         extra_kwargs = {
             "password": {"write_only": True, "required": False, "allow_blank": True},

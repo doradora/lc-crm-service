@@ -181,7 +181,9 @@
                                v-model="newUser.password"
                                placeholder="密碼"
                                autocomplete="new-password"
-                               required />
+                               required
+                               minlength="8"
+                               title="密碼必須至少包含 8 個字符" />
                         <label for="password">
                           輸入密碼<span class="text-danger">*</span>
                         </label>
@@ -270,15 +272,6 @@
                                    type="checkbox"
                                    id="is_project_manager"
                                    v-model="newUser.profile.is_project_manager">
-                            <label class="form-check-label" for="is_project_manager">專案經理</label>
-                          </div>
-                        </div>
-                        <div class="mb-7">
-                          <div class="form-check">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   id="can_request_payment"
-                                   v-model="newUser.profile.can_request_payment">
                             <label class="form-check-label" for="is_project_manager">專案經理</label>
                           </div>
                         </div>

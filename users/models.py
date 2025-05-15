@@ -30,15 +30,6 @@ class UserProfile(models.Model):
 
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    """
-    當 User 被創建時，自動創建對應的 UserProfile
-    """
-    if created:
-        UserProfile.objects.create(user=instance, name=instance.username)
-
-
-@receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     """
     當 User 被保存時，確保關聯的 UserProfile 也被保存

@@ -8,6 +8,7 @@ dist/
 build/
 .env
 lcenv/
+venv/
 # Django
 *.log
 *.pot
