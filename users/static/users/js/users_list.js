@@ -18,6 +18,7 @@ const userList = createApp({
       },
       showModal: false,
       isEditMode: false,
+      isEditPassword: false,
       editUserId: null,
       newUser: {
         username: "",
@@ -89,19 +90,20 @@ const userList = createApp({
           .catch((error) => console.error("無法刪除:", error));
       }
     },
-    editUser(user) {
+    editUser(user, isEditPassword=false) {
       // 設置編輯模式
       this.isEditMode = true;
       this.editUserId = user.id;
+      this.isEditPassword = isEditPassword;
 
       // 填充表單數據
       this.newUser = {
         username: user.username,
         email: user.email,
-        firstName: user.first_name ? user.profile.name.split(" ")[0] : "",
-        lastName: user.last_name ? user.profile.name.split(" ")[1] || "" : "",
-        password: "*****",
-        passwordConfirm: "*****",
+        firstName: user.first_name ? user.first_name : user.profile.name.split(" ")[0] || "", 
+        lastName: user.last_name ? user.last_name : user.profile.name.split(" ")[1] || "",
+        password: "",
+        passwordConfirm: "",
         profile: {
           phone: user.profile.phone || "",
           is_admin: user.profile.is_admin || false,
@@ -268,17 +270,18 @@ const userList = createApp({
       );
       modal.hide();
     },
+    
+  
+    
     submitUserForm() {
       const formData = {
         username: this.newUser.username,
         email: this.newUser.email,
         first_name: this.newUser.firstName,
         last_name: this.newUser.lastName,
-        password: this.newUser.password,
-        password_confirm: this.newUser.passwordConfirm,
         profile: {
           // 改為物件管理多值角色
-          name: `${this.newUser.firstName} ${this.newUser.lastName}`,
+          name: `${this.newUser.firstName}${this.newUser.lastName}`,
           phone: this.newUser.profile.phone,
           is_admin: this.newUser.profile.is_admin,
           is_designer: this.newUser.profile.is_designer,
@@ -287,16 +290,10 @@ const userList = createApp({
         },
       };
 
-      // if (this.newUser.password != "*****") {
-      //   if (
-      //     this.newUser.password &&
-      //     this.newUser.password.length > 8 &&
-      //     this.newUser.password === this.newUser.passwordConfirm
-      //   ) {
-      //     formData.password = this.newUser.password;
-      //     formData.password_confirm = this.newUser.passwordConfirm;
-      //   }
-      // }
+      if (!this.isEditMode || !this.isEditPassword) {
+        formData.password = this.newUser.password;
+        formData.password_confirm = this.newUser.passwordConfirm;
+      }
 
       const url = this.isEditMode
         ? `/users/api/${this.editUserId}/`

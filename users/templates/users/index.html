@@ -104,7 +104,7 @@
                           <a class="menu-link px-3" @click.prevent="editUser(user)">編輯資料</a>
                         </div>
                         <div class="menu-item px-3">
-                          <a class="menu-link px-3" @click.prevent="editUser(user)">修改密碼</a>
+                          <a class="menu-link px-3" @click.prevent="editUser(user, true)">修改密碼</a>
                         </div>
                         <hr class="my-1" />
                         <div class="menu-item px-3">
@@ -151,7 +151,7 @@
               <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <h5 class="modal-title" id="addUserModalLabel">[[ isEditMode ? '編輯使用者' : '新增使用者' ]]</h5>
+                    <h5 class="modal-title" id="addUserModalLabel">[[ isEditMode ? '編輯使用者' : '新增使用者' ]][[ isEditPassword ? '密碼' : '']]</h5>
                     <!--begin::Close-->
                     <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
                          @click="hideAddUserModal"
@@ -174,7 +174,7 @@
                           使用者名稱<span class="text-danger">*</span>
                         </label>
                       </div>
-                      <div class="form-floating mb-7">
+                      <div v-if="!isEditMode || isEditPassword" class="form-floating mb-7">
                         <input type="password"
                                class="form-control"
                                id="password"
@@ -188,7 +188,7 @@
                           輸入密碼<span class="text-danger">*</span>
                         </label>
                       </div>
-                      <div class="form-floating mb-7">
+                      <div v-if="!isEditMode || isEditPassword" class="form-floating mb-7">
                         <input type="password"
                                class="form-control"
                                id="passwordConfirm"
@@ -202,51 +202,55 @@
                         <div v-if="newUser.password && newUser.passwordConfirm && newUser.password !== newUser.passwordConfirm"
                              class="text-danger mt-2">密碼不一致</div>
                       </div>
-                      <div class="row">
-                        <div class="form-floating mb-7 col">
-                          <input type="text"
-                                 class="form-control"
-                                 id="first_name"
-                                 v-model="newUser.firstName"
-                                 placeholder="姓"
-                                 required />
-                          <label for="phone">
-                            姓<span class="text-danger">*</span>
-                          </label>
+                      <div v-if="!isEditMode || !isEditPassword" class="row">
+                        <div class="col">
+                          <div class="form-floating mb-7">
+                            <input type="text"
+                                   class="form-control"
+                                   id="first_name"
+                                   v-model="newUser.firstName"
+                                   placeholder="姓"
+                                   required />
+                            <label for="first_name">姓<span class="text-danger">*</span></label>
+                          </div>
                         </div>
-                        <div class="form-floating mb-7 col">
-                          <input type="text"
-                                 class="form-control"
-                                 id="last_name"
-                                 v-model="newUser.lastName"
-                                 placeholder="name@example.com"
-                                 required />
-                          <label for="email">
-                            名<span class="text-danger">*</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="form-floating mb-7 col">
-                          <input type="text"
-                                 class="form-control"
-                                 id="phone"
-                                 v-model="newUser.profile.phone"
-                                 placeholder="電話號碼"
-                                 required />
-                          <label for="phone">電話</label>
-                        </div>
-                        <div class="form-floating mb-7 col">
-                          <input type="email"
-                                 class="form-control"
-                                 id="email"
-                                 v-model="newUser.email"
-                                 placeholder="name@example.com"
-                                 required />
-                          <label for="email">電子郵件</label>
+                        <div class="col">
+                          <div class="form-floating mb-7">
+                            <input type="text"
+                                   class="form-control"
+                                   id="last_name"
+                                   v-model="newUser.lastName"
+                                   placeholder="名"
+                                   required />
+                            <label for="last_name">名<span class="text-danger">*</span></label>
+                          </div>
                         </div>
                       </div>
-                      <div class="mb-3">
+                      <div v-if="!isEditMode || !isEditPassword" class="row">
+                        <div class="col">
+                          <div class="form-floating mb-7">
+                            <input type="text"
+                                   class="form-control"
+                                   id="phone"
+                                   v-model="newUser.profile.phone"
+                                   placeholder="電話號碼"
+                                   required />
+                            <label for="phone">電話<span class="text-danger">*</span></label>
+                          </div>
+                        </div>
+                        <div class="col">
+                          <div class="form-floating mb-7">
+                            <input type="email"
+                                   class="form-control"
+                                   id="email"
+                                   v-model="newUser.email"
+                                   placeholder="電子郵件"
+                                   required />
+                            <label for="email">電子郵件<span class="text-danger">*</span></label>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-if="!isEditMode || !isEditPassword" class="mb-3">
                         <div class="mb-7">
                           <label class="form-label">角色</label>
                           <div class="form-check">
