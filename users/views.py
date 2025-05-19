@@ -19,6 +19,11 @@ def index(request):
     return render(request, "users/index.html")
 
 
+@login_required(login_url="signin")
+def profile(request):
+    return render(request, "users/profile.html")
+
+
 # API Views
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().select_related("profile")
