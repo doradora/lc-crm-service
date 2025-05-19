@@ -105,10 +105,10 @@
           <!--end::Menu item-->
           <!--begin::Menu item-->
           <div class="menu-item px-5">
-            <a href="apps/projects/list.html" class="menu-link px-5">
+            <a :href="`/crm/projects/?search=${encodeURIComponent(user.profile.name)}`" class="menu-link px-5">
               <span class="menu-text">我的專案</span>
-              <span class="menu-badge">
-                <span class="badge badge-light-danger badge-circle fw-bold fs-7">3</span>
+              <span class="menu-badge" v-if="projectCount > 0">
+                <span class="badge badge-light-danger badge-circle fw-bold fs-7">[[ projectCount ]]</span>
               </span>
             </a>
           </div>
@@ -148,6 +148,7 @@
     data() {
       return {
         user: window.CURRENT_USER_DATA,
+        projectCount: 0
       };
     },
     methods: {
@@ -166,6 +167,14 @@
         if (role == "請款") return "badge-light-warning";
         return "badge-light-warning";
       },
+    },
+    mounted() {
+      // 獲取使用者相關的專案數量
+      fetch(`/crm/api/projects/?format=json&page=1&page_size=10&search=${this.user.profile.name}`)
+        .then(response => response.json())
+        .then(data => {
+          this.projectCount = data.count;
+        });
     }
   }).mount("#kt_header_user_menu_toggle");
 </script>

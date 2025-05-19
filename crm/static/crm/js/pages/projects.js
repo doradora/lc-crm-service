@@ -684,6 +684,14 @@ const projectList = createApp({
     },
   },
   mounted() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchQuery = urlParams.get('search');
+    
+    if (searchQuery) {
+      this.searchQuery = decodeURIComponent(searchQuery);
+      this.fetchProjects(); // 使用搜尋條件獲取專案列表
+    }
+    
     this.fetchProjects();
     this.fetchOwners();
     this.fetchCategories();
