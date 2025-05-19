@@ -18,7 +18,7 @@ const userList = createApp({
       },
       showModal: false,
       isEditMode: false,
-      isEditPassword: false,
+      isEditPassword: true,
       editUserId: null,
       newUser: {
         username: "",
@@ -289,6 +289,19 @@ const userList = createApp({
           can_request_payment: this.newUser.profile.can_request_payment,
         },
       };
+
+      const isPasswordLengthValid = this.newUser.password.length >= 8;
+      const isPasswordConfirmed = this.newUser.password === this.newUser.passwordConfirm;
+
+      if (!isPasswordLengthValid && this.isEditPassword) {
+        alert("請至少輸入 8 位數的密碼");
+        return;
+      }
+
+      if (!isPasswordConfirmed && this.isEditPassword) {
+        alert("兩次輸入的密碼不一致，請重新確認");
+        return;
+      }
 
       if (!this.isEditMode || !this.isEditPassword) {
         formData.password = this.newUser.password;
