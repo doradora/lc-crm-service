@@ -252,7 +252,7 @@
                       </div>
                       <div v-if="!isEditMode || !isEditPassword" class="mb-3">
                         <div class="mb-7">
-                          <label class="form-label">角色</label>
+                          <label class="form-label mb-4">角色</label>
                           <div class="form-check">
                             <input class="form-check-input"
                                    type="checkbox"
@@ -279,6 +279,17 @@
                             <label class="form-check-label" for="is_project_manager">專案經理</label>
                           </div>
                         </div>
+                          <div class="mb-7">
+                          <label class="form-label mb-4">權限</label>
+                          <div class="form-check">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="can_request_payment"
+                                   v-model="newUser.profile.can_request_payment">
+                            <label class="form-check-label" for="can_request_payment">請款權限</label>
+                          </div>
+                        </div>
+
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-light" @click="hideAddUserModal">關閉</button>
