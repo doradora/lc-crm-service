@@ -9,6 +9,25 @@
           <div class="card-title m-0">
             <h3 class="fw-bold m-0">個人資料</h3>
           </div>
+          <div class="card-toolbar">
+            <button type="button" class="btn btn-light-primary me-3" @click="editUser(user, true)">
+              <i class="ki-duotone ki-lock-2 fs-7">
+                <span class="path1"></span>
+                <span class="path2"></span>
+                <span class="path3"></span>
+                <span class="path4"></span>
+                <span class="path5"></span>
+              </i>
+              修改密碼
+            </button>
+            <button type="button" class="btn btn-primary" @click="editUser(user)">
+              <i class="ki-duotone ki-notepad-edit fs-7">
+                <span class="path1"></span>
+                <span class="path2"></span>
+              </i>
+              編輯資料
+            </button>
+          </div>
         </div>
         <div class="card-body border-top p-9">
           <div class="row mb-6">
@@ -67,6 +86,105 @@
           </div>
         </div>
       </div>
+
+      <!-- Modal 視窗 -->
+      <div class="modal fade" tabindex="-1" id="editUserModal" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editUserModalLabel">[[ isEditPassword ? '修改密碼' : '編輯資料' ]]</h5>
+              <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideEditModal" aria-label="Close">
+                <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+              </div>
+            </div>
+            <div class="modal-body">
+              <form @submit.prevent="submitUserForm" ref="userForm">
+                <div v-if="isEditPassword">
+                  <!-- 密碼修改表單 -->
+                  <div class="form-floating mb-7">
+                    <input type="password" class="form-control" id="password" v-model="editData.password"
+                      placeholder="密碼" autocomplete="new-password" required minlength="8" title="密碼必須至少包含 8 個字符" />
+                    <label for="password">
+                      輸入新密碼<span class="text-danger">*</span>
+                    </label>
+                  </div>
+                  <div class="form-floating mb-7">
+                    <input type="password" class="form-control" id="passwordConfirm" v-model="editData.passwordConfirm"
+                      placeholder="確認密碼" autocomplete="new-password" required />
+                    <label for="passwordConfirm">
+                      確認新密碼<span class="text-danger">*</span>
+                    </label>
+                  </div>
+                  <div
+                    v-if="editData.password && editData.passwordConfirm && editData.password !== editData.passwordConfirm"
+                    class="text-danger mt-2">密碼不一致</div>
+                </div>
+                <div v-else>
+                  <!-- 個人資料修改表單 -->
+                  <div class="form-floating mb-7">
+                    <input type="text" class="form-control" id="firstName" v-model="editData.firstName" placeholder="姓"
+                      required />
+                    <label for="firstName">姓<span class="text-danger">*</span></label>
+                  </div>
+                  <div class="form-floating mb-7">
+                    <input type="text" class="form-control" id="lastName" v-model="editData.lastName" placeholder="名"
+                      required />
+                    <label for="lastName">名<span class="text-danger">*</span></label>
+                  </div>
+                  <div class="form-floating mb-7">
+                    <input type="email" class="form-control" id="email" v-model="editData.email" placeholder="電子郵件"
+                      required />
+                    <label for="email">電子郵件<span class="text-danger">*</span></label>
+                  </div>
+                  <div class="form-floating mb-7">
+                    <input type="tel" class="form-control" id="phone" v-model="editData.profile.phone"
+                      placeholder="電話" />
+                    <label for="phone">電話</label>
+                  </div>
+
+                  <div v-if="!isEditMode || !isEditPassword" class="mb-3">
+                    <div class="mb-7">
+                      <label class="form-label mb-4">角色</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="is_admin"
+                          v-model="editData.profile.is_admin">
+                        <label class="form-check-label" for="is_admin">管理員</label>
+                      </div>
+                    </div>
+                    <div class="mb-7">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="is_designer"
+                          v-model="editData.profile.is_designer">
+                        <label class="form-check-label" for="is_designer">設計師</label>
+                      </div>
+                    </div>
+                    <div class="mb-7">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="is_project_manager"
+                          v-model="editData.profile.is_project_manager">
+                        <label class="form-check-label" for="is_project_manager">專案經理</label>
+                      </div>
+                    </div>
+                    <div class="mb-7">
+                      <label class="form-label mb-4">權限</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="can_request_payment"
+                          v-model="editData.profile.can_request_payment">
+                        <label class="form-check-label" for="can_request_payment">請款權限</label>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light" @click="hideEditModal">取消</button>
+              <button type="submit" class="btn btn-primary" @click="submitUserForm">確認</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -85,15 +203,34 @@
     delimiters: ['[[', ']]'],
     data() {
       return {
-        user: window.CURRENT_USER_DATA
+        user: window.CURRENT_USER_DATA,
+        isEditPassword: false,
+        showModal: false,
+        editData: {
+          username: "",
+          email: "",
+          firstName: "",
+          lastName: "",
+          password: "",
+          passwordConfirm: "",
+          id: "",
+          profile: {
+            phone: "",
+            is_admin: false,
+            is_designer: false,
+            is_project_manager: false,
+            can_request_payment: false,
+          }
+        }
       }
     },
     methods: {
       getRoles(profile) {
-        const roles = [];
-        if (profile.is_admin) roles.push('管理員');
-        if (profile.is_designer) roles.push('設計師');
-        if (profile.is_project_manager) roles.push('專案管理');
+        let roles = [];
+        if (profile.is_admin) roles.push("管理員");
+        if (profile.is_designer) roles.push("設計師");
+        if (profile.is_project_manager) roles.push("專案經理");
+        if (profile.can_request_payment) roles.push("請款");
         return roles;
       },
       getRoleBadgeClass(role) {
@@ -103,7 +240,124 @@
         if (role == "請款") return "badge-light-warning";
         return "badge-light-warning";
       },
-    }
-  }).mount('#app_main')
+      editUser(user, isEditPassword = false) {
+        // 設置編輯模式
+        this.isEditMode = true;
+        this.editUserId = user.id;
+        this.isEditPassword = isEditPassword;
+
+        // 填充表單數據
+        this.editData = {
+          username: user.username,
+          email: user.email,
+          firstName: user.first_name ? user.first_name : user.profile.name.split(" ")[0] || "",
+          lastName: user.last_name ? user.last_name : user.profile.name.split(" ")[1] || "",
+          password: "",
+          passwordConfirm: "",
+          profile: {
+            phone: user.profile.phone || "",
+            is_admin: user.profile.is_admin || false,
+            is_designer: user.profile.is_designer || false,
+            is_project_manager: user.profile.is_project_manager || false,
+            can_request_payment: user.profile.can_request_payment || false,
+          }
+        };
+
+        const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        modal.show();
+      },
+      hideEditModal() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+        if (modal) {
+          modal.hide();
+        }
+        // 重置表單
+        this.editData = {
+          username: "",
+          email: "",
+          firstName: "",
+          lastName: "",
+          password: "",
+          passwordConfirm: "",
+          profile: {
+            phone: ""
+          }
+        };
+      },
+      submitUserForm() {
+        if (this.isEditPassword) {
+          if (!this.editData.password) {
+            alert("請輸入新密碼");
+            return;
+          }
+          if (this.editData.password.length < 8) {
+            alert("密碼長度必須至少為8個字符");
+            return;
+          }
+          if (this.editData.password !== this.editData.passwordConfirm) {
+            alert("兩次輸入的密碼不一致");
+            return;
+          }
+        }
+
+        const formData = {
+          username: this.editData.username,
+          email: this.editData.email,
+          first_name: this.editData.firstName,
+          last_name: this.editData.lastName,
+          profile: {
+            // 改為物件管理多值角色
+            name: `${this.editData.firstName}${this.editData.lastName}`,
+            phone: this.editData.profile.phone,
+            is_admin: this.editData.profile.is_admin,
+            is_designer: this.editData.profile.is_designer,
+            is_project_manager: this.editData.profile.is_project_manager,
+            can_request_payment: this.editData.profile.can_request_payment,
+          },
+        };
+
+        if (this.isEditPassword) {
+          formData.password = this.editData.password;
+          formData.password_confirm = this.editData.passwordConfirm;
+        }
+
+        fetch(`/users/api/${this.user.id}/`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value
+          },
+          body: JSON.stringify(formData)
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('更新失敗');
+            }
+            return response.json();
+          })
+          .then(data => {
+            this.hideEditModal();
+            alert(this.isEditPassword ? '密碼修改成功，請重新登入！' : '資料更新成功！');
+            // 重新載入頁面以顯示更新後的資料
+            window.location.reload();
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('更新失敗，請稍後再試');
+          });
+      }
+    },
+    mounted() {
+      // 檢查 URL 是否包含 action 參數
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get('action');
+
+      // 如果 action 為 'edit'，自動開啟編輯 modal
+      if (action === 'edit') {
+        this.editUser(this.user, false);
+        this.showModal = true;
+      }
+    },
+  }).mount('#app_main');
 </script>
 {% endblock extra_js %}
