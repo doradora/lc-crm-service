@@ -1,0 +1,109 @@
+{% extends "crm/base.html" %}
+{% load static %}
+{% block content %}
+<div class="app-main flex-column flex-row-fluid" id="app_main">
+  <div id="app_content" class="app-content flex-column-fluid">
+    <div id="app_content_container" class="app-container container-fluid">
+      <div class="card mb-5 mb-xl-10">
+        <div class="card-header border-0">
+          <div class="card-title m-0">
+            <h3 class="fw-bold m-0">個人資料</h3>
+          </div>
+        </div>
+        <div class="card-body border-top p-9">
+          <div class="row mb-6">
+            <!-- 使用者名稱 -->
+            <div class="col-lg-6">
+              <div class="row mb-6">
+                <label class="col-lg-4 col-form-label fw-semibold fs-6">使用者名稱</label>
+                <div class="col-lg-8 fv-row">
+                  <div class="form-control-plaintext">[[ user.username ]]</div>
+                </div>
+              </div>
+            </div>
+            <!-- 姓名 -->
+            <div class="col-lg-6">
+              <div class="row mb-6">
+                <label class="col-lg-4 col-form-label fw-semibold fs-6">姓名</label>
+                <div class="col-lg-8 fv-row">
+                  <div class="form-control-plaintext">[[ user.profile.name ]]</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mb-6">
+            <!-- 電子郵件 -->
+            <div class="col-lg-6">
+              <div class="row mb-6">
+                <label class="col-lg-4 col-form-label fw-semibold fs-6">電子郵件</label>
+                <div class="col-lg-8 fv-row">
+                  <div class="form-control-plaintext">[[ user.email ]]</div>
+                </div>
+              </div>
+            </div>
+            <!-- 電話 -->
+            <div class="col-lg-6">
+              <div class="row mb-6">
+                <label class="col-lg-4 col-form-label fw-semibold fs-6">電話</label>
+                <div class="col-lg-8 fv-row">
+                  <div class="form-control-plaintext">[[ user.profile.phone ]]</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mb-6">
+            <!-- 角色 -->
+            <div class="col-lg-12">
+              <div class="row mb-6">
+                <label class="col-lg-2 col-form-label fw-semibold fs-6">角色</label>
+                <div class="col-lg-10 fv-row">
+                  <div class="d-flex flex-wrap gap-2">
+                    <div v-for="(role, key) in getRoles(user.profile)" class="badge" :class="getRoleBadgeClass(role)"
+                      :key="key">[[ role ]]</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  window.pageBreadcrumbs = {
+    menu: "公司人員",
+    menuUrl: "{% url 'users_index' %}",
+    submenu: "個人資料",
+    currentPage: "檢視"
+  };
+
+  const app = createApp({
+    delimiters: ['[[', ']]'],
+    data() {
+      return {
+        user: window.CURRENT_USER_DATA
+      }
+    },
+    methods: {
+      getRoles(profile) {
+        const roles = [];
+        if (profile.is_admin) roles.push('管理員');
+        if (profile.is_designer) roles.push('設計師');
+        if (profile.is_project_manager) roles.push('專案管理');
+        return roles;
+      },
+      getRoleBadgeClass(role) {
+        if (role == "管理員") return "badge-light-danger";
+        if (role == "設計師") return "badge-light-success";
+        if (role == "專案經理") return "badge-light-primary";
+        if (role == "請款") return "badge-light-warning";
+        return "badge-light-warning";
+      },
+    }
+  }).mount('#app_main')
+</script>
+{% endblock extra_js %}
