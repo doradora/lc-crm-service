@@ -118,7 +118,10 @@ class ExpenditureSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     # 在獲取時增加名稱字段
     owner_name = serializers.SerializerMethodField(read_only=True)
-    category = CategorySerializer(read_only=True)
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all()
+    )  # 這裡改成可寫入
+    category_detail = CategorySerializer(source='category', read_only=True)
     managers = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
     )
@@ -137,6 +140,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "owner",
             "owner_name",
             "category",
+            "category_detail",
             # "category_name",
             "year",
             "project_number",

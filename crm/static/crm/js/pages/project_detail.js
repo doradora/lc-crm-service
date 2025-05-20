@@ -7,6 +7,7 @@ const projectDetail = createApp({
         id: null,
         owner: "",
         category: "",
+        category_detail: {},
         year: new Date().getFullYear(),
         project_number: "",
         name: "",
@@ -195,8 +196,10 @@ const projectDetail = createApp({
 
           // 如果有類別ID，獲取該類別的自定義欄位定義
           if (data.category) {
-            console.log("Category ID:", data.category.id);
-            this.fetchCategoryCustomFields(data.category.id);
+            console.log("Category ID:", data.category);
+            this.fetchCategoryCustomFields(data.category);
+
+            this.category_detail = data.category_detail;
           }
 
           // 初始化選中的專案負責人
