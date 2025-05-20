@@ -3,14 +3,17 @@
   window.CURRENT_USER_DATA = {
     username: "{{ request.user.username }}",
     email: "{{ request.user.email }}",
+    first_name: "{{ request.user.first_name }}",
+    last_name: "{{ request.user.last_name }}",
     profile: {
       name: "{{ request.user.profile.name }}",
       phone: "{{ request.user.profile.phone }}",
-    is_admin: {{ request.user.profile.is_admin|yesno:"true,false" }},
-    is_designer: {{ request.user.profile.is_designer|yesno:"true,false" }},
-    is_project_manager: {{ request.user.profile.is_project_manager|yesno:"true,false" }},
-    can_request_payment: {{ request.user.profile.can_request_payment|yesno:"true,false" }}
-    }
+      is_admin: {{ request.user.profile.is_admin|yesno:"true,false" }},
+      is_designer: {{ request.user.profile.is_designer|yesno:"true,false" }},
+      is_project_manager: {{ request.user.profile.is_project_manager|yesno:"true,false" }},
+      can_request_payment: {{ request.user.profile.can_request_payment|yesno:"true,false" }}
+    },
+    id: "{{ request.user.id }}",
   };
 
 </script>
@@ -102,10 +105,10 @@
           <!--end::Menu item-->
           <!--begin::Menu item-->
           <div class="menu-item px-5">
-            <a href="apps/projects/list.html" class="menu-link px-5">
+            <a :href="`/crm/projects/?search=${encodeURIComponent(user.profile.name)}`" class="menu-link px-5">
               <span class="menu-text">我的專案</span>
-              <span class="menu-badge">
-                <span class="badge badge-light-danger badge-circle fw-bold fs-7">3</span>
+              <span class="menu-badge" v-if="projectCount > 0">
+                <span class="badge badge-light-danger badge-circle fw-bold fs-7">[[ projectCount ]]</span>
               </span>
             </a>
           </div>
@@ -117,7 +120,7 @@
           
           <!--begin::Menu item-->
           <div class="menu-item px-5 my-1">
-            <a href="account/settings.html" class="menu-link px-5">帳戶設定</a>
+            <a href="{% url 'user_profile' %}?action=edit" class="menu-link px-5">帳戶設定</a>
           </div>
           <!--end::Menu item-->
           <!--begin::Menu item-->
@@ -145,6 +148,7 @@
     data() {
       return {
         user: window.CURRENT_USER_DATA,
+        projectCount: 0
       };
     },
     methods: {
@@ -163,6 +167,14 @@
         if (role == "請款") return "badge-light-warning";
         return "badge-light-warning";
       },
+    },
+    mounted() {
+      // 獲取使用者相關的專案數量
+      fetch(`/crm/api/projects/?format=json&page=1&page_size=10&search=${this.user.profile.name}`)
+        .then(response => response.json())
+        .then(data => {
+          this.projectCount = data.count;
+        });
     }
   }).mount("#kt_header_user_menu_toggle");
 </script>
