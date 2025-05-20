@@ -93,6 +93,10 @@
                                         <div v-else class="form-control-plaintext">[[ payment.payment_number ]]</div>
                                     </div>
                                     <div class="mb-5">
+                                        <label class="form-label fw-semibold">請款對象</label>
+                                        <div v-else class="form-control-plaintext">[[ payment.owner_name ]]</div>
+                                    </div>
+                                    <div class="mb-5">
                                         <label class="form-label fw-semibold">請款金額</label>
                                         <div v-if="!isEditing" class="form-control-plaintext">[[ formatCurrency(payment.amount) ]]</div>
                                         <div v-else class="form-control-plaintext">[[ formatCurrency(getTotalAmount()) ]] (從專案明細計算)</div>

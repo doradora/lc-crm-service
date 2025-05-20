@@ -246,6 +246,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         source="paymentproject_set", many=True, read_only=True
     )
     invoices = serializers.SerializerMethodField(read_only=True)
+    owner_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Payment
@@ -265,6 +266,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "created_at",
             "invoices",
             "owner",
+            "owner_name",
         ]
         read_only_fields = ["amount", "created_at"]
 
@@ -280,6 +282,9 @@ class PaymentSerializer(serializers.ModelSerializer):
         from .serializers import InvoiceSerializer
 
         return InvoiceSerializer(obj.invoices.all(), many=True).data
+    
+    def get_owner_name(self, obj): # 新增 get_owner_name 方法
+        return obj.owner.company_name if obj.owner else None
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
