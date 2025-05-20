@@ -74,6 +74,7 @@
           icon: "ki-outline ki-burger-menu fs-2",
           subItems: [{ title: "所有案件", url: "{% url 'projects' %}" }],
         },
+        {% if user.profile.can_request_payment or user.profile.is_admin %}
         {
           id: "owners",
           title: "業主",
@@ -86,7 +87,6 @@
           icon: "ki-outline ki-user-square fs-2",
           subItems: [
             { title: "帳號管理", url: "{% url 'users_index' %}" },
-            { title: "其他聯絡人員 ", url: "{% url 'index' %}" },
           ],
         },
         {
@@ -97,7 +97,6 @@
             { title: "請款管理", url: "{% url 'create_payment' %}" },
             { title: "請款列表", url: "{% url 'payments' %}" },
             { title: "發票", url: "{% url 'invoices' %}" },
-            { title: "收據", url: "{% url 'index' %}" },
           ],
         },
         {
@@ -105,10 +104,12 @@
           title: "設定",
           icon: "ki-outline ki-gear fs-2",
           subItems: [
+            { title: "收款公司", url: "{% url 'index' %}" },
             { title: "案件類別", url: "{% url 'category' %}" },
             { title: "匯出檔案", url: "{% url 'index' %}" },
           ],
         },
+        {% endif %} 
       ];
     const sideBar = createApp({
       delimiters: ["[[", "]]"],
