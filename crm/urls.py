@@ -45,7 +45,6 @@ urlpatterns = [
         views.project_details,
         name="project_details",
     ),
-    path("api/", include(router.urls)),
     path(
         "payment/<int:payment_id>/details/",
         views.payment_details,
@@ -56,4 +55,5 @@ urlpatterns = [
         views.export_payment_excel,
         name="export_payment_excel",
     ),
+    path("api/", include(router.urls)),
 ]
