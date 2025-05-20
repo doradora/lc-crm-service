@@ -298,13 +298,32 @@ class PaymentProject(models.Model):
 class Invoice(models.Model):
     """發票模型"""
 
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', '現金'),
+        ('bank_transfer', '銀行轉帳'),
+        ('check', '支票'),
+        ('credit_card', '信用卡'),
+        ('other', '其他'),
+    ]
+
     invoice_number = models.CharField(max_length=50, unique=True)  # 發票號碼
     payment = models.ForeignKey(
         Payment, related_name="invoices", on_delete=models.CASCADE, null=True
     )  # 關聯的請款單
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 發票金額
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 發票金額(未稅)
     issue_date = models.DateField()  # 發票開立日期
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 稅額
+    payment_received_date = models.DateField(null=True, blank=True)  # 收款日
+    account_entry_date = models.DateField(null=True, blank=True)  # 入帳日
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        blank=True,
+        null=True
+    )  # 收款方式
+    actual_received_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )  # 實收金額
     notes = models.TextField(blank=True, null=True)  # 備註
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
