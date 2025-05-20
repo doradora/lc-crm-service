@@ -42,10 +42,13 @@ from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 from datetime import datetime
 from django.http import HttpResponse
-
+from django.core.exceptions import PermissionDenied
+from .permissions import IsAdminOrCanRequestPayment, IsAdmin
 
 @login_required(login_url="signin")
 def category(request):
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
     return render(request, "crm/pages/category.html")
 
 
@@ -61,11 +64,17 @@ def projects(request):
 
 @login_required(login_url="signin")
 def quotations(request):
-    return render(request, "crm/pages/quotations.html")
+    if request.user.profile.is_admin or request.user.profile.can_request_payment:
+        return render(request, "crm/pages/quotations.html")
+    else:
+        raise PermissionDenied
+    
 
 
 @login_required(login_url="signin")
 def invoices(request):
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
     return render(request, "crm/pages/invoices.html")
 
 
@@ -79,6 +88,8 @@ def owner_projects(request, owner_id):
 @login_required(login_url="signin")
 def project_quotations(request, project_id):
     """顯示特定專案的報價列表"""
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
     project = get_object_or_404(Project, id=project_id)
     return render(request, "crm/pages/project_quotations.html", {"project": project})
 
@@ -86,6 +97,8 @@ def project_quotations(request, project_id):
 @login_required(login_url="signin")
 def project_invoices(request, project_id):
     """顯示特定專案的請款列表"""
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
     project = get_object_or_404(Project, id=project_id)
     return render(request, "crm/pages/project_invoices.html", {"project": project})
 
@@ -93,6 +106,8 @@ def project_invoices(request, project_id):
 @login_required(login_url="signin")
 def project_payments(request, project_id):
     """顯示特定專案的請款列表"""
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
     project = get_object_or_404(Project, id=project_id)
     return render(request, "crm/pages/project_payments.html", {"project": project})
 
@@ -130,11 +145,15 @@ def project_details(request, project_id):
 
 @login_required(login_url="signin")
 def create_payment(request):
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
     return render(request, "crm/pages/payments/create_payment.html")
 
 
 @login_required(login_url="signin")
 def payments(request):
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
     return render(request, "crm/pages/payments/payments.html")
 
 
@@ -143,6 +162,9 @@ def payment_details(request, payment_id):
     """
     顯示付款單詳情頁面
     """
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
+    
     try:
         payment = Payment.objects.get(id=payment_id)
     except Payment.DoesNotExist:
@@ -173,6 +195,18 @@ class BaseViewSet(viewsets.ModelViewSet):
     authentication_classes = [SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+class AdminOnlyViewSet(viewsets.ModelViewSet):
+    """
+    僅限管理員使用的混合類
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+class CanPaymentViewSet(viewsets.ModelViewSet):
+    """
+    僅限請款權限的混合類
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrCanRequestPayment]
 
 class CategoryViewSet(BaseViewSet):
     queryset = Category.objects.all().order_by("code")
@@ -180,6 +214,18 @@ class CategoryViewSet(BaseViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ["code", "description"]
+
+    def get_permissions(self):
+        """
+        根據操作類型設定不同的權限。
+        - 新增、更新、刪除、更新自訂欄位: 需為管理員。
+        - 列表、檢視、取得自訂欄位: 需已認證。
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'update_custom_fields']:
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        elif self.action in ['list', 'retrieve', 'custom_fields']:
+            return [permissions.IsAuthenticated()]
+        return super().get_permissions()
 
     def get_queryset(self):
         return Category.objects.annotate(projects_count=Count("project"))
@@ -443,7 +489,7 @@ class QuotationViewSet(BaseViewSet):
         return queryset.order_by("-date_issued")
 
 
-class PaymentViewSet(BaseViewSet):
+class PaymentViewSet(CanPaymentViewSet):
     queryset = Payment.objects.all().prefetch_related(
         "projects", "paymentproject_set", "paymentproject_set__project"
     )
@@ -526,7 +572,7 @@ class PaymentViewSet(BaseViewSet):
         return Response(serializer.data)
 
 
-class PaymentProjectViewSet(BaseViewSet):
+class PaymentProjectViewSet(CanPaymentViewSet):
     queryset = PaymentProject.objects.all().select_related("project", "payment")
     serializer_class = PaymentProjectSerializer
     pagination_class = StandardResultsSetPagination
@@ -563,7 +609,7 @@ class PaymentProjectViewSet(BaseViewSet):
         payment.update_amount()
 
 
-class InvoiceViewSet(BaseViewSet):
+class InvoiceViewSet(CanPaymentViewSet):
     queryset = Invoice.objects.all().select_related("payment", "created_by")
     serializer_class = InvoiceSerializer
     pagination_class = StandardResultsSetPagination
@@ -583,7 +629,7 @@ class InvoiceViewSet(BaseViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
-
+# 案件支出
 class ExpenditureViewSet(BaseViewSet):
     queryset = Expenditure.objects.all().select_related("project", "created_by")
     serializer_class = ExpenditureSerializer
@@ -610,6 +656,7 @@ class ExpenditureViewSet(BaseViewSet):
         serializer.save()
 
 
+# 案件變更
 class ProjectChangeViewSet(BaseViewSet):
     queryset = ProjectChange.objects.all().select_related("project", "created_by")
     serializer_class = ProjectChangeSerializer
