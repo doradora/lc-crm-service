@@ -313,3 +313,32 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice #{self.invoice_number}"
+
+
+class Company(models.Model):
+    """公司資訊模型"""
+    name = models.CharField(max_length=255)  # 公司名稱
+    responsible_person = models.CharField(max_length=255)  # 負責人
+    tax_id = models.CharField(max_length=10, unique=True)  # 統一編號
+    address = models.TextField()  # 地址
+    phone = models.CharField(max_length=20)  # 電話
+    fax = models.CharField(max_length=20, blank=True, null=True)  # 傳真
+    contact_person = models.CharField(max_length=255)  # 聯絡人
+
+    def __str__(self):
+        return self.name
+
+
+class BankAccount(models.Model):
+    """銀行帳戶模型"""
+    company = models.ForeignKey(Company, related_name='bank_accounts', on_delete=models.CASCADE)  # 所屬公司
+    account_number = models.CharField(max_length=50)  # 銀行帳戶
+    account_name = models.CharField(max_length=255)  # 戶名
+    bank_name = models.CharField(max_length=255)  # 銀行及分行名稱
+    bank_code = models.CharField(max_length=10)  # 機構代碼
+
+    def __str__(self):
+        return f"{self.company.company_name} - {self.account_number}"
+
+    class Meta:
+        unique_together = ('company', 'account_number') # 同一公司下的帳戶號碼應唯一
