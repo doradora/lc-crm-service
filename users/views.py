@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, get_user_model
 from rest_framework import status, viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +22,16 @@ def index(request):
 @login_required(login_url="signin")
 def profile(request):
     return render(request, "users/profile.html")
+
+
+@login_required(login_url="signin")
+def user_projects(request, user_id):
+    User = get_user_model()
+    user = get_object_or_404(User, id=user_id)
+    
+    return render(request, "users/my_projects.html", {
+        "target_user": user
+    })
 
 
 # API Views
