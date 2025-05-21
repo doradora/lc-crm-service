@@ -142,7 +142,7 @@
                     <label for="phone">電話</label>
                   </div>
 
-                  <div v-if="!isEditMode || !isEditPassword" class="mb-3">
+                  <div v-if="user.profile.is_admin && (!isEditMode || !isEditPassword)" class="mb-3">
                     <div class="mb-7">
                       <label class="form-label mb-4">角色</label>
                       <div class="form-check">
