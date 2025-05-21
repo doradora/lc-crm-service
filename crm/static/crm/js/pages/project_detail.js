@@ -298,7 +298,8 @@ const projectDetail = createApp({
           this.projectManagers = this.users.filter(
             (user) => user.profile.is_project_manager
           );
-
+          
+          this.updateSearchTerms()
           this.filterManagers();
         })
         .catch((error) => console.error("Error fetching users:", error));
