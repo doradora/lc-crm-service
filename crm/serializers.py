@@ -303,6 +303,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "amount",
             "issue_date",
             "tax_amount",
+            "payment_received_date", # 新增
+            "account_entry_date",    # 新增
+            "payment_method",        # 新增
+            "actual_received_amount",# 新增
             "notes",
             "created_by",
             "created_by_name",

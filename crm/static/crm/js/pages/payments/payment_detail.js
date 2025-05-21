@@ -26,6 +26,10 @@ const paymentDetail = createApp({
         tax_amount: 0,
         issue_date: "",
         notes: "",
+        payment_received_date: null, // 新增
+        account_entry_date: null,    // 新增
+        payment_method: "",          // 新增
+        actual_received_amount: null // 新增
       },
       editingInvoice: false,
       editingInvoiceId: null,
@@ -54,13 +58,21 @@ const paymentDetail = createApp({
       filteredOwners: [], // 過濾後的業主列表
       showOwnerDropdown: false, // 是否顯示業主下拉選單
       owners: [], // 業主列表
+      // 新增：發票付款方式選項
+      paymentMethodChoices: [
+        { value: 'cash', display: '現金' },
+        { value: 'bank_transfer', display: '銀行轉帳' },
+        { value: 'check', display: '支票' },
+        { value: 'credit_card', display: '信用卡' },
+        { value: 'other', display: '其他' },
+      ],
     };
   },
   methods: {
     // 獲取付款詳情
     fetchPaymentDetails() {
       this.isLoading = true;
-      fetch(`/crm/api/payments/${this.paymentId}/`)
+      return fetch(`/crm/api/payments/${this.paymentId}/`)
         .then((response) => {
           if (!response.ok) {
             throw new Error("無法獲取請款單詳情");
@@ -68,14 +80,30 @@ const paymentDetail = createApp({
           return response.json();
         })
         .then((data) => {
+          
           this.payment = data;
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert("獲取請款單資料失敗：" + error.message);
+          Swal.fire({
+            icon: 'error',
+            title: '錯誤',
+            text: "獲取請款單資料失敗：" + error.message,
+          });
         })
         .finally(() => {
           this.isLoading = false;
+          this.$nextTick(() => {
+            // Vue DOM 更新完成
+            const currentActiveTabId = this.activeTab;
+            if (currentActiveTabId) {
+              const tabElement = document.querySelector(`a[data-bs-toggle="tab"][href="#${currentActiveTabId}"]`);
+              if (tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+              }
+            }
+          });
         });
     },
 
@@ -170,6 +198,13 @@ const paymentDetail = createApp({
       }).format(value);
     },
 
+    // 新增：獲取付款方式顯示名稱
+    getPaymentMethodDisplay(value) {
+      if (!value) return "-";
+      const choice = this.paymentMethodChoices.find(c => c.value === value);
+      return choice ? choice.display : value;
+    },
+
     // 獲取狀態標籤樣式
     getStatusBadgeClass() {
       return this.payment.paid ? "badge-light-success" : "badge-light-warning";
@@ -209,29 +244,49 @@ const paymentDetail = createApp({
 
       // 驗證必填欄位
       if (!this.payment.payment_number) {
-        alert("請輸入請款單號");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請輸入請款單號',
+        });
         return;
       }
 
       if (!this.payment.date_issued) {
-        alert("請選擇請款日期");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請選擇請款日期',
+        });
         return;
       }
 
       // 驗證專案明細
       if (this.payment.payment_projects.length === 0) {
-        alert("請至少添加一個專案明細");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請至少添加一個專案明細',
+        });
         return;
       }
 
       for (let item of this.payment.payment_projects) {
         if (!item.project) {
-          alert("請為每一個明細選擇專案");
+          Swal.fire({
+            icon: 'warning',
+            title: '提示',
+            text: '請為每一個明細選擇專案',
+          });
           return;
         }
 
         if (!item.amount || item.amount <= 0) {
-          alert("請為每一個明細輸入有效的金額");
+          Swal.fire({
+            icon: 'warning',
+            title: '提示',
+            text: '請為每一個明細輸入有效的金額',
+          });
           return;
         }
       }
@@ -310,12 +365,35 @@ const paymentDetail = createApp({
         })
         .then(() => {
           this.isEditing = false;
-          alert("請款單更新成功");
+          Swal.fire({
+            icon: 'success',
+            title: '成功',
+            text: '請款單更新成功',
+          });
+          // const currentActiveTabId = this.activeTab; // 儲存目前的 activeTab
           this.fetchPaymentDetails(); // 重新獲取資料
+
+          // // 確保 DOM 更新後，恢復到之前的分頁
+          // return this.fetchPaymentDetails().then(() => {
+          //   this.$nextTick(() => {
+          //     if (currentActiveTabId) {
+          //       // 使用 currentActiveTabId 來選取正確的分頁連結
+          //       const tabElement = document.querySelector(`a[data-bs-toggle="tab"][href="#${currentActiveTabId}"]`);
+          //       if (tabElement) {
+          //         const tab = new bootstrap.Tab(tabElement);
+          //         tab.show();
+          //       }
+          //     }
+          //   });
+          // });
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert("更新請款單失敗：" + error.message);
+          Swal.fire({
+            icon: 'error',
+            title: '錯誤',
+            text: "更新請款單失敗：" + error.message,
+          });
         });
     },
 
@@ -456,12 +534,20 @@ const paymentDetail = createApp({
 
     submitProjectForm() {
       if (!this.newProjectItem.project) {
-        alert("請選擇專案");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請選擇專案',
+        });
         return;
       }
 
       if (!this.newProjectItem.amount || this.newProjectItem.amount <= 0) {
-        alert("請輸入有效的金額");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請輸入有效的金額',
+        });
         return;
       }
 
@@ -507,7 +593,11 @@ const paymentDetail = createApp({
             })
             .catch((error) => {
               console.error("Error:", error);
-              alert("刪除專案明細失敗：" + error.message);
+              Swal.fire({
+                icon: 'error',
+                title: '錯誤',
+                text: "刪除專案明細失敗：" + error.message,
+              });
             });
         }
       } else {
@@ -526,6 +616,10 @@ const paymentDetail = createApp({
         tax_amount: 0,
         issue_date: new Date().toISOString().split("T")[0],
         notes: "",
+        payment_received_date: null, // 新增初始化
+        account_entry_date: null,    // 新增初始化
+        payment_method: "",          // 新增初始化
+        actual_received_amount: null // 新增初始化
       };
 
       const modal = new bootstrap.Modal(
@@ -565,17 +659,29 @@ const paymentDetail = createApp({
     submitInvoiceForm() {
       // 驗證必填欄位
       if (!this.newInvoice.invoice_number) {
-        alert("請輸入發票號碼");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請輸入發票號碼',
+        });
         return;
       }
 
       if (!this.newInvoice.amount || this.newInvoice.amount <= 0) {
-        alert("請輸入有效的發票金額");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請輸入有效的發票金額',
+        });
         return;
       }
 
       if (!this.newInvoice.issue_date) {
-        alert("請選擇開立日期");
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請選擇開立日期',
+        });
         return;
       }
 
@@ -586,6 +692,10 @@ const paymentDetail = createApp({
         issue_date: this.newInvoice.issue_date,
         notes: this.newInvoice.notes || "",
         payment: this.paymentId,
+        payment_received_date: this.newInvoice.payment_received_date || null, // 新增
+        account_entry_date: this.newInvoice.account_entry_date || null,       // 新增
+        payment_method: this.newInvoice.payment_method || null,             // 新增
+        actual_received_amount: this.newInvoice.actual_received_amount || null // 新增
       };
 
       let url = "/crm/api/invoices/";
@@ -618,39 +728,62 @@ const paymentDetail = createApp({
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert("發票操作失敗：" + error.message);
+          Swal.fire({
+            icon: 'error',
+            title: '錯誤',
+            text: "發票操作失敗：" + error.message,
+          });
         });
     },
 
     // 刪除發票
     deleteInvoice(invoiceId) {
-      if (confirm("確定要刪除此發票嗎？")) {
-        fetch(`/crm/api/invoices/${invoiceId}/`, {
-          method: "DELETE",
-          headers: {
-            "X-CSRFToken": document.querySelector(
-              '[name="csrfmiddlewaretoken"]'
-            ).value,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("刪除失敗");
-            }
-            this.fetchPaymentDetails(); // 重新獲取資料
+      Swal.fire({
+        title: '確定要刪除此發票嗎？',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: '是的，刪除它！',
+        cancelButtonText: '取消'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch(`/crm/api/invoices/${invoiceId}/`, {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                '[name="csrfmiddlewaretoken"]'
+              ).value,
+            },
           })
-          .catch((error) => {
-            console.error("Error:", error);
-            alert("刪除發票失敗：" + error.message);
-          });
-      }
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("刪除失敗");
+              }
+              this.fetchPaymentDetails(); // 重新獲取資料
+              Swal.fire(
+                '已刪除!',
+                '發票已被刪除。',
+                'success'
+              )
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              Swal.fire({
+                icon: 'error',
+                title: '錯誤',
+                text: "刪除發票失敗：" + error.message,
+              });
+            });
+        }
+      });
     },
 
     // Tab 切換處理
     handleTabChange(tabId) {
       this.activeTab = tabId;
     },
-
+    
     // 匯出Excel功能
     exportToExcel() {
       window.location.href = `/crm/payment/${this.paymentId}/export_excel/`;
@@ -665,7 +798,6 @@ const paymentDetail = createApp({
     this.fetchPaymentDetails();
     this.fetchProjects();
     this.fetchOwners(); // 新增：獲取業主列表
-
     // 初始化 Bootstrap tabs
     this.$nextTick(() => {
       // 確保元素已經渲染完成
