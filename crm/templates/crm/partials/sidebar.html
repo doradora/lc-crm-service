@@ -11,13 +11,12 @@
      data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle">
   <!-- 開始::側邊欄包裝 -->
   <div id="app_sidebar_header"
-       class="app-sidebar-header d-flex flex-stack d-none d-lg-flex pt-8 pb-2">
-    <!--begin::Logo-->
-    <a href="{% url 'index' %}" class="app-sidebar-logo d-flex flex-row">
+       class="app-sidebar-header d-flex flex-stack d-none d-lg-flex pt-8 pb-2">    <!--begin::Logo-->
+    <a href="{% url 'index' %}" class="app-sidebar-logo">
       <img alt="Logo"
            src="{% static 'crm/media/logos/lylogo2.svg' %}"
-           class="h-25px d-none d-sm-inline app-sidebar-logo-default theme-light-show" />
-      <h3>立信工程顧問</h3>
+           class="h-25px app-sidebar-logo-default" />
+      <h3 class="app-sidebar-logo-default ms-2">立信工程顧問</h3>
     </a>
     <!--end::Logo-->
     <!--begin::Sidebar toggle-->
