@@ -114,7 +114,7 @@
                 </div>
                 <div class="mb-5">
                   <label class="form-label fw-semibold">請款對象</label>
-                  <div v-else class="form-control-plaintext">
+                  <div class="form-control-plaintext">
                     [[ payment.owner_name ]]
                   </div>
                 </div>
@@ -397,12 +397,21 @@
                         <tr
                           v-if="!payment.invoices || payment.invoices.length === 0"
                         >
-                          <td colspan="9" class="text-center py-5">
+                          <td :colspan="isEditing ? 9 : 8" class="text-center py-5"> <!-- colspan 調整 -->
                             尚無關聯發票
                           </td>
-                          <!-- 注意 colspan 調整 -->
                         </tr>
                       </tbody>
+                      <tfoot v-if="payment.invoices && payment.invoices.length > 0">
+                        <tr class="fw-bold fs-6 text-gray-800">
+                          <td>總計</td>
+                          <td>[[ formatCurrency(totalInvoiceAmount) ]]</td>
+                          <td>[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
+                          <td class="text-end" :colspan="isEditing ? 6 : 5">
+                            發票總額:[[ formatCurrency(totalInvoiceAmount + totalInvoiceTaxAmount) ]]
+                          </td>                          
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 </div>
