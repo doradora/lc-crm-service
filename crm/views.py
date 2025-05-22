@@ -725,6 +725,16 @@ def export_payment_excel(request, payment_id):
 
         # 獲取請款單資訊
         payment = get_object_or_404(Payment, id=payment_id)
+                
+        # 設定收款公司資訊
+        company = payment.company
+        original_ws["B20"] = f"公司名稱：{company.name}"  
+        original_ws["B21"] = f"負責人：{company.responsible_person}"
+        original_ws["B22"] = f"統一編號：{company.tax_id}"
+        original_ws["B23"] = f"地址：{company.address}"
+        original_ws["B24"] = f"電話：{company.phone}"
+        original_ws["B25"] = f"傳真：{company.fax if company.fax else ''}"
+        original_ws["B26"] = f"聯絡人：{company.contact_person}"
 
         # 獲取請款單關聯的專案明細
         payment_projects = PaymentProject.objects.filter(
