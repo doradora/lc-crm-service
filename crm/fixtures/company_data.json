@@ -1,0 +1,67 @@
+[
+  {
+    "model": "crm.company",
+    "pk": 1,
+    "fields": {
+      "name": "立信工程顧問有限公司",
+      "responsible_person": "林育信",
+      "tax_id": "45127101",
+      "address": "500 彰化市中山路二段356巷1號",
+      "phone": "04-7234988分機138",
+      "fax": "04-7233033",
+      "contact_person": "吳小姐"
+    }
+  },
+  {
+    "model": "crm.company",
+    "pk": 2,
+    "fields": {
+      "name": "誠信土木工程_測試",
+      "responsible_person": "王大明",
+      "tax_id": "12345678",
+      "address": "台北市信義區信義路五段100號",
+      "phone": "02-27458888",
+      "fax": "02-27458889",
+      "contact_person": "李小明"
+    }
+  },
+  {
+    "model": "crm.company",
+    "pk": 3,
+    "fields": {
+      "name": "永安營造_測試",
+      "responsible_person": "張志豪",
+      "tax_id": "87654321",
+      "address": "新北市三重區重陽路一段200號",
+      "phone": "02-29876543",
+      "fax": "02-29876544",
+      "contact_person": "陳經理"
+    }
+  },
+  {
+    "model": "crm.company",
+    "pk": 4,
+    "fields": {
+      "name": "大眾工程顧問_測試",
+      "responsible_person": "許建國",
+      "tax_id": "23456789",
+      "address": "台中市西屯區文心路三段300號",
+      "phone": "04-23567890",
+      "fax": "04-23567891",
+      "contact_person": "林主任"
+    }
+  },
+  {
+    "model": "crm.company",
+    "pk": 5,
+    "fields": {
+      "name": "宏碁工程_測試",
+      "responsible_person": "劉建宏",
+      "tax_id": "34567890",
+      "address": "高雄市前鎮區中山路400號",
+      "phone": "07-3456789",
+      "fax": "07-3456780",
+      "contact_person": "周工程師"
+    }
+  }
+]
