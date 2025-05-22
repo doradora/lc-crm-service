@@ -20,6 +20,7 @@ from .models import (
     Expenditure,
     ProjectChange,
     PaymentProject,
+    Company,  # 添加 Company
 )
 from .serializers import (
     OwnerSerializer,
@@ -31,6 +32,7 @@ from .serializers import (
     ExpenditureSerializer,
     ProjectChangeSerializer,
     PaymentProjectSerializer,
+    CompanySerializer,  # 添加 CompanySerializer
 )
 import pandas as pd
 import traceback
@@ -177,6 +179,14 @@ def payment_details(request, payment_id):
     }
 
     return render(request, "crm/pages/payments/payment_detail.html", context)
+
+
+@login_required(login_url="signin")
+def companys(request):
+    """顯示收款公司列表"""
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
+    return render(request, "crm/pages/company/companys.html")
 
 
 # API
@@ -629,6 +639,7 @@ class InvoiceViewSet(CanPaymentViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+
 # 案件支出
 class ExpenditureViewSet(BaseViewSet):
     queryset = Expenditure.objects.all().select_related("project", "created_by")
@@ -681,6 +692,22 @@ class ProjectChangeViewSet(BaseViewSet):
     def perform_update(self, serializer):
         # 更新時保留原始建立者
         serializer.save()
+
+
+class CompanyViewSet(BaseViewSet):
+    queryset = Company.objects.all().order_by("tax_id")
+    serializer_class = CompanySerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name", "tax_id", "contact_person", "phone"]
+
+    def get_permissions(self):
+        """
+        確保只有管理員可以訪問公司資訊
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
 
 
 @login_required(login_url="signin")

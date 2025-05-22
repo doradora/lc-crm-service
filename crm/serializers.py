@@ -10,6 +10,7 @@ from .models import (
     ProjectChange,
     Expenditure,
     PaymentProject,
+    Company,  # 添加 Company
 )
 from django.contrib.auth.models import User
 
@@ -321,3 +322,18 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_payment_number(self, obj):
         return obj.payment.payment_number if obj.payment else None
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = [
+            "id",
+            "name",
+            "tax_id",
+            "phone",
+            "fax",
+            "responsible_person",
+            "address",
+            "contact_person",
+        ]

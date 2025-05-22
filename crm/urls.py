@@ -18,11 +18,13 @@ router.register(
 router.register(
     r"payment-projects", views.PaymentProjectViewSet
 )  # 新增 PaymentProject 視圖集
+router.register(r"companys", views.CompanyViewSet)  # 添加公司路由
 
 urlpatterns = [
     path("", views.index, name="index"),
     path("category/", views.category, name="category"),
     path("owners/", views.owners, name="owners"),
+    path("companys/", views.companys, name="companys"),  # 添加公司列表頁面路由
     path("projects/", views.projects, name="projects"),
     path("quotations/", views.quotations, name="quotations"),
     path("create_payment/", views.create_payment, name="create_payment"),
