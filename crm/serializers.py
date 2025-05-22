@@ -248,6 +248,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     )
     invoices = serializers.SerializerMethodField(read_only=True)
     owner_name = serializers.SerializerMethodField(read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
 
     class Meta:
         model = Payment
@@ -268,6 +269,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             "invoices",
             "owner",
             "owner_name",
+            'company',  # 添加 company 欄位
+            'company_name',  # 添加用於顯示的公司名稱
         ]
         read_only_fields = ["amount", "created_at"]
 

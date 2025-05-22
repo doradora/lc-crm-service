@@ -128,6 +128,18 @@
                   </div>
                 </div>
                 <div class="mb-5">
+                  <label class="form-label fw-semibold">收款公司</label>
+                  <div v-if="!isEditing" class="form-control-plaintext">
+                    [[ payment.company_name ]]
+                  </div>
+                  <select v-else class="form-select" v-model="payment.company">
+                    <option value="">請選擇收款公司</option>
+                    <option v-for="company in companys" :key="company.id" :value="company.id">
+                      [[ company.name ]] ([[ company.tax_id ]])
+                    </option>
+                  </select>
+                </div>
+                <div class="mb-5">
                   <label class="form-label fw-semibold">建立者</label>
                   <div class="form-control-plaintext">
                     [[ payment.created_by_name || '未知' ]]

@@ -13,6 +13,8 @@ const paymentDetail = createApp({
         payment_projects: [],
         invoices: [],
         created_by_name: "",
+        company: null,
+        company_name: "",
       },
       paymentId: null,
       projects: [],
@@ -66,6 +68,7 @@ const paymentDetail = createApp({
         { value: 'credit_card', display: '信用卡' },
         { value: 'other', display: '其他' },
       ],
+      companys: [], // 添加公司列表
     };
   },
   methods: {
@@ -135,6 +138,16 @@ const paymentDetail = createApp({
           this.owners = [];
           this.filteredOwners = [];
         });
+    },
+
+    // 獲取公司列表
+    fetchCompanys() {
+      fetch("/crm/api/companys/?format=json")
+        .then((response) => response.json())
+        .then((data) => {
+          this.companys = data.results || [];
+        })
+        .catch((error) => console.error("Error fetching companys:", error));
     },
 
     // 搜尋業主
@@ -252,6 +265,15 @@ const paymentDetail = createApp({
         return;
       }
 
+      if (!this.payment.company) {
+        Swal.fire({
+          icon: 'warning',
+          title: '提示',
+          text: '請選擇收款公司',
+        });
+        return;
+      }
+
       if (!this.payment.date_issued) {
         Swal.fire({
           icon: 'warning',
@@ -299,6 +321,7 @@ const paymentDetail = createApp({
         paid: this.payment.paid,
         payment_date: this.payment.paid ? this.payment.payment_date : null,
         notes: this.payment.notes,
+        company: this.payment.company,  // 添加公司欄位
       };
 
       // 更新請款單基本資料
@@ -798,6 +821,7 @@ const paymentDetail = createApp({
     this.fetchPaymentDetails();
     this.fetchProjects();
     this.fetchOwners(); // 新增：獲取業主列表
+    this.fetchCompanys(); // 新增：獲取公司列表
     // 初始化 Bootstrap tabs
     this.$nextTick(() => {
       // 確保元素已經渲染完成

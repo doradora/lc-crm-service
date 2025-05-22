@@ -232,9 +232,28 @@ class Quotation(models.Model):
         return f"Quotation for {self.project.name}"
 
 
+class Company(models.Model):
+    """公司資訊模型"""
+    name = models.CharField(max_length=255)  # 公司名稱
+    responsible_person = models.CharField(max_length=255)  # 負責人
+    tax_id = models.CharField(max_length=10, unique=True)  # 統一編號
+    address = models.TextField()  # 地址
+    phone = models.CharField(max_length=20)  # 電話
+    fax = models.CharField(max_length=20, blank=True, null=True)  # 傳真
+    contact_person = models.CharField(max_length=255)  # 聯絡人
+
+    def __str__(self):
+        return self.name
+
+
 class Payment(models.Model):
     payment_number = models.CharField(max_length=50, unique=True)  # 請款單號
     owner = models.ForeignKey(Owner, on_delete=models.CASCADE)
+    company = models.ForeignKey(
+        Company, 
+        on_delete=models.PROTECT,  # 使用 PROTECT 避免誤刪有關聯請款單的公司
+        related_name='payments'
+    )  # 收款公司
     projects = models.ManyToManyField(
         Project, through="PaymentProject", related_name="payments"
     )  # 關聯多個專案
@@ -332,20 +351,6 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice #{self.invoice_number}"
-
-
-class Company(models.Model):
-    """公司資訊模型"""
-    name = models.CharField(max_length=255)  # 公司名稱
-    responsible_person = models.CharField(max_length=255)  # 負責人
-    tax_id = models.CharField(max_length=10, unique=True)  # 統一編號
-    address = models.TextField()  # 地址
-    phone = models.CharField(max_length=20)  # 電話
-    fax = models.CharField(max_length=20, blank=True, null=True)  # 傳真
-    contact_person = models.CharField(max_length=255)  # 聯絡人
-
-    def __str__(self):
-        return self.name
 
 
 class BankAccount(models.Model):
