@@ -73,12 +73,12 @@ class Project(models.Model):
         Category, on_delete=models.SET_NULL, null=True
     )  # 案件類別
     total_expenditure = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0
+        max_digits=10, decimal_places=0, default=0
     )  # 總支出，設定預設值
     is_invoiced = models.BooleanField(default=False)  # 是否請款
     invoice_date = models.DateField(null=True, blank=True)  # 請款日期
     invoice_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+        max_digits=10, decimal_places=0, null=True, blank=True
     )  # 請款金額
     payment_date = models.DateField(null=True, blank=True)  # 收款日期
     invoice_issue_date = models.DateField(null=True, blank=True)  # 發票日期
@@ -174,7 +174,7 @@ class Expenditure(models.Model):
     project = models.ForeignKey(
         Project, related_name="expenditures", on_delete=models.CASCADE
     )  # 關聯的專案
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 支出金額
+    amount = models.DecimalField(max_digits=10, decimal_places=0)  # 支出金額
     description = models.TextField()  # 支出說明
     date = models.DateField()  # 消費時間
     created_by = models.ForeignKey(
@@ -225,7 +225,7 @@ class Quotation(models.Model):
         on_delete=models.CASCADE,
         related_name="quotations",  # 修改為更清晰的名稱
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 報價金額
+    amount = models.DecimalField(max_digits=10, decimal_places=0)  # 報價金額
     date_issued = models.DateField()  # 發行日期
 
     def __str__(self):
@@ -238,7 +238,7 @@ class Payment(models.Model):
     projects = models.ManyToManyField(
         Project, through="PaymentProject", related_name="payments"
     )  # 關聯多個專案
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 請款總金額
+    amount = models.DecimalField(max_digits=10, decimal_places=0)  # 請款總金額
     date_issued = models.DateField()  # 發行日期
     due_date = models.DateField(null=True, blank=True)  # 付款截止日期
     paid = models.BooleanField(default=False)  # 是否已付款
@@ -274,7 +274,7 @@ class PaymentProject(models.Model):
     quotation = models.ForeignKey(
         Quotation, on_delete=models.SET_NULL, null=True, blank=True
     )  # 引用的報價單（可選）
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 此專案的請款金額
+    amount = models.DecimalField(max_digits=10, decimal_places=0)  # 此專案的請款金額
     description = models.TextField(blank=True, null=True)  # 此專案請款說明
 
     def __str__(self):
@@ -298,13 +298,32 @@ class PaymentProject(models.Model):
 class Invoice(models.Model):
     """發票模型"""
 
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', '現金'),
+        ('bank_transfer', '銀行轉帳'),
+        ('check', '支票'),
+        ('credit_card', '信用卡'),
+        ('other', '其他'),
+    ]
+
     invoice_number = models.CharField(max_length=50, unique=True)  # 發票號碼
     payment = models.ForeignKey(
         Payment, related_name="invoices", on_delete=models.CASCADE, null=True
     )  # 關聯的請款單
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # 發票金額
+    amount = models.DecimalField(max_digits=10, decimal_places=0)  # 發票金額(未稅)
     issue_date = models.DateField()  # 發票開立日期
-    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 稅額
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=0, default=0)  # 稅額
+    payment_received_date = models.DateField(null=True, blank=True)  # 收款日
+    account_entry_date = models.DateField(null=True, blank=True)  # 入帳日
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        blank=True,
+        null=True
+    )  # 收款方式
+    actual_received_amount = models.DecimalField(
+        max_digits=10, decimal_places=0, null=True, blank=True
+    )  # 實收金額
     notes = models.TextField(blank=True, null=True)  # 備註
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
