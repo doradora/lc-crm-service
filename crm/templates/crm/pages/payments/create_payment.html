@@ -261,6 +261,40 @@
                                 <p>[[ownerSearchText]]</p>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label required">收款公司</label>
+                                <div class="position-relative" v-click-outside="closeCompanyDropdown">
+                                    <div class="input-group">
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="companySearchText"
+                                               @input="searchCompanys"
+                                               @focus="showCompanyDropdown = true"
+                                               placeholder="搜尋收款公司..."
+                                               required>
+                                        <button class="btn btn-light"
+                                                type="button"
+                                                @click="clearCompanySelection"
+                                                v-if="companyFilter">
+                                            <i class="ki-outline ki-cross fs-2"></i>
+                                        </button>
+                                    </div>
+                                    <!-- 自動完成下拉選單 -->
+                                    <div class="dropdown-menu w-100 position-absolute"
+                                         :class="{'show': showCompanyDropdown}"
+                                         style="max-height: 300px; overflow-y: auto">
+                                        <div v-if="filteredCompanys.length === 0" class="dropdown-item text-muted">無符合條件的公司</div>
+                                        <a v-for="company in filteredCompanys"
+                                           :key="company.id"
+                                           class="dropdown-item"
+                                           href="#"
+                                           @click.prevent="selectCompany(company)">
+                                            [[company.name]]
+                                            <span v-if="company.tax_id" class="text-muted">([[company.tax_id]])</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label required">請款單號</label>
                                 <input type="text"
                                        class="form-control"
