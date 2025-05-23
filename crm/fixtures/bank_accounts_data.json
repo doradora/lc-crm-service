@@ -1,0 +1,35 @@
+[
+  {
+    "model": "crm.bankaccount",
+    "pk": 1,
+    "fields": {
+      "company": 1,
+      "account_number": "12345678901234",
+      "account_name": "測試: 立信工程顧問有限公司",
+      "bank_name": "台灣銀行信義分行",
+      "bank_code": "004"
+    }
+  },
+  {
+    "model": "crm.bankaccount",
+    "pk": 2,
+    "fields": {
+      "company": 1,
+      "account_number": "98765432109876",
+      "account_name": "測試: 立信工程顧問有限公司薪資專戶",
+      "bank_name": "合作金庫銀行民權分行",
+      "bank_code": "006"
+    }
+  },
+  {
+    "model": "crm.bankaccount",
+    "pk": 3,
+    "fields": {
+      "company": 1,
+      "account_number": "45678901234567",
+      "account_name": "測試: 立信工程顧問有限公司備用金專戶",
+      "bank_name": "台北富邦銀行中山分行",
+      "bank_code": "012"
+    }
+  }
+]
