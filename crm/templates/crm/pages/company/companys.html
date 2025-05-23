@@ -51,11 +51,10 @@
                 </tr>
               </thead>
               <tbody class="fw-semibold text-gray-600">
-                <tr v-for="company in companys" :key="company.id">
-                  <td>
+                <tr v-for="company in companys" :key="company.id">                  <td>
                     <div class="d-flex align-items-center">
                       <div class="ms-5">
-                        [[ company.name ]]
+                        <a :href="'/crm/company/' + company.id + '/details/'" class="text-gray-800 text-hover-primary">[[ company.name ]]</a>
                       </div>
                     </div>
                   </td>

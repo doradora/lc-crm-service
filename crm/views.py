@@ -21,6 +21,7 @@ from .models import (
     ProjectChange,
     PaymentProject,
     Company,  # 添加 Company
+    BankAccount,  # 添加 BankAccount
 )
 from .serializers import (
     OwnerSerializer,
@@ -33,6 +34,7 @@ from .serializers import (
     ProjectChangeSerializer,
     PaymentProjectSerializer,
     CompanySerializer,  # 添加 CompanySerializer
+    BankAccountSerializer,  # 添加 BankAccountSerializer
 )
 import pandas as pd
 import traceback
@@ -187,6 +189,28 @@ def companys(request):
     if not request.user.profile.is_admin:
         raise PermissionDenied
     return render(request, "crm/pages/company/companys.html")
+
+
+@login_required(login_url="signin")
+def company_details(request, company_id):
+    """
+    顯示公司詳情頁面
+    """
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
+    
+    try:
+        company = Company.objects.get(id=company_id)
+    except Company.DoesNotExist:
+        messages.error(request, "公司不存在")
+        return redirect("companys")
+
+    context = {
+        "company_id": company_id,
+        "page_title": f"公司詳情 - {company.name}",
+    }
+
+    return render(request, "crm/pages/company/company_detail.html", context)
 
 
 # API
@@ -705,9 +729,59 @@ class CompanyViewSet(BaseViewSet):
         """
         確保只有管理員可以訪問公司資訊
         """
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'bank_accounts', 'add_bank_account']:
             return [permissions.IsAuthenticated(), IsAdmin()]
         return [permissions.IsAuthenticated()]
+        
+    def get_queryset(self):
+        return Company.objects.all().prefetch_related('bank_accounts', 'payments').order_by("tax_id")
+        
+    @action(detail=True, methods=['get'])
+    def bank_accounts(self, request, pk=None):
+        """獲取公司的銀行帳戶"""
+        company = self.get_object()
+        bank_accounts = company.bank_accounts.all()
+        serializer = BankAccountSerializer(bank_accounts, many=True)
+        return Response(serializer.data)
+        
+    @action(detail=True, methods=['post'])
+    def add_bank_account(self, request, pk=None):
+        """新增銀行帳戶到公司"""
+        company = self.get_object()
+        
+        # 將公司ID添加到請求數據中
+        request_data = request.data.copy()
+        request_data['company'] = company.id
+        
+        serializer = BankAccountSerializer(data=request_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BankAccountViewSet(BaseViewSet):
+    queryset = BankAccount.objects.all().select_related('company')
+    serializer_class = BankAccountSerializer
+    pagination_class = StandardResultsSetPagination
+    
+    def get_permissions(self):
+        """
+        確保只有管理員可以訪問銀行帳戶資訊
+        """
+        if self.action in ['list', 'retrieve', 'create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
+        
+    def get_queryset(self):
+        queryset = BankAccount.objects.all().select_related('company')
+        
+        # 根據公司過濾
+        company_id = self.request.query_params.get('company', None)
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+            
+        return queryset
 
 
 @login_required(login_url="signin")

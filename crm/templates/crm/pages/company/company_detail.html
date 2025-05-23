@@ -1,0 +1,304 @@
+{% extends "crm/base.html" %}
+{% load static %}
+{% block content %}
+<div class="app-main flex-column flex-row-fluid" id="app_main">
+  <div id="app_content" class="app-content flex-column-fluid">
+    <div id="app_content_container" class="container-fluid d-flex flex-column p-0">
+      <!-- 公司狀態概覽卡片 -->
+      <div class="card">
+        <div class="card-body pb-0">
+          <div class="d-flex flex-wrap flex-sm-nowrap mb-3">
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start flex-wrap mb-2">
+                <div class="d-flex flex-column">
+                  <h2 class="fw-bold fs-2x mb-0">[[ company.name ]]</h2>
+                  <div class="text-muted fs-6 fw-semibold mt-1">統一編號：[[ company.tax_id ]]</div>
+                </div>                <div class="d-flex flex-wrap my-2" v-if="isAdmin">
+                  <button class="btn btn-sm btn-primary" @click="showEditCompanyModal">
+                    <i class="ki-outline ki-pencil fs-3"></i>
+                    編輯公司資料
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex flex-column flex-column-fluid flex-xl-row">
+        <div class="d-flex flex-column flex-row-fluid w-xl-50">
+          <!-- 公司詳細資料卡片 -->
+          <div class="card mb-5 mt-5 mb-xl-10">
+            <div class="card-header">
+              <div class="card-title">
+                <h4 class="fw-bold">基本資料</h4>
+              </div>
+            </div>
+            <div class="card-body">              <!-- 公司名稱 -->
+              <div class="mb-7 d-flex">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">公司名稱</label>
+                  <div class="fs-5 text-gray-800">[[ company.name ]]</div>
+                </div>
+              </div>
+              <!-- 負責人 -->
+              <div class="mb-7 d-flex">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">負責人</label>
+                  <div class="fs-5 text-gray-800">[[ company.responsible_person ]]</div>
+                </div>
+              </div>
+              <!-- 統一編號 -->
+              <div class="mb-7 d-flex">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">統一編號</label>
+                  <div class="fs-5 text-gray-800">[[ company.tax_id ]]</div>
+                </div>
+              </div>
+              <!-- 地址 -->
+              <div class="mb-7 d-flex">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">地址</label>
+                  <div class="fs-5 text-gray-800">[[ company.address ]]</div>
+                </div>
+              </div>
+              <!-- 電話 -->
+              <div class="mb-7 d-flex">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">電話</label>
+                  <div class="fs-5 text-gray-800">[[ company.phone ]]</div>
+                </div>
+              </div>
+              <!-- 傳真 -->
+              <div class="mb-7 d-flex" v-if="company.fax">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">傳真</label>
+                  <div class="fs-5 text-gray-800">[[ company.fax ]]</div>
+                </div>
+              </div>
+              <!-- 聯絡人 -->
+              <div class="mb-7 d-flex">
+                <div class="flex-grow-1">
+                  <label class="fs-6 fw-semibold form-label">聯絡人</label>
+                  <div class="fs-5 text-gray-800">[[ company.contact_person ]]</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex flex-column w-xl-50">
+          <!-- 銀行帳戶卡片 -->
+          <div class="card m-5 mb-3 mt-2 me-0">
+            <div class="card-header">
+              <div class="card-title">
+                <h4 class="fw-bold">銀行帳戶</h4>
+              </div>
+              <div class="card-toolbar" v-if="isAdmin">
+                <button class="btn btn-sm btn-primary" @click="showAddBankAccountModal">
+                  <i class="ki-outline ki-plus fs-2"></i>
+                  新增銀行帳戶
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div v-if="isLoading" class="d-flex justify-content-center py-10">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">載入中...</span>
+                </div>
+              </div>
+              <template v-else>
+                <!-- 沒有銀行帳戶的顯示 -->
+                <div class="text-center py-10" v-if="!bankAccounts || bankAccounts.length === 0">
+                  <span class="text-muted">尚未新增銀行帳戶</span>
+                </div>
+                <!-- 銀行帳戶列表 -->
+                <div v-else>
+                  <div class="border rounded p-5 mb-5" v-for="account in bankAccounts" :key="account.id">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <span class="fw-bold fs-5">[[ account.account_name ]]</span>
+                      <div class="d-flex" v-if="isAdmin">
+                        <button class="btn btn-sm btn-light-primary me-2" @click="editBankAccount(account)">
+                          <i class="ki-outline ki-pencil fs-3"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light-danger" @click="deleteBankAccount(account.id)">
+                          <i class="ki-outline ki-trash fs-3"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="d-flex flex-column mb-2">
+                      <span class="text-muted">機構代碼：[[ account.bank_code ]]</span>
+                      <span>帳號：[[ account.account_number ]]</span>
+                      <span>銀行及分行名稱：[[ account.bank_name ]]</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+          <!-- 相關請款紀錄卡片 -->
+          <div class="card m-5 me-0">
+            <div class="card-header">
+              <div class="card-title">
+                <h4 class="fw-bold">相關請款記錄</h4>
+              </div>
+            </div>
+            <div class="card-body">
+              <div v-if="isLoadingPayments" class="d-flex justify-content-center py-10">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">載入中...</span>
+                </div>
+              </div>
+              <template v-else>
+                <!-- 沒有請款記錄的顯示 -->
+                <div class="text-center py-10" v-if="!payments || payments.length === 0">
+                  <span class="text-muted">尚無相關請款記錄</span>
+                </div>
+                <!-- 請款記錄列表 -->
+                <div v-else>
+                  <table class="table align-middle table-row-dashed fs-6 gy-4">
+                    <thead>
+                      <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                        <th>請款單號</th>
+                        <th>金額</th>
+                        <th>日期</th>
+                        <th>狀態</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="payment in payments" :key="payment.id">
+                        <td>
+                          <a :href="'/crm/payment/' + payment.id + '/details/'" class="text-gray-800 text-hover-primary">
+                            [[ payment.payment_number ]]
+                          </a>
+                        </td>
+                        <td>[[ formatAmount(payment.amount) ]]</td>
+                        <td>[[ payment.date_issued ]]</td>
+                        <td>
+                          <span :class="getPaymentStatusClass(payment)">
+                            [[ payment.paid ? '已付款' : '未付款' ]]
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 編輯公司資料模態框 -->
+  <div class="modal fade" tabindex="-1" id="editCompanyModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">編輯公司資料</h5>
+          <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideEditCompanyModal" aria-label="Close">
+            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+          </div>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitCompanyForm" ref="companyForm">
+            <div class="form-floating mb-7">
+              <input type="text" class="form-control" id="name" v-model="editingCompany.name" required />
+              <label for="name">公司名稱</label>
+            </div>
+            <div class="form-floating mb-7">
+              <input type="text" class="form-control" id="responsible_person" v-model="editingCompany.responsible_person" required />
+              <label for="responsible_person">負責人</label>
+            </div>
+            <div class="form-floating mb-7">
+              <input type="text" class="form-control" id="tax_id" v-model="editingCompany.tax_id" required />
+              <label for="tax_id">統一編號</label>
+            </div>
+            <div class="row">
+              <div class="form-floating mb-7 col">
+                <input type="text" class="form-control" id="phone" v-model="editingCompany.phone" required />
+                <label for="phone">電話</label>
+              </div>
+              <div class="form-floating mb-7 col">
+                <input type="text" class="form-control" id="fax" v-model="editingCompany.fax" />
+                <label for="fax">傳真</label>
+              </div>
+            </div>
+            <div class="form-floating mb-7">
+              <input type="text" class="form-control" id="contact_person" v-model="editingCompany.contact_person" required />
+              <label for="contact_person">聯絡人</label>
+            </div>
+            <div class="form-floating mb-7">
+              <textarea class="form-control" id="address" v-model="editingCompany.address" style="height: 100px" required></textarea>
+              <label for="address">地址</label>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light" @click="hideEditCompanyModal">
+                取消
+              </button>
+              <button type="submit" class="btn btn-primary">
+                儲存
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/編輯銀行帳戶模態框 -->
+  <div class="modal fade" tabindex="-1" id="bankAccountModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">[[ isEditingBankAccount ? '編輯' : '新增' ]]銀行帳戶</h5>
+          <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideBankAccountModal" aria-label="Close">
+            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+          </div>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitBankAccountForm" ref="bankAccountForm">
+            <div class="mb-5">
+            <div class="mb-5">
+              <label class="form-label">戶名</label>
+              <input type="text" class="form-control" v-model="newBankAccount.account_name" required>
+            </div>
+            <div class="mb-5">
+              <label class="form-label">機構代碼</label>
+              <input type="text" class="form-control" v-model="newBankAccount.bank_code" required>
+            </div>
+            <div class="mb-5">
+              <label class="form-label">銀行帳號</label>
+              <input type="text" class="form-control" v-model="newBankAccount.account_number" required>
+            </div>
+              <label class="form-label">銀行及分行名稱</label>
+              <input type="text" class="form-control" v-model="newBankAccount.bank_name" required>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light" @click="hideBankAccountModal">取消</button>
+              <button type="submit" class="btn btn-primary">[[ isEditingBankAccount ? '更新' : '新增' ]]</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+{% block extra_js %}
+<script>
+  // 定義此頁面專用的麵包屑資訊
+  window.pageBreadcrumbs = {
+    menu: "公司",
+    menuUrl: "{% url 'companys' %}",
+    submenu: "公司詳情",
+    submenuUrl: "{% url 'companys' %}",
+    currentPage: "公司詳情"
+  };
+  
+  // 如果 breadcrumbApp 已經掛載，則更新它
+  if (typeof breadcrumbApp !== 'undefined') {
+    breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
+    breadcrumbApp.updateBreadcrumb();
+  }
+</script>
+<script src="{% static 'crm/js/pages/company/company_detail.js' %}"></script>
+{% endblock extra_js %}
