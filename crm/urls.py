@@ -59,4 +59,6 @@ urlpatterns = [
         name="export_payment_excel",
     ),
     path("api/", include(router.urls)),
+    # 新增獲取公司銀行帳戶的API端點
+    path("api/company/<int:company_id>/bank_accounts/", views.get_bank_accounts_for_company, name="get_bank_accounts_for_company"),
 ]

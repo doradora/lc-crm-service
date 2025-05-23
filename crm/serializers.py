@@ -250,6 +250,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     invoices = serializers.SerializerMethodField(read_only=True)
     owner_name = serializers.SerializerMethodField(read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True)
+    selected_bank_account_details = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Payment
@@ -272,6 +273,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             "owner_name",
             'company',  # 添加 company 欄位
             'company_name',  # 添加用於顯示的公司名稱
+            'selected_bank_account',  # 添加銀行帳號欄位
+            'selected_bank_account_details',  # 添加銀行帳號詳細資訊
         ]
         read_only_fields = ["amount", "created_at"]
 
@@ -290,6 +293,20 @@ class PaymentSerializer(serializers.ModelSerializer):
     
     def get_owner_name(self, obj): # 新增 get_owner_name 方法
         return obj.owner.company_name if obj.owner else None
+    
+    
+    def get_selected_bank_account_details(self, obj):
+        """獲取選定銀行帳號的詳細資訊"""
+        if not hasattr(obj, 'selected_bank_account') or not obj.selected_bank_account:
+            return None
+            
+        return {
+            'id': obj.selected_bank_account.id,
+            'account_name': obj.selected_bank_account.account_name,
+            'account_number': obj.selected_bank_account.account_number,
+            'bank_name': obj.selected_bank_account.bank_name,
+            'bank_code': obj.selected_bank_account.bank_code,
+        }
 
 
 class InvoiceSerializer(serializers.ModelSerializer):

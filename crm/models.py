@@ -254,6 +254,13 @@ class Payment(models.Model):
         on_delete=models.PROTECT,  # 使用 PROTECT 避免誤刪有關聯請款單的公司
         related_name='payments'
     )  # 收款公司
+    selected_bank_account = models.ForeignKey(
+        'BankAccount',  # 使用字符串引用避免循環引用問題
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments'
+    )  # 選定的匯款帳號
     projects = models.ManyToManyField(
         Project, through="PaymentProject", related_name="payments"
     )  # 關聯多個專案

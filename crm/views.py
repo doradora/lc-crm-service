@@ -784,6 +784,24 @@ class BankAccountViewSet(BaseViewSet):
         return queryset
 
 
+from rest_framework.decorators import api_view, permission_classes
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_bank_accounts_for_company(request, company_id):
+    """根據公司ID獲取該公司的所有銀行帳號"""
+    try:
+        company = get_object_or_404(Company, id=company_id)
+        bank_accounts = BankAccount.objects.filter(company=company)
+        serializer = BankAccountSerializer(bank_accounts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response(
+            {"error": str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
 @login_required(login_url="signin")
 def index(request):
     return render(request, "crm/index.html")
@@ -809,6 +827,12 @@ def export_payment_excel(request, payment_id):
         original_ws["B24"] = f"電話：{company.phone}"
         original_ws["B25"] = f"傳真：{company.fax if company.fax else ''}"
         original_ws["B26"] = f"聯絡人：{company.contact_person}"
+        
+        # 設定匯款帳號資訊（如果有的話）
+        if payment.selected_bank_account:
+            bank_account = payment.selected_bank_account
+            original_ws["B30"] = f"戶名：{bank_account.account_name}"
+            original_ws["B31"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
 
         # 獲取請款單關聯的專案明細
         payment_projects = PaymentProject.objects.filter(
