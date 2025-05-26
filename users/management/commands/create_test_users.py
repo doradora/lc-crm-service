@@ -180,6 +180,8 @@ class Command(BaseCommand):
             username = user_data.pop("username")
             email = user_data.pop("email")
             password = user_data.pop("password")
+            first_name = user_data.pop("first_name")
+            last_name = user_data.pop("last_name")
 
             # 檢查使用者是否存在
             if User.objects.filter(username=username).exists():
@@ -189,14 +191,10 @@ class Command(BaseCommand):
 
             # 創建使用者
             user = User.objects.create_user(
-                username=username, email=email, password=password
-            )
+                username=username, email=email, password=password, first_name=first_name, last_name=last_name)
 
-            # 更新使用者檔案
-            profile = UserProfile.objects.get(user=user)
-            for key, value in user_data["profile"].items():
-                setattr(profile, key, value)
-            profile.save()
+            # 創建使用者檔案
+            UserProfile.objects.create(user=user, **user_data["profile"])
 
             self.stdout.write(
                 f"已創建使用者: {username} ({user_data['profile']['name']})"

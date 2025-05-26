@@ -102,10 +102,9 @@
           <div class="menu-item px-5">
             <a href="{% url 'user_profile' %}" class="menu-link px-5">我的個人檔案</a>
           </div>
-          <!--end::Menu item-->
-          <!--begin::Menu item-->
+          <!--end::Menu item-->          <!--begin::Menu item-->
           <div class="menu-item px-5">
-            <a :href="`/crm/projects/?search=${encodeURIComponent(user.profile.name)}`" class="menu-link px-5">
+            <a :href="`/users/${user.id}/projects/`" class="menu-link px-5">
               <span class="menu-text">我的專案</span>
               <span class="menu-badge" v-if="projectCount > 0">
                 <span class="badge badge-light-danger badge-circle fw-bold fs-7">[[ projectCount ]]</span>
@@ -168,9 +167,8 @@
         return "badge-light-warning";
       },
     },
-    mounted() {
-      // 獲取使用者相關的專案數量
-      fetch(`/crm/api/projects/?format=json&page=1&page_size=10&search=${this.user.profile.name}`)
+    mounted() {      // 獲取使用者相關的專案數量
+      fetch(`/crm/api/projects/?format=json&page=1&page_size=10&manager=${this.user.id}`)
         .then(response => response.json())
         .then(data => {
           this.projectCount = data.count;

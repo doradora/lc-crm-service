@@ -142,7 +142,7 @@
                     <label for="phone">電話</label>
                   </div>
 
-                  <div v-if="!isEditMode || !isEditPassword" class="mb-3">
+                  <div v-if="user.profile.is_admin && (!isEditMode || !isEditPassword)" class="mb-3">
                     <div class="mb-7">
                       <label class="form-label mb-4">角色</label>
                       <div class="form-check">
@@ -287,15 +287,30 @@
       submitUserForm() {
         if (this.isEditPassword) {
           if (!this.editData.password) {
-            alert("請輸入新密碼");
+            Swal.fire({
+              title: '提示',
+              text: '請輸入新密碼',
+              icon: 'warning',
+              confirmButtonText: '確定'
+            });
             return;
           }
           if (this.editData.password.length < 8) {
-            alert("密碼長度必須至少為8個字符");
+            Swal.fire({
+              title: '提示',
+              text: '密碼長度必須至少為8個字符',
+              icon: 'warning',
+              confirmButtonText: '確定'
+            });
             return;
           }
           if (this.editData.password !== this.editData.passwordConfirm) {
-            alert("兩次輸入的密碼不一致");
+            Swal.fire({
+              title: '提示',
+              text: '兩次輸入的密碼不一致',
+              icon: 'warning',
+              confirmButtonText: '確定'
+            });
             return;
           }
         }
@@ -334,16 +349,26 @@
               throw new Error('更新失敗');
             }
             return response.json();
-          })
-          .then(data => {
+          }).then(data => {
             this.hideEditModal();
-            alert(this.isEditPassword ? '密碼修改成功，請重新登入！' : '資料更新成功！');
-            // 重新載入頁面以顯示更新後的資料
-            window.location.reload();
+            Swal.fire({
+              title: this.isEditPassword ? '修改成功' : '更新成功',
+              text: this.isEditPassword ? '密碼修改成功，請重新登入！' : '資料更新成功！',
+              icon: 'success',
+              confirmButtonText: '確定'
+            }).then(() => {
+              // 重新載入頁面以顯示更新後的資料
+              window.location.reload();
+            });
           })
           .catch(error => {
             console.error('Error:', error);
-            alert('更新失敗，請稍後再試');
+            Swal.fire({
+              title: '更新失敗',
+              text: '更新失敗，請稍後再試',
+              icon: 'error',
+              confirmButtonText: '確定'
+            });
           });
       }
     },

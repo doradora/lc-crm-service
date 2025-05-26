@@ -4,6 +4,7 @@ const paymentsList = createApp({
     return {
       projects: [],
       owners: [],
+      companys: [],
       categories: [],
       users: [],
       isLoading: false,
@@ -13,6 +14,10 @@ const paymentsList = createApp({
       filteredOwners: [], // 過濾後的業主列表
       showOwnerDropdown: false, // 是否顯示業主下拉選單
       selectedOwnerName: "", // 已選擇的業主名稱
+      companyFilter: "", // 新增：收款公司 ID
+      companySearchText: "", // 新增：收款公司搜尋文字
+      filteredCompanys: [], // 新增：過濾後的收款公司列表
+      showCompanyDropdown: false, // 新增：是否顯示收款公司下拉選單
       categoryFilter: "", // 類別篩選 (保留)
       startYearFilter: "", // 開始年份
       endYearFilter: "", // 結束年份
@@ -134,7 +139,85 @@ const paymentsList = createApp({
       }
     },
 
-    // 移除: searchCategories 方法
+    // 搜尋收款公司
+    searchCompanys() {
+      if (!this.companySearchText.trim()) {
+        this.filteredCompanys = this.companys.slice(0, 10); // 顯示前10個
+        return;
+      }
+
+      const searchText = this.companySearchText.toLowerCase().trim();
+      this.filteredCompanys = this.companys
+        .filter(
+          (company) =>
+            company.name.toLowerCase().includes(searchText) ||
+            (company.tax_id && company.tax_id.includes(searchText))
+        )
+        .slice(0, 10); // 最多顯示10個結果
+
+      this.showCompanyDropdown = true;
+    },
+
+    // 選擇收款公司
+    selectCompany(company) {
+      this.companyFilter = company.id;
+      this.companySearchText = company.name;
+      this.showCompanyDropdown = false;
+    },
+
+    // 清除收款公司選擇
+    clearCompanySelection() {
+      this.companyFilter = "";
+      this.companySearchText = "";
+      this.filteredCompanys = [];
+      this.showCompanyDropdown = false;
+    },
+
+    // 關閉收款公司下拉選單
+    closeCompanyDropdown() {
+      this.showCompanyDropdown = false;
+
+      // 檢查輸入的收款公司名稱是否存在於公司清單中
+      if (this.companySearchText) {
+        const matchingCompany = this.companys.find(
+          (company) =>
+            company.name.toLowerCase() ===
+            this.companySearchText.toLowerCase()
+        );
+
+        if (matchingCompany) {
+          // 如果找到匹配的公司，直接選擇它
+          this.companyFilter = matchingCompany.id;
+          this.companySearchText = matchingCompany.name; // 確保名稱大小寫與資料庫一致
+        } else {
+          // 如果沒有匹配的公司，保留搜索詞但清除公司ID
+          this.companyFilter = "";
+        }
+      } else {
+        // 如果輸入框被清空，則重設公司ID
+        this.companyFilter = "";
+      }
+    },
+
+    // 獲取收款公司列表
+    fetchCompanys() {
+      fetch(`/crm/api/companys/?format=json&page_size=1000`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.results) {
+            this.companys = data.results;
+            this.filteredCompanys = this.companys.slice(0, 10); // 初始顯示前10個
+          } else {
+            this.companys = [];
+            this.filteredCompanys = [];
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching companys:", error);
+          this.companys = [];
+          this.filteredCompanys = [];
+        });
+    },
 
     // 修改: 選擇類別 (簡化為直接使用下拉選單的值)
     selectCategory(categoryId) {
@@ -146,8 +229,6 @@ const paymentsList = createApp({
       this.categoryFilter = "";
     },
 
-    // 移除: closeCategoryDropdown 方法
-
     // 重設篩選條件 (修改)
     resetFilters() {
       this.searchQuery = "";
@@ -155,7 +236,6 @@ const paymentsList = createApp({
       this.ownerSearchText = "";
       this.selectedOwnerName = "";
       this.categoryFilter = ""; // 保留: 重設類別篩選
-      // 移除: this.categorySearchText = "";
       this.startYearFilter = "";
       this.endYearFilter = "";
       // 重設核取方塊
@@ -421,32 +501,21 @@ const paymentsList = createApp({
         return;
       }
 
-      // 檢查每個專案是否都有金額
-      // let isValid = true;
-      // let totalAmount = 0;
+      if (!this.companyFilter) {
+        alert("請選擇收款公司");
+        return;
+      }
 
-      // selectedProjectIds.forEach((projectId) => {
-      //   const amount = this.projectAmounts[projectId];
-      //   if (!amount || amount <= 0) {
-      //     alert("請為每個專案輸入有效的請款金額");
-      //     isValid = false;
-      //     return;
-      //   }
-      //   totalAmount += Number(amount);
-      // });
-
-      // if (!isValid) return;
-
-      // 準備請款單資料 - 僅包含必要欄位
+      // 準備請款單資料
       const paymentData = {
         payment_number: this.newPayment.payment_number,
         date_issued: this.newPayment.date_issued,
-        // amount: totalAmount, // 後端會自動計算，這裡是為了完整性
         payment_projects: selectedProjectIds.map((projectId) => ({
           project: projectId,
           amount: this.projectAmounts[projectId],
         })),
         owner: this.ownerFilter,
+        company: this.companyFilter, // 新增：收款公司
       };
 
       // 送出API請求創建請款單
@@ -499,6 +568,7 @@ const paymentsList = createApp({
     this.fetchCategories();
     this.fetchUsers();
     this.fetchYears();
+    this.fetchCompanys(); // 新增：載入收款公司列表
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏

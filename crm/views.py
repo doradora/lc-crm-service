@@ -20,6 +20,8 @@ from .models import (
     Expenditure,
     ProjectChange,
     PaymentProject,
+    Company,  # 添加 Company
+    BankAccount,  # 添加 BankAccount
 )
 from .serializers import (
     OwnerSerializer,
@@ -31,6 +33,8 @@ from .serializers import (
     ExpenditureSerializer,
     ProjectChangeSerializer,
     PaymentProjectSerializer,
+    CompanySerializer,  # 添加 CompanySerializer
+    BankAccountSerializer,  # 添加 BankAccountSerializer
 )
 import pandas as pd
 import traceback
@@ -177,6 +181,36 @@ def payment_details(request, payment_id):
     }
 
     return render(request, "crm/pages/payments/payment_detail.html", context)
+
+
+@login_required(login_url="signin")
+def companys(request):
+    """顯示收款公司列表"""
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
+    return render(request, "crm/pages/company/companys.html")
+
+
+@login_required(login_url="signin")
+def company_details(request, company_id):
+    """
+    顯示公司詳情頁面
+    """
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
+    
+    try:
+        company = Company.objects.get(id=company_id)
+    except Company.DoesNotExist:
+        messages.error(request, "公司不存在")
+        return redirect("companys")
+
+    context = {
+        "company_id": company_id,
+        "page_title": f"公司詳情 - {company.name}",
+    }
+
+    return render(request, "crm/pages/company/company_detail.html", context)
 
 
 # API
@@ -629,6 +663,7 @@ class InvoiceViewSet(CanPaymentViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+
 # 案件支出
 class ExpenditureViewSet(BaseViewSet):
     queryset = Expenditure.objects.all().select_related("project", "created_by")
@@ -683,6 +718,90 @@ class ProjectChangeViewSet(BaseViewSet):
         serializer.save()
 
 
+class CompanyViewSet(BaseViewSet):
+    queryset = Company.objects.all().order_by("tax_id")
+    serializer_class = CompanySerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name", "tax_id", "contact_person", "phone"]
+
+    def get_permissions(self):
+        """
+        確保只有管理員可以訪問公司資訊
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'bank_accounts', 'add_bank_account']:
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
+        
+    def get_queryset(self):
+        return Company.objects.all().prefetch_related('bank_accounts', 'payments').order_by("tax_id")
+        
+    @action(detail=True, methods=['get'])
+    def bank_accounts(self, request, pk=None):
+        """獲取公司的銀行帳戶"""
+        company = self.get_object()
+        bank_accounts = company.bank_accounts.all()
+        serializer = BankAccountSerializer(bank_accounts, many=True)
+        return Response(serializer.data)
+        
+    @action(detail=True, methods=['post'])
+    def add_bank_account(self, request, pk=None):
+        """新增銀行帳戶到公司"""
+        company = self.get_object()
+        
+        # 將公司ID添加到請求數據中
+        request_data = request.data.copy()
+        request_data['company'] = company.id
+        
+        serializer = BankAccountSerializer(data=request_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BankAccountViewSet(BaseViewSet):
+    queryset = BankAccount.objects.all().select_related('company')
+    serializer_class = BankAccountSerializer
+    pagination_class = StandardResultsSetPagination
+    
+    def get_permissions(self):
+        """
+        確保只有管理員可以訪問銀行帳戶資訊
+        """
+        if self.action in ['list', 'retrieve', 'create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
+        
+    def get_queryset(self):
+        queryset = BankAccount.objects.all().select_related('company')
+        
+        # 根據公司過濾
+        company_id = self.request.query_params.get('company', None)
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+            
+        return queryset
+
+
+from rest_framework.decorators import api_view, permission_classes
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_bank_accounts_for_company(request, company_id):
+    """根據公司ID獲取該公司的所有銀行帳號"""
+    try:
+        company = get_object_or_404(Company, id=company_id)
+        bank_accounts = BankAccount.objects.filter(company=company)
+        serializer = BankAccountSerializer(bank_accounts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response(
+            {"error": str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
 @login_required(login_url="signin")
 def index(request):
     return render(request, "crm/index.html")
@@ -698,6 +817,22 @@ def export_payment_excel(request, payment_id):
 
         # 獲取請款單資訊
         payment = get_object_or_404(Payment, id=payment_id)
+                
+        # 設定收款公司資訊
+        company = payment.company
+        original_ws["B20"] = f"公司名稱：{company.name}"  
+        original_ws["B21"] = f"負責人：{company.responsible_person}"
+        original_ws["B22"] = f"統一編號：{company.tax_id}"
+        original_ws["B23"] = f"地址：{company.address}"
+        original_ws["B24"] = f"電話：{company.phone}"
+        original_ws["B25"] = f"傳真：{company.fax if company.fax else ''}"
+        original_ws["B26"] = f"聯絡人：{company.contact_person}"
+        
+        # 設定匯款帳號資訊（如果有的話）
+        if payment.selected_bank_account:
+            bank_account = payment.selected_bank_account
+            original_ws["B30"] = f"戶名：{bank_account.account_name}"
+            original_ws["B31"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
 
         # 獲取請款單關聯的專案明細
         payment_projects = PaymentProject.objects.filter(
