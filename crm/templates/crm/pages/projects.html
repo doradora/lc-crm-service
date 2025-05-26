@@ -98,7 +98,11 @@
                   </td>
                   <td>[[ getOwnerName(project.owner) ]]</td>
                   <td>[[ getCategoryName(project.category) ]]</td>
-                  <td>[[ getManagerName(project.manager) ]]</td>
+                  <td><span v-if="project.managers_info && project.managers_info.length > 0">
+                                                    <span v-for="(mgr, index) in project.managers_info" :key="mgr.id || index">
+                                                        [[ mgr.name ]]<span v-if="index < project.managers_info.length - 1">, </span>
+                                                    </span>
+                                                </span></td>
                   <td>
                     <div class="badge" :class="getStatusBadgeClass(project)">[[ project.is_completed ? '已完成' : '進行中' ]]
                     </div>
