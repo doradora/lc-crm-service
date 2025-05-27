@@ -15,6 +15,7 @@ from crm.models import (
     Expenditure,
     Payment,
     PaymentProject,
+    Company
 )
 from users.models import UserProfile  # 添加這行導入 UserProfile
 
@@ -69,6 +70,9 @@ class Command(BaseCommand):
 
         # 建立預設業主
         self.setup_default_owners()
+        
+        # 建立預設收款公司
+        self.setup_default_company()
 
     def setup_default_users(self):
         """建立CSV中出現的所有使用者，同時建立相應的使用者檔案"""
@@ -163,6 +167,26 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("已建立預設業主"))
 
+    # 在setup_default_data或handle方法中加入以下程式碼：
+    def setup_default_company(self):
+        """建立預設收款公司"""
+        company, created = Company.objects.get_or_create(
+            name="力宇設計有限公司",
+            defaults={
+                "name": "立信工程顧問有限公司",
+                "responsible_person": "林育信",
+                "tax_id": "45127101",
+                "address": "500 彰化市中山路二段356巷1號",
+                "phone": "04-7234988分機138",
+                "fax": "04-7233033",
+                "contact_person": "吳小姐"
+                }
+        )
+        if created:
+            self.debug_log(f"建立預設收款公司: {company.name}")
+        self.default_company = company
+        self.stdout.write(self.style.SUCCESS("已建立預設收款公司"))
+    
     def parse_date(self, date_str):
         """解析日期字串"""
         if not date_str or date_str == "1999/12/31":
@@ -397,6 +421,7 @@ class Command(BaseCommand):
                                             ),
                                             "notes": row.get("請款備註", ""),
                                             "created_by": manager,
+                                            "company": self.default_company
                                         },
                                     )
                                 )
