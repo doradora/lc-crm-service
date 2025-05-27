@@ -224,7 +224,7 @@
                     <table class="table table-row-bordered table-row-gray-100">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
-                          <th>專案名稱</th>
+                          <th>專案名稱 & 報表名稱</th>
                           <th>請款金額</th>
                           <th>說明</th>
                           <th v-if="isEditing">操作</th>
@@ -233,35 +233,40 @@
                       <tbody>
                         <tr v-for="(projectItem, index) in payment.payment_projects" :key="projectItem.id || index">
                           <td>
-                            <select v-if="isEditing" class="form-select" v-model="projectItem.project">
-                              <option value="">選擇專案</option>
-                              <option v-for="project in projects" :key="project.id" :value="project.id">
-                                [[ project.name ]]
-                              </option>
-                            </select>
-                            <div v-else>[[ projectItem.project_name ]]</div>
+                            <div v-if="isEditing">
+                              <div class="form-control-plaintext">[[ projectItem.project_name ]]</div>
+                              <input  
+                                     type="text" 
+                                     class="form-control" 
+                                     :value="getProjectReportName(projectItem.project)"
+                                     @input="updateProjectReportName(projectItem.project, $event.target.value)" />
+                            </div>
+                            <div v-else>
+                              <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
+                              [[ getProjectReportName(projectItem.project) || '-' ]]
+                            </div>
                           </td>
-                          <td>
+                          <td class="align-bottom">
                             <input v-if="isEditing" type="number" class="form-control" v-model="projectItem.amount" />
                             <div v-else>
                               [[ formatCurrency(projectItem.amount) ]]
                             </div>
                           </td>
-                          <td>
+                          <td class="align-bottom">
                             <input v-if="isEditing" type="text" class="form-control"
                               v-model="projectItem.description" />
                             <div v-else>
                               [[ projectItem.description || '-' ]]
                             </div>
                           </td>
-                          <td v-if="isEditing">
+                          <td v-if="isEditing" class="align-bottom">
                             <button class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectItem(index)">
                               <i class="ki-outline ki-trash fs-2"></i>
                             </button>
                           </td>
                         </tr>
                         <tr v-if="payment.payment_projects && payment.payment_projects.length === 0">
-                          <td colspan="4" class="text-center py-5">
+                          <td colspan="5" class="text-center py-5">
                             尚無專案明細
                           </td>
                         </tr>
@@ -290,13 +295,9 @@
                           <th>稅額</th>
                           <th>開立日期</th>
                           <th>收款方式</th>
-                          <!-- 新增 -->
                           <th>實收金額</th>
-                          <!-- 新增 -->
                           <th>收款日</th>
-                          <!-- 新增 -->
                           <th>入帳日</th>
-                          <!-- 新增 -->
                           <th v-if="isEditing">操作</th>
                         </tr>
                       </thead>

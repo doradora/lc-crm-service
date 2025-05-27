@@ -30,6 +30,7 @@ const projectDetail = createApp({
         is_paid: false,
         expenditures: [], // 添加支出記錄陣列
         total_expenditure: 0, // 添加總支出金額
+        report_name: "",
       },
 
       // 其他數據

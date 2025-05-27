@@ -6,7 +6,7 @@
             <div id="app_content_container"
                  class="container-fluid d-flex flex-column p-0">
                 <!-- 專案狀態概覽卡片 -->
-                <div class="card">
+                <div class="card mb-5">
                     <div class="card-body pb-0">
                         <div class="d-flex flex-wrap flex-sm-nowrap mb-3">
                             <div class="flex-grow-1">
@@ -65,10 +65,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="d-flex flex-column flex-column-fluid flex-xl-row">
+                <div class="d-flex flex-column flex-column-fluid flex-xl-row gap-5">
                     <div class="d-flex flex-column flex-row-fluid w-xl-50">
                         <!-- 專案詳細資料表單 -->
-                        <div class="card mb-5 mt-5 mb-xl-10" id="project_details_form">
+                        <div class="card mb-xl-10" id="project_details_form">
                             <div class="card-header border-0 cursor-pointer">
                                 <div class="card-title m-0">
                                     <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-4 fw-semibold mb-0">
@@ -101,8 +101,20 @@
                                 <form @submit.prevent="saveProject">
                                     <div class="tab-content" id="myTabContent">
                                         <!-- 基本資料標籤頁 -->
-                                        <div class="tab-pane fade show active" id="tab_basic_info" role="tabpanel">
+                                        
+                                         <div class="tab-pane fade show active" id="tab_basic_info" role="tabpanel">
                                             <!-- 基本資料區塊 -->
+                                            <div class="row mb-5">
+                                                <div class="col-md-12">
+                                                    <label class="form-label">報表名稱</label>
+                                                    <input v-if="isEditMode && canEditProject"
+                                                           type="text"
+                                                           class="form-control"
+                                                           v-model="project.report_name"
+                                                           placeholder="請輸入報表名稱">
+                                                    <div v-else class="form-control-plaintext">[[ project.report_name || '未設定' ]]</div>
+                                                </div>
+                                            </div>
                                             <div class="row mb-5">
                                                 <div class="col-md-12">
                                                     <label class="form-label">業主</label>
@@ -138,8 +150,11 @@
                                                             </a>
                                                         </div>
                                                     </div>
-                                                    <div v-else class="form-control-plaintext fs-3 ms-2">[[ getOwnerName ]]</div>
+                                                    <div v-else class="form-control-plaintext">[[ getOwnerName ]]</div>
                                                 </div>
+                                                
+                                            </div>
+                                            <div class="row mb-5">
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">年份</label>
                                                     <!-- <input v-if="isEditMode"
@@ -384,9 +399,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex flex-column  w-xl-50">
+                    <div class="d-flex flex-column w-xl-50 gap-5">
                         <!-- 請款狀態卡片 -->
-                        <div v-if="project.is_completed" class="card m-5 mb-3 mt-2 me-0">
+                        <div v-if="project.is_completed" class="card">
                             <div class="card-header">
                                 <div class="card-title">
                                     <h4 class="fw-bold">請款狀態</h4>
@@ -472,7 +487,7 @@
                             </div>
                         </div>
                         <!-- 專案負責人卡片 -->
-                        <div class="card m-5 mb-3 me-0">
+                        <div class="card">
                             <div class="card-header">
                                 <div class="card-title">
                                     <h4 class="fw-bold">專案負責人員</h4>

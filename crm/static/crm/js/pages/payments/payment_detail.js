@@ -81,7 +81,9 @@ const paymentDetail = createApp({
         bank_name: "",
         bank_code: "",
         company: null, // 將與當前選中的公司關聯
-      }
+      },
+      // 專案報表名稱映射表 - 用於編輯時暫存
+      projectReportNames: {}, // 專案ID -> 報表名稱的映射
     };
   },
   computed: {
@@ -171,8 +173,57 @@ const paymentDetail = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.projects = data.results;
+          // 初始化專案報表名稱映射
+          this.initializeProjectReportNames();
         })
         .catch((error) => console.error("Error fetching projects:", error));
+    },
+
+    // 初始化專案報表名稱映射
+    initializeProjectReportNames() {
+      this.projects.forEach(project => {
+        this.projectReportNames[project.id] = project.report_name || '';
+      });
+    },
+
+    // 獲取專案的報表名稱
+    getProjectReportName(projectId) {
+      if (!projectId) return '';
+      return this.projectReportNames[projectId] || '';
+    },    // 更新專案的報表名稱
+    updateProjectReportName(projectId, reportName) {
+      if (projectId) {
+        this.projectReportNames[projectId] = reportName;
+      }
+    },
+
+    // 批量更新所有已修改專案的報表名稱
+    updateProjectReportNames() {
+      const updatePromises = [];
+      
+      // 遍歷所有專案，檢查報表名稱是否有變更
+      for (const [projectId, reportName] of Object.entries(this.projectReportNames)) {
+        const project = this.projects.find(p => p.id == projectId);
+        if (project && project.report_name !== reportName) {
+          // 如果報表名稱有變更，發送PATCH請求更新
+          updatePromises.push(
+            fetch(`/crm/api/projects/${projectId}/`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector(
+                  '[name="csrfmiddlewaretoken"]'
+                ).value,
+              },
+              body: JSON.stringify({
+                report_name: reportName
+              }),
+            })
+          );
+        }
+      }
+
+      return Promise.all(updatePromises);
     },
 
     // 新增業主列表獲取方法
@@ -307,9 +358,6 @@ const paymentDetail = createApp({
 
     // 保存修改
     saveChanges() {
-      // 計算總金額
-      const totalAmount = this.getTotalAmount();
-
       // 驗證必填欄位
       if (!this.payment.payment_number) {
         Swal.fire({
@@ -439,8 +487,11 @@ const paymentDetail = createApp({
               );
             }
           });
-
           return Promise.all(projectPromises);
+        })
+        .then(() => {
+          // 更新專案的報表名稱
+          return this.updateProjectReportNames();
         })
         .then(() => {
           this.isEditing = false;
@@ -1018,11 +1069,14 @@ const paymentDetail = createApp({
   mounted() {
     // 從URL獲取payment ID
     const pathParts = window.location.pathname.split("/");
-    this.paymentId = pathParts[pathParts.indexOf("payment") + 1];
-
-    // 獲取資料
-    this.fetchPaymentDetails();
-    this.fetchProjects();
+    this.paymentId = pathParts[pathParts.indexOf("payment") + 1];    // 獲取資料
+    Promise.all([
+      this.fetchPaymentDetails(),
+      this.fetchProjects()
+    ]).then(() => {
+      // 當付款詳情和專案列表都載入完成後，初始化報表名稱映射
+      this.initializeProjectReportNames();
+    });
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
     // 初始化 Bootstrap tabs

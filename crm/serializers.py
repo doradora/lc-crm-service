@@ -164,6 +164,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "invoice_notes",
             "is_paid",
             "custom_fields",
+            "report_name"
         ]
         read_only_fields = [
             "project_number",
