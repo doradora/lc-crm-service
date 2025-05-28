@@ -182,7 +182,7 @@ createApp({
       this.invoiceForm = {
         id: invoice.id,
         invoice_number: invoice.invoice_number,
-        payment: invoice.payment ? invoice.payment.id : "",
+        payment: invoice.payment || "",
         amount: invoice.amount,
         tax_amount: invoice.tax_amount,
         issue_date: invoice.issue_date,
