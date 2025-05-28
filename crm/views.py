@@ -657,8 +657,30 @@ class InvoiceViewSet(CanPaymentViewSet):
         payment_id = self.request.query_params.get("payment", None)
         if payment_id:
             queryset = queryset.filter(payment_id=payment_id)
+            
+        # 付款狀態過濾（已付款/未付款）
+        payment_received_date_isnull = self.request.query_params.get("payment_received_date__isnull", None)
+        if payment_received_date_isnull is not None:
+            is_null = payment_received_date_isnull.lower() == 'true'
+            queryset = queryset.filter(payment_received_date__isnull=is_null)
+            
+        # 付款方式過濾
+        payment_method = self.request.query_params.get("payment_method", None)
+        if payment_method:
+            queryset = queryset.filter(payment_method=payment_method)
+            
+        # 日期範圍過濾
+        issue_date_gte = self.request.query_params.get("issue_date__gte", None)
+        if issue_date_gte:
+            queryset = queryset.filter(issue_date__gte=issue_date_gte)
+            
+        issue_date_lte = self.request.query_params.get("issue_date__lte", None)
+        if issue_date_lte:
+            queryset = queryset.filter(issue_date__lte=issue_date_lte)
 
-        return queryset.order_by("-issue_date")
+        # 排序參數
+        ordering = self.request.query_params.get('ordering', '-issue_date')
+        return queryset.order_by(ordering)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
