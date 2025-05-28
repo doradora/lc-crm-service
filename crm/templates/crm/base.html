@@ -72,9 +72,11 @@
           id: "projects",
           title: "案件管理",
           icon: "ki-outline ki-burger-menu fs-2",
-          subItems: [{ title: "所有案件", url: "{% url 'projects' %}" }],
+          subItems: [
+            { title: "所有案件", url: "{% url 'projects' %}" },
+            { title: "我的案件", url: `/users/${currentUserId}/projects/` }
+          ],
         },
-        
         {
           id: "owners",
           title: "業主",
