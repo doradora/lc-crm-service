@@ -142,7 +142,7 @@
                     <label for="phone">電話</label>
                   </div>
 
-                  <div v-if="user.profile.is_admin && (!isEditMode || !isEditPassword)" class="mb-3">
+                  <div v-if="!fromUserMenu && user.profile.is_admin && (!isEditMode || !isEditPassword)" class="mb-3">
                     <div class="mb-7">
                       <label class="form-label mb-4">角色</label>
                       <div class="form-check">
@@ -206,6 +206,8 @@
         user: window.CURRENT_USER_DATA,
         isEditPassword: false,
         showModal: false,
+        isEditMode: false,
+        fromUserMenu: false,
         editData: {
           username: "",
           email: "",
@@ -267,6 +269,7 @@
         modal.show();
       },
       hideEditModal() {
+        this.fromUserMenu = false;
         const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
         if (modal) {
           modal.hide();
@@ -357,8 +360,7 @@
               icon: 'success',
               confirmButtonText: '確定'
             }).then(() => {
-              // 重新載入頁面以顯示更新後的資料
-              window.location.reload();
+              window.location.href = '/users/profile/';
             });
           })
           .catch(error => {
@@ -380,7 +382,7 @@
       // 如果 action 為 'edit'，自動開啟編輯 modal
       if (action === 'edit') {
         this.editUser(this.user, false);
-        this.showModal = true;
+        this.fromUserMenu = true;
       }
     },
   }).mount('#app_main');
