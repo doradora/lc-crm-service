@@ -24,7 +24,9 @@ router.register(r"bank-accounts", views.BankAccountViewSet)  # 添加銀行賬�
 urlpatterns = [
     path("", views.index, name="index"),
     path("category/", views.category, name="category"),
-    path("owners/", views.owners, name="owners"),    path("companys/", views.companys, name="companys"),  # 添加公司列表頁面路由
+    path("owners/", views.owners, name="owners"),
+    path("export/", views.export, name="export"),  # 添加匯出頁面路由
+    path("companys/", views.companys, name="companys"),  # 添加公司列表頁面路由
     path("company/<int:company_id>/details/", views.company_details, name="company_details"),  # 添加公司詳情頁面路由
     path("projects/", views.projects, name="projects"),
     path("quotations/", views.quotations, name="quotations"),

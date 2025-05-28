@@ -83,6 +83,14 @@ def invoices(request):
 
 
 @login_required(login_url="signin")
+def export(request):
+    """匯出檔案頁面"""
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
+    return render(request, "crm/pages/export.html")
+
+
+@login_required(login_url="signin")
 def owner_projects(request, owner_id):
     """顯示特定業主的專案列表"""
     owner = get_object_or_404(Owner, id=owner_id)
