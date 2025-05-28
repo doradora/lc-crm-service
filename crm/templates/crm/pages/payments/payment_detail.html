@@ -225,7 +225,7 @@
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>專案名稱 & 報表名稱</th>
-                          <th>請款金額</th>
+                          <th class="text-end">請款金額</th>
                           <th>說明</th>
                           <th v-if="isEditing">操作</th>
                         </tr>
@@ -247,8 +247,8 @@
                             </div>
                           </td>
                           <td class="align-bottom">
-                            <input v-if="isEditing" type="number" class="form-control" v-model="projectItem.amount" />
-                            <div v-else>
+                            <input v-if="isEditing" type="number" class="form-control text-end" v-model="projectItem.amount" />
+                            <div v-else class="text-end">
                               [[ formatCurrency(projectItem.amount) ]]
                             </div>
                           </td>
@@ -274,7 +274,7 @@
                       <tfoot v-if="payment.payment_projects && payment.payment_projects.length > 0">
                         <tr>
                           <th>總計</th>
-                          <th>[[ formatCurrency(getTotalAmount()) ]]</th>
+                          <th class="text-end">[[ formatCurrency(getTotalAmount()) ]]</th>
                           <th colspan="2"></th>
                         </tr>
                       </tfoot>
@@ -291,11 +291,11 @@
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>發票號碼</th>
-                          <th>發票金額</th>
-                          <th>稅額</th>
+                          <th class="text-end">發票金額</th>
+                          <th class="text-end">稅額</th>
                           <th>開立日期</th>
                           <th>收款方式</th>
-                          <th>實收金額</th>
+                          <th class="text-end">實收金額</th>
                           <th>收款日</th>
                           <th>入帳日</th>
                           <th v-if="isEditing">操作</th>
@@ -304,15 +304,15 @@
                       <tbody>
                         <tr v-for="invoice in payment.invoices || []" :key="invoice.id">
                           <td>[[ invoice.invoice_number ]]</td>
-                          <td>[[ formatCurrency(invoice.amount) ]]</td>
-                          <td>[[ formatCurrency(invoice.tax_amount) ]]</td>
+                          <td class="text-end">[[ formatCurrency(invoice.amount) ]]</td>
+                          <td class="text-end">[[ formatCurrency(invoice.tax_amount) ]]</td>
                           <td>[[ formatDate(invoice.issue_date) ]]</td>
                           <td>
                             [[ getPaymentMethodDisplay(invoice.payment_method)
                             ]]
                           </td>
                           <!-- 新增 -->
-                          <td>
+                          <td class="text-end">
                             [[ formatCurrency(invoice.actual_received_amount) ]]
                           </td>
                           <!-- 新增 -->

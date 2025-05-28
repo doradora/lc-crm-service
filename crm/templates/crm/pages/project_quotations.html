@@ -60,7 +60,7 @@
                                     <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
                                         <th class="min-w-100px">ID</th>
                                         <th class="min-w-150px">發行日期</th>
-                                        <th class="min-w-150px">金額</th>
+                                        <th class="text-end min-w-150px">金額</th>
                                         <th class="min-w-150px">狀態</th>
                                         <th class="text-end min-w-70px">操作</th>
                                     </tr>
@@ -71,7 +71,7 @@
                                             <span class="badge badge-light">#[[ quotation.id ]]</span>
                                         </td>
                                         <td>[[ formatDate(quotation.date_issued) ]]</td>
-                                        <td>$ [[ formatCurrency(quotation.amount) ]]</td>
+                                        <td class="text-end">$[[ formatCurrency(quotation.amount) ]]</td>
                                         <td>
                                             <div :class="getStatusBadgeClass(quotation)">[[ getStatusText(quotation) ]]</div>
                                         </td>

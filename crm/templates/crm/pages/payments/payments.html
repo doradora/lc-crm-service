@@ -67,7 +67,7 @@
                                     <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
                                         <th class="min-w-100px">請款單號</th>
                                         <th class="min-w-200px">關聯專案</th>
-                                        <th class="min-w-100px">請款金額</th>
+                                        <th class="min-w-100px text-end">請款金額</th>
                                         <th class="min-w-100px">請款日期</th>
                                         <th class="min-w-100px">到期日</th>
                                         <th class="min-w-100px">付款狀態</th>
@@ -78,16 +78,14 @@
                                 <tbody class="fw-semibold text-gray-600">
                                     <tr v-for="payment in payments" :key="payment.id">
                                         <td>
-                                            <a class="menu-link px-3" :href="`/crm/payment/${payment.id}/details/`">[[ payment.payment_number ]]</a>
+                                            <a class="menu-link" :href="`/crm/payment/${payment.id}/details/`">[[ payment.payment_number ]]</a>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="ms-5">
-                                                    <span>[[ getProjectNames(payment) ]]</span>
-                                                </div>
+                                                <div>[[ getProjectNames(payment) ]]</div>
                                             </div>
                                         </td>
-                                        <td>[[ formatCurrency(payment.amount) ]]</td>
+                                        <td class="text-end">[[ formatCurrency(payment.amount) ]]</td>
                                         <td>[[ formatDate(payment.date_issued) ]]</td>
                                         <td>[[ formatDate(payment.due_date) ]]</td>
                                         <td>
