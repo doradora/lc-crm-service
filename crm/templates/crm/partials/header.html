@@ -59,10 +59,17 @@
       <!--begin::User menu-->
       <div class="app-navbar-item ms-1 ms-md-3" id="kt_header_user_menu_toggle">
         <!--begin::Menu wrapper-->
-        <div class="cursor-pointer symbol symbol-circle symbol-35px symbol-md-45px"
+        <div class="cursor-pointer symbol symbol-circle symbol-35px symbol-md-45px d-flex align-items-center gap-2"
           data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-attach="parent"
           data-kt-menu-placement="bottom-end">
-          <img src="assets/media/avatars/300-2.jpg" alt="user" />
+          <i class="ki-duotone ki-profile-circle fs-2x">
+            <span class="path1"></span>
+            <span class="path2"></span>
+            <span class="path3"></span>
+          </i>
+          <div class="fs-6 fw-medium align-items-center fs-6">
+            [[ user.profile.name ]]
+          </div>
         </div>
         <!--begin::User account menu-->
         <div
@@ -73,7 +80,11 @@
             <div class="menu-content d-flex align-items-center px-3">
               <!--begin::Avatar-->
               <div class="symbol symbol-50px me-5">
-                <img alt="Logo" src="assets/media/avatars/300-2.jpg" />
+                <i class="ki-duotone ki-profile-circle fs-3x">
+                  <span class="path1"></span>
+                  <span class="path2"></span>
+                  <span class="path3"></span>
+                </i>
               </div>
               <!--end::Avatar-->
               <!--begin::Username-->

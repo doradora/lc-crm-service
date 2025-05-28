@@ -5,17 +5,14 @@
         <!--開始::標題-->
         <div class="text-center mb-11">
             <!--開始::標題-->
-            <h1 class="text-gray-900 fw-bolder mb-3">登入</h1>
+            <h1 class="text-gray-100 fw-bolder mb-3">登入</h1>
             <!--結束::標題-->
             <!--開始::副標題-->
-            <div class="text-gray-500 fw-semibold fs-6">立信工程顧問CRM</div>
+            <div class="text-gray-400 fw-semibold fs-6">立信工程顧問CRM</div>
             <!--結束::副標題-->
         </div>
         <!--開始::標題-->
         <!--開始::登入選項-->
-        <!--開始::分隔線-->
-        <div class="separator separator-content my-14"></div>
-        <!--結束::分隔線-->
         <!--開始::輸入群組-->
         <div class="fv-row mb-8">
             <!--開始::電子郵件-->
@@ -24,7 +21,7 @@
                    v-model="form.username"
                    name="usernamer"
                    autocomplete="off"
-                   class="form-control bg-transparent"
+                   class="form-control bg-transparent text-gray-100 "
                    :class="{ 'is-invalid': errors.username }" />
             <div v-if="errors.email" class="invalid-feedback">[[ errors.email ]]</div>
             <!--結束::電子郵件-->
@@ -37,7 +34,7 @@
                    placeholder="Password"
                    name="password"
                    autocomplete="off"
-                   class="form-control bg-transparent"
+                   class="form-control bg-transparent text-gray-100 "
                    :class="{ 'is-invalid': errors.password }" />
             <!--結束::密碼-->
             <div v-if="errors.password" class="invalid-feedback">[[ errors.password ]]</div>
@@ -46,14 +43,14 @@
         <!--開始::包裝器-->
         <div class="d-flex flex-stack flex-wrap gap-3 fs-base fw-semibold mb-8">
             <!--開始::連結-->
-            <a href="{% url 'index' %}" class="link-primary">忘記密碼了嗎 ?</a>
+            <a href="{% url 'index' %}" class="link-secondary">忘記密碼了嗎 ?</a>
             <!--結束::連結-->
         </div>
         <!--結束::包裝器-->
         <!--開始::提交按鈕-->
         <div class="d-grid mb-10">
             <button type="submit"
-                    class="btn btn-primary"
+                    class="btn btn-secondary"
                     :disabled="isLoading"
                     data-kt-indicator="off">
                 <span v-if="!isLoading" class="indicator-label">登入</span>
