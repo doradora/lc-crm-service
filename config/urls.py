@@ -6,7 +6,7 @@ from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 
 def root_redirect(request):
-    return redirect("/crm/")
+    return redirect("/crm/projects")
 
 urlpatterns = [
     path("", root_redirect),
