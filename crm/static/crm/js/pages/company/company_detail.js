@@ -23,6 +23,9 @@ const companyDetail = createApp({
       },
       bankAccounts: [],
       payments: [],
+      totalPayments: 0,
+      currentPage: 1,
+      totalPages: 1,
       companyId: null,
       isAdmin: typeof is_superuser !== 'undefined' && is_superuser, // 檢查是否為管理員
       isEditMode: false,
@@ -37,6 +40,35 @@ const companyDetail = createApp({
       isEditingBankAccount: false,
       editingBankAccountId: null,
     };
+  },
+  computed: {
+    displayedPages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const delta = 2;
+      let pages = [];
+
+      for (let i = 1; i <= total; i++) {
+        if (
+          i === 1 ||
+          i === total ||
+          (i >= current - delta && i <= current + delta)
+        ) {
+          pages.push(i);
+        }
+      }
+
+      let result = [];
+      let prev = 0;
+      for (let page of pages) {
+        if (prev && page > prev + 1) {
+          result.push("...");
+        }
+        result.push(page);
+        prev = page;
+      }
+      return result;
+    },
   },
   methods: {
     // 從 URL 獲取公司 ID
@@ -102,17 +134,20 @@ const companyDetail = createApp({
     },
 
     // 獲取與公司相關的請款記錄
-    fetchPayments() {
+    fetchPayments(page = 1) {
       this.isLoadingPayments = true;
-      fetch(`/crm/api/payments/?company=${this.companyId}`)
+      fetch(`/crm/api/payments/?company=${this.companyId}&page=${page}&page_size=5`)
         .then((response) => {
           if (!response.ok) {
             throw new Error("無法取得請款記錄");
           }
           return response.json();
         })
-        .then((data) => {
-          this.payments = data.results;
+        .then((_data) => {
+          this.payments = _data.results;
+          this.totalPayments = _data.count;
+          this.currentPage = page;
+          this.totalPages = Math.ceil(_data.count / 5);
           this.isLoadingPayments = false;
         })
         .catch((error) => {
