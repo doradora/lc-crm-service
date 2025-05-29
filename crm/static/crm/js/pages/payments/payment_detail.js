@@ -126,19 +126,28 @@ const paymentDetail = createApp({
         })
         .then((data) => {
           this.payment = data;
-          
+
           // 如果請款單已經有公司和銀行帳號，獲取銀行帳號詳情
           if (data.company && !this.isEditing) {
             this.fetchBankAccounts(data.company);
             // 在獲取到帳號列表後，設置已選帳號的詳細資訊
             if (data.selected_bank_account) {
               setTimeout(() => {
-                const selectedAccount = this.bankAccounts.find(acc => acc.id === data.selected_bank_account);
+                const selectedAccount = this.bankAccounts.find(
+                  (acc) => acc.id === data.selected_bank_account
+                );
                 if (selectedAccount) {
                   this.payment.selected_bank_account_details = selectedAccount;
                 }
               }, 500); // 給銀行帳號API一些加載時間
             }
+          }
+
+          // 處理 payment_projects 的變更次數資料
+          if (this.payment.payment_projects) {
+            this.payment.payment_projects.forEach((project) => {
+              project.change_count = project.change_count || 0; // 確保變更次數有值
+            });
           }
         })
         .catch((error) => {
@@ -201,9 +210,10 @@ const paymentDetail = createApp({
     updateProjectReportNames() {
       const updatePromises = [];
       
+      // TODO: 不要所有Project都呼叫API
       // 遍歷所有專案，檢查報表名稱是否有變更
       for (const [projectId, reportName] of Object.entries(this.projectReportNames)) {
-        const project = this.projects.find(p => p.id == projectId);
+        const project = this.projects.find((p) => p.id == projectId);
         if (project && project.report_name !== reportName) {
           // 如果報表名稱有變更，發送PATCH請求更新
           updatePromises.push(
@@ -216,7 +226,7 @@ const paymentDetail = createApp({
                 ).value,
               },
               body: JSON.stringify({
-                report_name: reportName
+                report_name: reportName,
               }),
             })
           );
@@ -370,9 +380,9 @@ const paymentDetail = createApp({
 
       if (!this.payment.company) {
         Swal.fire({
-          icon: 'warning',
-          title: '提示',
-          text: '請選擇收款公司',
+          icon: "warning",
+          title: "提示",
+          text: "請選擇收款公司",
         });
         return;
       }
@@ -424,7 +434,7 @@ const paymentDetail = createApp({
         paid: this.payment.paid,
         payment_date: this.payment.paid ? this.payment.payment_date : null,
         notes: this.payment.notes,
-        company: this.payment.company,  // 收款公司欄位
+        company: this.payment.company, // 收款公司欄位
         selected_bank_account: this.payment.selected_bank_account, // 添加銀行帳號欄位
       };
 
@@ -630,7 +640,8 @@ const paymentDetail = createApp({
 
       // 關閉對話框
       this.hideAddProjectModal();
-    },    hideAddProjectModal() {
+    },
+    hideAddProjectModal() {
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("addProjectModal")
       );
@@ -638,7 +649,7 @@ const paymentDetail = createApp({
         modal.hide();
       }
     },
-    
+
     // 此方法已經在上方定義為 filterProjectsForModal() 的別名，這裡改名為 searchProjectList 以避免重複
     searchProjectList() {
       if (!this.projectSearchTerm) {
@@ -940,7 +951,7 @@ const paymentDetail = createApp({
         .then((data) => {
           this.bankAccounts = data;
           this.loadingBankAccounts = false;
-          
+
           // 如果沒有銀行帳號，可以提示使用者
           if (data.length === 0) {
             console.log("此公司沒有設定任何匯款帳號");
@@ -950,8 +961,8 @@ const paymentDetail = createApp({
           console.error("Error:", error);
           this.loadingBankAccounts = false;
           Swal.fire({
-            icon: 'error',
-            title: '錯誤',
+            icon: "error",
+            title: "錯誤",
             text: "獲取銀行帳號失敗：" + error.message,
           });
         });
@@ -960,11 +971,11 @@ const paymentDetail = createApp({
     // 處理選擇銀行帳號
     handleBankAccountChange() {
       // 如果選擇了「新增匯款帳號」選項
-      if (this.payment.selected_bank_account === 'add_new_account') {
+      if (this.payment.selected_bank_account === "add_new_account") {
         this.openBankAccountModal();
       }
     },
-    
+
     // 顯示新增銀行帳號對話框
     openBankAccountModal() {
       // 重置表單數據
@@ -974,109 +985,114 @@ const paymentDetail = createApp({
         account_number: "",
         bank_name: "",
         bank_code: "",
-        company: this.payment.company
+        company: this.payment.company,
       };
-      
+
       // 使用Bootstrap的Modal顯示對話框
-      const modalElement = document.getElementById('addBankAccountModal');
+      const modalElement = document.getElementById("addBankAccountModal");
       if (modalElement) {
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
       }
     },
-    
+
     // 隱藏銀行帳號對話框
     closeBankAccountModal() {
-      const modalElement = document.getElementById('addBankAccountModal');
+      const modalElement = document.getElementById("addBankAccountModal");
       if (modalElement) {
         const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) {
           modal.hide();
         }
       }
-      
+
       // 如果選擇的是"新增匯款帳號"但關閉了對話框，重置選擇
-      if (this.payment.selected_bank_account === 'add_new_account') {
+      if (this.payment.selected_bank_account === "add_new_account") {
         this.payment.selected_bank_account = null;
       }
     },
-    
+
     // 提交新銀行帳號表單
     submitBankAccountForm() {
-      if (!this.bankAccountModal.account_number || !this.bankAccountModal.account_name || 
-          !this.bankAccountModal.bank_name || !this.bankAccountModal.bank_code) {
+      if (
+        !this.bankAccountModal.account_number ||
+        !this.bankAccountModal.account_name ||
+        !this.bankAccountModal.bank_name ||
+        !this.bankAccountModal.bank_code
+      ) {
         Swal.fire({
-          icon: 'error',
-          title: '輸入不完整',
-          text: '請填寫所有必填欄位',
+          icon: "error",
+          title: "輸入不完整",
+          text: "請填寫所有必填欄位",
         });
         return;
       }
-      
+
       const newBankAccount = {
         company: this.payment.company,
         account_number: this.bankAccountModal.account_number,
         account_name: this.bankAccountModal.account_name,
         bank_name: this.bankAccountModal.bank_name,
-        bank_code: this.bankAccountModal.bank_code
+        bank_code: this.bankAccountModal.bank_code,
       };
-      
+
       fetch(`/crm/api/companys/${this.payment.company}/add_bank_account/`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
         },
-        body: JSON.stringify(newBankAccount)
+        body: JSON.stringify(newBankAccount),
       })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('新增銀行帳號失敗');
-        }
-        return response.json();
-      })
-      .then(data => {
-        // 添加display_text屬性以便在下拉列表中顯示
-        data.display_text = `${data.account_name} (${data.bank_name} - ${data.account_number})`;
-        
-        // 將新帳號添加到列表中
-        this.bankAccounts.push(data);
-        
-        // 將新帳號設為選定帳號
-        this.payment.selected_bank_account = data.id;
-        this.payment.selected_bank_account_details = data;
-        
-        // 關閉對話框
-        this.closeBankAccountModal();
-        
-        Swal.fire({
-          icon: 'success',
-          title: '成功',
-          text: '銀行帳號已成功新增',
-          timer: 1500
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("新增銀行帳號失敗");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // 添加display_text屬性以便在下拉列表中顯示
+          data.display_text = `${data.account_name} (${data.bank_name} - ${data.account_number})`;
+
+          // 將新帳號添加到列表中
+          this.bankAccounts.push(data);
+
+          // 將新帳號設為選定帳號
+          this.payment.selected_bank_account = data.id;
+          this.payment.selected_bank_account_details = data;
+
+          // 關閉對話框
+          this.closeBankAccountModal();
+
+          Swal.fire({
+            icon: "success",
+            title: "成功",
+            text: "銀行帳號已成功新增",
+            timer: 1500,
+          });
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          Swal.fire({
+            icon: "error",
+            title: "錯誤",
+            text: error.message,
+          });
         });
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: '錯誤',
-          text: error.message,
-        });
-      });
     },
   },
   mounted() {
     // 從URL獲取payment ID
     const pathParts = window.location.pathname.split("/");
-    this.paymentId = pathParts[pathParts.indexOf("payment") + 1];    // 獲取資料
+    this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; // 獲取資料
     Promise.all([
       this.fetchPaymentDetails(),
-      this.fetchProjects()
-    ]).then(() => {
-      // 當付款詳情和專案列表都載入完成後，初始化報表名稱映射
-      this.initializeProjectReportNames();
-    });
+      this.fetchProjects(),
+    ])
+      .then(() => {
+        // 當付款詳情和專案列表都載入完成後，初始化報表名稱映射
+        this.initializeProjectReportNames();
+      });
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
     // 初始化 Bootstrap tabs

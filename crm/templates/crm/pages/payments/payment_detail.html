@@ -225,6 +225,7 @@
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>專案名稱 & 報表名稱</th>
+                          <th v-if="!isEditing">變更次數</th>
                           <th class="text-end">請款金額</th>
                           <th>說明</th>
                           <th v-if="isEditing">操作</th>
@@ -244,6 +245,11 @@
                             <div v-else>
                               <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
                               [[ getProjectReportName(projectItem.project) || '-' ]]
+                            </div>
+                          </td>
+                          <td v-if="!isEditing" class="align-bottom">
+                            <div>
+                              [[ projectItem.change_count || 0 ]]
                             </div>
                           </td>
                           <td class="align-bottom">
@@ -274,6 +280,7 @@
                       <tfoot v-if="payment.payment_projects && payment.payment_projects.length > 0">
                         <tr>
                           <th>總計</th>
+                          <th v-if="!isEditing"></th>
                           <th class="text-end">[[ formatCurrency(getTotalAmount()) ]]</th>
                           <th colspan="2"></th>
                         </tr>

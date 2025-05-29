@@ -624,6 +624,9 @@ class PaymentProjectViewSet(CanPaymentViewSet):
         if project_id:
             queryset = queryset.filter(project_id=project_id)
 
+        # 預加載專案變更次數
+        queryset = queryset.prefetch_related("project__projectchange_set")
+
         return queryset
 
     def perform_create(self, serializer):
