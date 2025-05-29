@@ -36,7 +36,7 @@
                                     <div class="w-200 mw-150px me-2">
                                         <select class="form-select" v-model="projectFilter" data-placeholder="篩選專案">
                                             <option value="">所有專案</option>
-                                            <option v-for="project in projects" :key="project.id" :value="project.id">[[ project.name ]]</option>
+                                            <option v-for="project in projects" :key="project.id" :value="project.id" :selected="project.id == projectFilter">[[ project.name ]]</option>
                                         </select>
                                     </div>
                                     <button class="btn btn-light" @click="fetchPayments()">搜尋</button>

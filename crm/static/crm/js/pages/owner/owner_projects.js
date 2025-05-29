@@ -331,7 +331,7 @@ const ownerProjectsApp = createApp({
       this.activeMenu = null;
     },
     viewInvoices(projectId) {
-      window.location.href = `/crm/project/${projectId}/invoices/`;
+      window.location.href = `/crm/payments/?project=${projectId}`;
       // 關閉下拉選單
       this.activeMenu = null;
     },

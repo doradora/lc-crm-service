@@ -267,6 +267,11 @@ const paymentList = createApp({
     },
   },
   mounted() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectParam = urlParams.get('project');
+    if (projectParam) {
+      this.projectFilter = projectParam;
+    }
     this.fetchPayments();
     this.fetchProjects();
     document.addEventListener("click", this.handleClickOutside);

@@ -215,7 +215,7 @@ const projectList = createApp({
     },
     viewInvoices(projectId) {
       // 導航到詢專案的請款列表頁面
-      window.location.href = `/crm/project/${projectId}/invoices/`;
+      window.location.href = `/crm/payments/?project=${projectId}`;
       // 關閉下拉選單
       this.activeMenu = null;
     },
