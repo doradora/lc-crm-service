@@ -134,6 +134,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         max_digits=10, decimal_places=2, read_only=True
     )
     custom_fields = serializers.JSONField(required=False)
+    related_payments = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -164,7 +165,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             "invoice_notes",
             "is_paid",
             "custom_fields",
-            "report_name"
+            "report_name",
+            "related_payments",
         ]
         read_only_fields = [
             "project_number",
@@ -208,6 +210,23 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+    def get_related_payments(self, obj):
+        """Fetch all related payments for the project."""
+        result = []
+        for payment in Payment.objects.filter(paymentproject__project=obj):
+            payment_project = PaymentProject.objects.filter(payment=payment, project=obj).first()
+            if payment_project:
+                result.append({
+                    'id': payment.id,
+                    'payment_number': payment.payment_number,
+                    'amount': payment_project.amount,
+                    'is_paid': payment.paid,
+                    'date_issued': payment.date_issued,
+                    'due_date': payment.due_date,
+                    'payment_date': payment.payment_date,
+                })
+        return result
 
 
 class QuotationSerializer(serializers.ModelSerializer):

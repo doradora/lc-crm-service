@@ -404,85 +404,35 @@
                         <div v-if="project.is_completed" class="card">
                             <div class="card-header">
                                 <div class="card-title">
-                                    <h4 class="fw-bold">請款狀態</h4>
+                                    <h4 class="fw-bold">相關請款資訊</h4>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!-- 請款狀態 -->
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="symbol symbol-30px me-3">
-                                        <div class="symbol-label"
-                                                :class="project.is_invoiced ? 'bg-light-success' : 'bg-light-warning'">
-                                            <i class="ki-outline ki-document fs-5"
-                                                :class="project.is_invoiced ? 'text-success' : 'text-warning'"></i>
+                                <!-- 相關請款資訊列表 -->
+                                <div v-if="project.related_payments && project.related_payments.length > 0" class="d-flex flex-column gap-5">
+                                    <div v-for="payment in project.related_payments" :key="payment.id" class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center border-bottom pb-5">
+                                            <div>
+                                                <h6 class="fw-bold mb-1">請款單號: <a :href="`/crm/payments/${payment.id}/details`" class="text-primary">[[ payment.payment_number ]]</a></h6>
+                                                <div class="text-gray-700">請款金額: NT$ [[ formatAmount(payment.amount) ]]</div>
+                                            </div>
+                                            <div>
+                                                <span class="badge" :class="payment.is_paid ? 'badge-light-success' : 'badge-light-warning'">
+                                                    [[ payment.is_paid ? '已收款' : '未收款' ]]
+                                                </span>
+                                                <div v-if="payment.is_paid" class="text-gray-700 mt-1">
+                                                    付款日期: [[ payment.payment_date ]]
+                                                </div>
+                                                <div v-else class="text-gray-700 mt-1">
+                                                    請款日期: [[ payment.date_issued ]]
+                                                    <div v-if="payment.due_date">到期日: [[ payment.due_date ]]</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <span class="fs-6 fw-bold d-block">請款狀態</span>
-                                        <span class="badge"
-                                                :class="project.is_invoiced ? 'badge-light-success' : 'badge-light-warning'">
-                                            [[ project.is_invoiced ? '已請款' : '未請款' ]]
-                                        </span>
-                                    </div>
                                 </div>
-                                <!-- 請款日期 -->
-                                <div class="d-flex align-items-center mb-3" v-if="project.invoice_date">
-                                    <div class="symbol symbol-30px me-3">
-                                        <div class="symbol-label bg-light-primary">
-                                            <i class="ki-outline ki-calendar fs-5 text-primary"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span class="fs-6 fw-bold d-block">請款日期</span>
-                                        <span class="text-gray-700">[[ project.invoice_date ]]</span>
-                                    </div>
-                                </div>
-                                <!-- 發票日期 -->
-                                <div class="d-flex align-items-center mb-3"
-                                        v-if="project.invoice_issue_date">
-                                    <div class="symbol symbol-30px me-3">
-                                        <div class="symbol-label bg-light-primary">
-                                            <i class="ki-outline ki-document-2 fs-5 text-primary"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span class="fs-6 fw-bold d-block">發票日期</span>
-                                        <span class="text-gray-700">[[ project.invoice_issue_date ]]</span>
-                                    </div>
-                                </div>
-                                <!-- 收款狀態 -->
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="symbol symbol-30px me-3">
-                                        <div class="symbol-label"
-                                                :class="project.is_paid ? 'bg-light-success' : 'bg-light-warning'">
-                                            <i class="ki-outline ki-dollar fs-5"
-                                                :class="project.is_paid ? 'text-success' : 'text-warning'"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span class="fs-6 fw-bold d-block">收款狀態</span>
-                                        <span class="badge"
-                                                :class="project.is_paid ? 'badge-light-success' : 'badge-light-warning'">
-                                            [[ project.is_paid ? '已收款' : '未收款' ]]
-                                        </span>
-                                    </div>
-                                </div>
-                                <!-- 收款日期 -->
-                                <div class="d-flex align-items-center mb-3" v-if="project.payment_date">
-                                    <div class="symbol symbol-30px me-3">
-                                        <div class="symbol-label bg-light-success">
-                                            <i class="ki-outline ki-calendar-tick fs-5 text-success"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span class="fs-6 fw-bold d-block">收款日期</span>
-                                        <span class="text-gray-700">[[ project.payment_date ]]</span>
-                                    </div>
-                                </div>
-                                <!-- 請款備註 -->
-                                <div class="mb-3 mt-5" v-if="project.invoice_notes">
-                                    <div class="fs-6 fw-bold mb-2">請款備註</div>
-                                    <div class="text-gray-700 bg-light p-3 rounded">[[ project.invoice_notes ]]</div>
+                                <div v-else class="alert alert-light-warning">
+                                    此專案尚未有請款記錄
                                 </div>
                             </div>
                         </div>
