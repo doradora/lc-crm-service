@@ -137,6 +137,27 @@
                 </div>
               </div>
 
+              <!-- 案件類別資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-secondary bg-light-secondary">
+                        <i class="ki-outline ki-category fs-2x text-secondary"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">案件類別</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出案件類別代碼、說明、自定義欄位等資訊</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" @click="exportCategories" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出類別
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <!-- 綜合報表匯出 -->
               <div class="col-md-6 col-lg-4">
                 <div class="card card-bordered h-100">
@@ -148,7 +169,7 @@
                     </div>
                     <div class="mb-3">
                       <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">綜合報表</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出包含所有資料的綜合Excel報表</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出所有資料類型的CSV檔案</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-dark" @click="exportAll" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -159,57 +180,7 @@
               </div>
             </div>
 
-            <!-- 匯出歷史記錄 -->
-            <div class="separator my-10"></div>
-            <div class="mb-5">
-              <h4 class="fw-bold text-gray-800">最近匯出記錄</h4>
-              <div class="text-gray-500 fw-semibold fs-6">查看最近的匯出歷史</div>
-            </div>
-
-            <div v-if="exportHistory.length === 0" class="text-center py-10">
-              <div class="text-gray-500">目前沒有匯出記錄</div>
-            </div>
-
-            <div v-else>
-              <table class="table align-middle table-row-dashed table-hover fs-6 gy-5">
-                <thead>
-                  <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
-                    <th class="min-w-150px">匯出時間</th>
-                    <th class="min-w-125px">匯出類型</th>
-                    <th class="min-w-100px">檔案大小</th>
-                    <th class="min-w-100px text-center">狀態</th>
-                    <th class="text-end min-w-70px">操作</th>
-                  </tr>
-                </thead>
-                <tbody class="fw-semibold text-gray-600">
-                  <tr v-for="record in exportHistory" :key="record.id">
-                    <td>
-                      <div class="fw-bold">[[ record.created_at ]]</div>
-                    </td>
-                    <td>
-                      <span class="badge" :class="getTypeBadgeClass(record.type)">
-                        [[ record.type_display ]]
-                      </span>
-                    </td>
-                    <td>
-                      <span class="fw-bold">[[ record.file_size ]]</span>
-                    </td>
-                    <td class="text-center">
-                      <span class="badge" :class="getStatusBadgeClass(record.status)">
-                        [[ record.status_display ]]
-                      </span>
-                    </td>
-                    <td class="text-end">
-                      <button v-if="record.status === 'completed'" class="btn btn-sm btn-light-primary"
-                        @click="downloadFile(record.file_url)">
-                        <i class="ki-outline ki-cloud-download fs-4"></i>
-                        下載
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            
           </div>
         </div>
       </div>
