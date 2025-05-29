@@ -209,15 +209,14 @@ const paymentDetail = createApp({
     // 批量更新所有已修改專案的報表名稱
     updateProjectReportNames() {
       const updatePromises = [];
-      
-      // TODO: 不要所有Project都呼叫API
-      // 遍歷所有專案，檢查報表名稱是否有變更
-      for (const [projectId, reportName] of Object.entries(this.projectReportNames)) {
-        const project = this.projects.find((p) => p.id == projectId);
-        if (project && project.report_name !== reportName) {
+
+      // 僅針對報表名稱有變更的專案進行處理
+      this.projects.forEach((project) => {
+        const updatedReportName = this.projectReportNames[project.id];
+        if (updatedReportName && project.report_name !== updatedReportName) {
           // 如果報表名稱有變更，發送PATCH請求更新
           updatePromises.push(
-            fetch(`/crm/api/projects/${projectId}/`, {
+            fetch(`/crm/api/projects/${project.id}/`, {
               method: "PATCH",
               headers: {
                 "Content-Type": "application/json",
@@ -226,12 +225,12 @@ const paymentDetail = createApp({
                 ).value,
               },
               body: JSON.stringify({
-                report_name: reportName,
+                report_name: updatedReportName,
               }),
             })
           );
         }
-      }
+      });
 
       return Promise.all(updatePromises);
     },
