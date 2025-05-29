@@ -625,7 +625,7 @@ class PaymentProjectViewSet(CanPaymentViewSet):
             queryset = queryset.filter(project_id=project_id)
 
         # 預加載專案變更次數
-        queryset = queryset.prefetch_related("project__changes")
+        queryset = queryset.prefetch_related("project__projectchange_set")
 
         return queryset
 
@@ -858,6 +858,7 @@ def export_payment_excel(request, payment_id):
             bank_account = payment.selected_bank_account
             original_ws["B30"] = f"戶名：{bank_account.account_name}"
             original_ws["B31"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
+            original_ws["B32"] = f"銀行名稱：{bank_account.bank_name}"
 
         # 獲取請款單關聯的專案明細
         payment_projects = PaymentProject.objects.filter(
