@@ -413,7 +413,7 @@
                                     <div v-for="payment in project.related_payments" :key="payment.id" class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center border-bottom pb-5">
                                             <div>
-                                                <h6 class="fw-bold mb-1">請款單號: <a :href="`/crm/payments/${payment.id}/details`" class="text-primary">[[ payment.payment_number ]]</a></h6>
+                                                <h6 class="fw-bold mb-1">請款單號: <a :href="`/crm/payment/${payment.id}/details`" class="text-primary">[[ payment.payment_number ]]</a></h6>
                                                 <div class="text-gray-700">請款金額: NT$ [[ formatAmount(payment.amount) ]]</div>
                                             </div>
                                             <div>
