@@ -6,10 +6,7 @@
             <div id="app_toolbar_container"
                  class="app-container container-fluid d-flex align-items-stretch">
                 <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
-                    <div class="d-flex align-items-center gap-2 gap-lg-3">
-                        <button class="btn btn-primary" @click.prevent="createCategory">新增類別</button>
-                    </div>
-                    
+                   
                 </div>
             </div>
         </div>
@@ -17,6 +14,13 @@
             <div id="app_content_container" class="app-container container-fluid">
                 <div class="d-flex flex-column flex-column-fluid">
                     <div class="card card-flush" id="category_list">
+                        <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+                            <div class="card-title w-100 gap-2 d-flex">
+                                <div class="d-flex align-items-center ms-auto gap-2">
+                                    <button class="btn btn-primary" @click.prevent="createCategory">新增類別</button>
+                                </div>
+                            </div>
+                        </div>
                         <!--begin::Card body-->
                         <div class="card-body pt-0">
                             <div v-if="isLoading" class="d-flex justify-content-center py-10">
