@@ -546,9 +546,19 @@ class Command(BaseCommand):
                     invoice_issue_date = self.parse_date(data.get("invoice_issue_date"))
 
                     # 查找或新增類別
+                    # 解析類別代碼和描述
+                    category_data = data["category_code"]
+                    match = re.match(r'^([A-Za-z]+)\s*(.*)$', category_data)
+                    if match:
+                        code = match.group(1)
+                        description = match.group(2) or "此類別從excel自動新增"
+                    else:
+                        code = category_data
+                        description = "此類別從excel自動新增"
+                    
                     category, _ = Category.objects.get_or_create(
-                        code=data["category_code"],
-                        defaults={"description": "此類別從excel自動新增"}
+                        code=code,
+                        defaults={"description": description}
                     )
 
                     # 查找或新增業主
@@ -574,12 +584,33 @@ class Command(BaseCommand):
                     # 查找或新增案件負責人
                     managers = []
                     if data.get("manager_name"):
-                        for name in data["manager_name"].split(","):
+                        for name in re.split(r'[,\n]', data["manager_name"]):
                             name = name.strip()
-                            manager, user_created = User.objects.get_or_create(
-                                username=name,
-                                first_name=name,
-                            )
+                            if not name:
+                                continue
+                                
+                            # Extract first character as first_name, rest as last_name
+                            if len(name) > 1:
+                                first_name = name[0]
+                                last_name = name[1:]
+                            else:
+                                first_name = name
+                                last_name = ""
+                                
+                            # Try to find user by first_name and last_name first
+                            manager_query = User.objects.filter(first_name=first_name, last_name=last_name)
+                            if manager_query.exists():
+                                manager = manager_query.first()
+                                user_created = False
+                            else:
+                                # Create new user if not found
+                                manager = User.objects.create(
+                                    first_name=first_name,
+                                    last_name=last_name,
+                                    username=name  # We'll update this immediately after
+                                )
+                                user_created = True
+                                
                             manager.username = f"manager{manager.id}"
                             manager.set_password("password123")  # 使用 set_password 方法進行密碼哈希
                             manager.save()
