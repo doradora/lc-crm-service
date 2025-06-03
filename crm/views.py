@@ -24,6 +24,7 @@ from .models import (
     PaymentProject,
     Company,  # 添加 Company
     BankAccount,  # 添加 BankAccount
+    PaymentDocument,  # 添加 PaymentDocument
 )
 from .serializers import (
     OwnerSerializer,
@@ -37,6 +38,7 @@ from .serializers import (
     PaymentProjectSerializer,
     CompanySerializer,  # 添加 CompanySerializer
     BankAccountSerializer,  # 添加 BankAccountSerializer
+    PaymentDocumentSerializer,  # 添加 PaymentDocumentSerializer
 )
 import pandas as pd
 import traceback
@@ -884,7 +886,7 @@ def get_bank_accounts_for_company(request, company_id):
         return Response(serializer.data)
     except Exception as e:
         return Response(
-            {"error": str(e)}, 
+            {"error": str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -1717,3 +1719,142 @@ def import_projects_api(request):
             {'error': f'匯入過程中發生錯誤: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+class PaymentDocumentViewSet(CanPaymentViewSet):
+    """內存請款單檔案視圖集"""
+    
+    queryset = PaymentDocument.objects.all().select_related('payment', 'uploaded_by')
+    serializer_class = PaymentDocumentSerializer
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # 根據請款單 ID 過濾
+        payment_id = self.request.query_params.get('payment', None)
+        if payment_id:
+            queryset = queryset.filter(payment_id=payment_id)
+        
+        return queryset.order_by('-uploaded_at')
+    
+    def create(self, request, *args, **kwargs):
+        """上傳檔案"""
+        try:
+            # 取得請款單 ID
+            payment_id = request.data.get('payment')
+            if not payment_id:
+                return Response(
+                    {'error': '請指定請款單'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 驗證請款單是否存在
+            try:
+                payment = Payment.objects.get(id=payment_id)
+            except Payment.DoesNotExist:
+                return Response(
+                    {'error': '請款單不存在'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # 取得上傳的檔案
+            file = request.FILES.get('file')
+            if not file:
+                return Response(
+                    {'error': '請選擇要上傳的檔案'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 檢查檔案大小（1MB 限制）
+            if file.size > 1024 * 1024:
+                return Response(
+                    {'error': '檔案大小不能超過 1MB'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 建立 PaymentDocument 物件
+            document = PaymentDocument(
+                payment=payment,
+                original_filename=file.name,
+                uploaded_by=request.user
+            )
+            document.file = file
+            document.save()
+            
+            # 序列化並回傳結果
+            serializer = self.get_serializer(document)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'上傳失敗: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def destroy(self, request, *args, **kwargs):
+        """刪除檔案"""
+        try:
+            instance = self.get_object()
+            
+            # 刪除實際檔案
+            if instance.file:
+                if os.path.exists(instance.file.path):
+                    os.remove(instance.file.path)
+            
+            # 刪除資料庫記錄
+            instance.delete()
+            
+            return Response(
+                {'message': '檔案已成功刪除'}, 
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:            return Response(
+                {'error': f'刪除失敗: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """下載檔案"""
+        try:
+            document = self.get_object()
+            
+            if not document.file or not os.path.exists(document.file.path):
+                return Response(
+                    {'error': '檔案不存在'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # 取得原始檔名
+            filename = document.get_display_filename()
+            
+            # 處理檔名編碼 - 支援中文檔名
+            from urllib.parse import quote
+            
+            # 建立檔案回應
+            with open(document.file.path, 'rb') as f:
+                response = HttpResponse(
+                    f.read(), 
+                    content_type='application/octet-stream'
+                )
+                
+                # 設定檔名，支援中文 - 使用RFC 5987標準
+                try:
+                    # 嘗試ASCII編碼
+                    filename.encode('ascii')
+                    # 如果成功，直接使用檔名
+                    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                except UnicodeEncodeError:
+                    # 如果包含非ASCII字符，使用UTF-8編碼
+                    encoded_filename = quote(filename.encode('utf-8'))
+                    response['Content-Disposition'] = f'attachment; filename="download"; filename*=UTF-8\'\'{encoded_filename}'
+                
+                return response
+                
+        except Exception as e:
+            return Response(
+                {'error': f'下載失敗: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

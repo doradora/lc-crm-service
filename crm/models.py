@@ -1,5 +1,7 @@
+import os
 from django.contrib.auth.models import User  # 改用 Django 內建的 User 模型
 from django.db import models
+from django.utils import timezone
 
 
 class Owner(models.Model):
@@ -373,3 +375,86 @@ class BankAccount(models.Model):
 
     class Meta:
         unique_together = ('company', 'account_number') # 同一公司下的帳戶號碼應唯一
+
+
+def payment_document_upload_path(instance, filename):
+    """
+    生成內存請款單檔案的上傳路徑
+    格式: media/payment_documents/YYYY/owner.id/
+    """
+    year = timezone.now().year
+    owner_id = instance.payment.owner.id
+    
+    # 取得原檔名（不含副檔名）和副檔名
+    name, ext = os.path.splitext(filename)
+    
+    # 生成檔案名：{原檔名}_{請款單號}_內存請款單
+    new_filename = f"{name}_{instance.payment.payment_number}_內存請款單{ext}"
+    
+    # 檢查是否有重複檔名，如果有則加上數字後綴
+    base_path = f"payment_documents/{year}/{owner_id}/"
+    full_path = os.path.join(base_path, new_filename)
+    
+    counter = 1
+    while PaymentDocument.objects.filter(
+        payment=instance.payment, 
+        file__icontains=new_filename
+    ).exists():
+        name_with_counter = f"{name}_{instance.payment.payment_number}_內存請款單({counter})"
+        new_filename = f"{name_with_counter}{ext}"
+        full_path = os.path.join(base_path, new_filename)
+        counter += 1
+    
+    return full_path
+
+
+class PaymentDocument(models.Model):
+    """內存請款單檔案模型"""
+    
+    payment = models.ForeignKey(
+        Payment, 
+        related_name='documents', 
+        on_delete=models.CASCADE
+    )  # 關聯的請款單
+    
+    file = models.FileField(
+        upload_to=payment_document_upload_path,
+        max_length=500
+    )  # 檔案
+    
+    original_filename = models.CharField(max_length=255)  # 原始檔名
+    
+    file_size = models.PositiveIntegerField()  # 檔案大小（bytes）
+    
+    uploaded_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )  # 上傳者
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # 上傳時間
+    
+    def __str__(self):
+        return f"{self.payment.payment_number} - {self.original_filename}"
+    
+    def save(self, *args, **kwargs):
+        # 在儲存前設定檔案大小
+        if self.file:
+            self.file_size = self.file.size
+        super().save(*args, **kwargs)
+    
+    def get_display_filename(self):
+        """取得顯示用的檔案名稱（使用原始檔名）"""
+        return self.original_filename
+    
+    def get_file_size_display(self):
+        """取得人類可讀的檔案大小"""
+        if self.file_size < 1024:
+            return f"{self.file_size} B"
+        elif self.file_size < 1024 * 1024:
+            return f"{self.file_size // 1024} KB"
+        else:
+            return f"{self.file_size // (1024 * 1024)} MB"
+    
+    class Meta:
+        ordering = ['-uploaded_at']  # 按上傳時間倒序排列

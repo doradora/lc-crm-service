@@ -84,6 +84,9 @@ const paymentDetail = createApp({
       },
       // 專案報表名稱映射表 - 用於編輯時暫存
       projectReportNames: {}, // 專案ID -> 報表名稱的映射
+      // 內存請款單相關資料
+      paymentDocuments: [], // 內存請款單文件列表
+      isUploadingDocument: false, // 上傳狀態
     };
   },
   computed: {
@@ -306,7 +309,165 @@ const paymentDetail = createApp({
       this.showOwnerDropdown = false;
     },
 
-    // 格式化日期顯示
+    // 檔案上傳相關方法
+    // 觸發檔案選擇
+    triggerFileUpload() {
+      const fileInput = document.getElementById('paymentDocumentFileInput');
+      if (fileInput) {
+        fileInput.click();
+      }
+    },
+
+    // 處理檔案選擇
+    handleFileSelection(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // 檔案大小驗證 (1MB = 1024 * 1024 bytes)
+      const maxSize = 1024 * 1024; // 1MB
+      if (file.size > maxSize) {
+        Swal.fire({
+          icon: 'error',
+          title: '檔案過大',
+          text: '檔案大小不能超過 1MB',
+        });
+        event.target.value = ''; // 清空選擇
+        return;
+      }
+
+      this.uploadDocument(file);
+    },
+
+    // 上傳檔案
+    uploadDocument(file) {
+      this.isUploadingDocument = true;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('payment', this.paymentId);
+
+      Swal.fire({
+        title: '正在上傳檔案...',
+        text: '請稍候',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      fetch('/crm/api/payment-documents/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.error || '上傳失敗');
+          });
+        }
+        return response.json();
+      })      .then(_data => {
+        Swal.fire({
+          icon: 'success',
+          title: '上傳成功',
+          text: '檔案已成功上傳',
+          timer: 1500,
+        });
+        
+        // 重新獲取檔案列表
+        this.fetchPaymentDocuments();
+        
+        // 清空檔案輸入
+        const fileInput = document.getElementById('paymentDocumentFileInput');
+        if (fileInput) {
+          fileInput.value = '';
+        }
+      })
+      .catch(error => {
+        console.error('Upload error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: '上傳失敗',
+          text: error.message || '檔案上傳失敗，請重試',
+        });
+      })
+      .finally(() => {
+        this.isUploadingDocument = false;
+      });
+    },
+
+    // 獲取檔案列表
+    fetchPaymentDocuments() {
+      fetch(`/crm/api/payment-documents/?payment=${this.paymentId}`)
+        .then(response => response.json())
+        .then(data => {
+          this.paymentDocuments = data.results || data;
+        })
+        .catch(error => {
+          console.error('Error fetching documents:', error);
+        });
+    },    // 下載檔案
+    downloadDocument(documentId, _filename) {
+      window.open(`/crm/api/payment-documents/${documentId}/download/`, '_blank');
+    },
+
+    // 刪除檔案
+    deleteDocument(documentId, filename) {
+      Swal.fire({
+        title: '確定要刪除檔案嗎？',
+        text: `檔案：${filename}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: '是的，刪除',
+        cancelButtonText: '取消'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch(`/crm/api/payment-documents/${documentId}/`, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('刪除失敗');
+            }
+            
+            Swal.fire({
+              icon: 'success',
+              title: '刪除成功',
+              text: '檔案已成功刪除',
+              timer: 1500,
+            });
+            
+            // 重新獲取檔案列表
+            this.fetchPaymentDocuments();
+          })
+          .catch(error => {
+            console.error('Delete error:', error);
+            Swal.fire({
+              icon: 'error',
+              title: '刪除失敗',
+              text: '檔案刪除失敗，請重試',
+            });
+          });
+        }
+      });
+    },
+
+    // 格式化檔案大小顯示
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },    // 格式化日期顯示
     formatDate(dateString) {
       if (!dateString) return "-";
       const date = new Date(dateString);
@@ -314,6 +475,19 @@ const paymentDetail = createApp({
         2,
         "0"
       )}-${String(date.getDate()).padStart(2, "0")}`;
+    },
+
+    // 格式化日期時間顯示
+    formatDateTime(dateTimeString) {
+      if (!dateTimeString) return "-";
+      const date = new Date(dateTimeString);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(
+        2,
+        "0"
+      )}:${String(date.getMinutes()).padStart(2, "0")}`;
     },
 
     // 格式化金額顯示
@@ -1080,10 +1254,11 @@ const paymentDetail = createApp({
         });
     },
   },
-  mounted() {
-    // 從URL獲取payment ID
+  mounted() {    // 從URL獲取payment ID
     const pathParts = window.location.pathname.split("/");
-    this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; // 獲取資料
+    this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; 
+    
+    // 獲取資料
     Promise.all([
       this.fetchPaymentDetails(),
       this.fetchProjects(),
@@ -1094,6 +1269,7 @@ const paymentDetail = createApp({
       });
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
+    this.fetchPaymentDocuments(); // 新增：獲取內存請款單檔案列表
     // 初始化 Bootstrap tabs
     this.$nextTick(() => {
       // 確保元素已經渲染完成

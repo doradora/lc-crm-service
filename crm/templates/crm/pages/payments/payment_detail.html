@@ -4,46 +4,15 @@
 {% block content %}
 {% csrf_token %}
 <div class="app-main flex-column flex-row-fluid" id="app_main">
-  <div id="app_toolbar" class="app-toolbar pt-7 pt-lg-10">
-    <div id="app_toolbar_container" class="app-container container-fluid d-flex align-items-stretch">
+  <div id="app_toolbar" class="app-toolbar ms-auto">
+    <div id="app_toolbar_container" class="container-fluid d-flex align-items-stretch">
       <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
-        <div class="page-title d-flex flex-column justify-content-center gap-1 me-3">
-          <h1 class="page-heading d-flex flex-column justify-content-center text-gray-900 fw-bold fs-3 m-0">
-            請款單詳情：[[ payment.payment_number ]]
-          </h1>
-          <!--begin::Breadcrumb-->
-          <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0">
-            <!--begin::Item-->
-            <li class="breadcrumb-item text-muted">
-              <a href="{% url 'index' %}" class="text-muted text-hover-primary">首頁</a>
-            </li>
-            <!--end::Item-->
-            <!--begin::Item-->
-            <li class="breadcrumb-item">
-              <span class="bullet bg-gray-500 w-5px h-2px"></span>
-            </li>
-            <!--end::Item-->
-            <!--begin::Item-->
-            <li class="breadcrumb-item text-muted">
-              <a href="{% url 'payments' %}" class="text-muted text-hover-primary">請款管理</a>
-            </li>
-            <!--end::Item-->
-            <!--begin::Item-->
-            <li class="breadcrumb-item">
-              <span class="bullet bg-gray-500 w-5px h-2px"></span>
-            </li>
-            <!--end::Item-->
-            <!--begin::Item-->
-            <li class="breadcrumb-item text-muted">請款單詳情</li>
-            <!--end::Item-->
-          </ul>
-        </div>
         <div class="d-flex align-items-center gap-2 gap-lg-3">
           <button class="btn btn-sm btn-light-primary" @click="toggleEditMode" v-if="!isEditing">
-            <i class="ki-outline ki-pencil fs-2"></i>編輯
+            <i class="ki-outline ki-pencil fs-3"></i>編輯
           </button>
           <button class="btn btn-sm btn-light-success" @click="exportToExcel" v-if="!isEditing">
-            <i class="ki-outline ki-document fs-2"></i>匯出Excel
+            <i class="ki-outline ki-file-right fs-3"></i>匯出Excel
           </button>
           <div v-if="isEditing">
             <button class="btn btn-sm btn-primary me-2" @click="saveChanges">
@@ -127,7 +96,7 @@
                   </div>
                   <div v-else-if="!isEditing && !payment.selected_bank_account_details"
                     class="form-control-plaintext text-muted">
-                    未設定匯款帳號
+                    未設定匯款帳號 ⚠️
                   </div>
                   <!-- 編輯模式 -->
                   <select v-else class="form-select" v-model="payment.selected_bank_account"
@@ -206,6 +175,10 @@
                       <a class="nav-link" data-bs-toggle="tab" href="#invoices_tab"
                         @click="handleTabChange('invoices_tab')">關聯發票</a>
                     </li>
+                    <li class="nav-item">
+                      <a class="nav-link" data-bs-toggle="tab" href="#saved_payment_tab"
+                        @click="handleTabChange('saved_payment_tab')">內存請款單</a>
+                    </li>
                   </ul>
                 </div>
                 <!-- Tab 右側按鈕區域 -->
@@ -236,11 +209,8 @@
                           <td>
                             <div v-if="isEditing">
                               <div class="form-control-plaintext">[[ projectItem.project_name ]]</div>
-                              <input  
-                                     type="text" 
-                                     class="form-control" 
-                                     :value="getProjectReportName(projectItem.project)"
-                                     @input="updateProjectReportName(projectItem.project, $event.target.value)" />
+                              <input type="text" class="form-control" :value="getProjectReportName(projectItem.project)"
+                                @input="updateProjectReportName(projectItem.project, $event.target.value)" />
                             </div>
                             <div v-else>
                               <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
@@ -253,7 +223,8 @@
                             </div>
                           </td>
                           <td class="align-bottom">
-                            <input v-if="isEditing" type="number" class="form-control text-end" v-model="projectItem.amount" />
+                            <input v-if="isEditing" type="number" class="form-control text-end"
+                              v-model="projectItem.amount" />
                             <div v-else class="text-end">
                               [[ formatCurrency(projectItem.amount) ]]
                             </div>
@@ -338,9 +309,7 @@
                             </button>
                           </td>
                         </tr>
-                        <tr
-                          v-if="!payment.invoices || payment.invoices.length === 0"
-                        >
+                        <tr v-if="!payment.invoices || payment.invoices.length === 0">
                           <td colspan="9" class="text-center py-5">
                             尚無關聯發票
                           </td>
@@ -353,9 +322,60 @@
                           <td>[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
                           <td class="text-end" :colspan="isEditing ? 6 : 5">
                             發票總額:[[ formatCurrency(totalInvoiceAmount + totalInvoiceTaxAmount) ]]
-                          </td>                          
+                          </td>
                         </tr>
                       </tfoot>
+                    </table>
+                  </div>
+                </div> <!-- 內存請款單 Tab -->
+                <div class="tab-pane fade" id="saved_payment_tab" role="tabpanel">
+                  <div v-if="isEditing" class="card-toolbar mb-5">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <button class="btn btn-sm btn-primary" @click="triggerFileUpload" :disabled="isUploadingDocument">
+                        <i class="ki-outline ki-file-up fs-6"></i>
+                        [[ isUploadingDocument ? '上傳中...' : '上傳檔案' ]]
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 檔案列表表格 -->
+                  <div class="table-responsive">
+                    <table class="table table-row-dashed table-row-gray-300 gy-7">
+                      <thead>
+                        <tr class="fw-semibold fs-6 text-gray-800">
+                          <th>檔案名稱</th>
+                          <th>檔案大小</th>
+                          <th>上傳時間</th>
+                          <th class="text-end">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-if="paymentDocuments.length === 0">
+                          <td colspan="4" class="text-center text-muted py-10">
+                            尚未上傳任何檔案
+                          </td>
+                        </tr>
+                        <tr v-for="document in paymentDocuments" :key="document.id">
+                          <td class="d-flex align-items-center">
+                            <div class="d-flex align-items-center">
+                              <i class="ki-outline ki-file fs-2 text-primary me-3"></i>
+                              <span>[[ document.original_filename ]]</span>
+                            </div>
+                          </td>
+                            <td class="align-middle">[[ formatFileSize(document.file_size) ]]</td>
+                            <td class="align-middle">[[ formatDateTime(document.uploaded_at) ]]</td>
+                          <td class="d-flex justify-content-end gap-2">
+                            <button class="btn btn-sm btn-icon btn-light-primary"
+                              @click="downloadDocument(document.id, document.original_filename)" title="下載檔案">
+                              <i class="ki-outline ki-file-down fs-4"></i>
+                            </button>
+                            <button v-if="isEditing" class="btn btn-sm btn-icon btn-light-danger" @click="deleteDocument(document.id, document.original_filename)"
+                              title="刪除檔案">
+                              <i class="ki-outline ki-trash fs-4"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
                     </table>
                   </div>
                 </div>
@@ -566,8 +586,8 @@
         <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
           <div class="form-group mb-5">
             <label class="form-label required">帳戶名稱</label>
-            <input type="text" class="form-control" v-model="bankAccountModal.account_name"
-              placeholder="例如：XX公司企業銀行帳戶" required />
+            <input type="text" class="form-control" v-model="bankAccountModal.account_name" placeholder="例如：XX公司企業銀行帳戶"
+              required />
           </div>
           <div class="row mb-5">
             <div class="col-md-6">
@@ -602,6 +622,28 @@
       </div>
     </div>
   </div>
-  {% endblock content %} {% block extra_js %}
+
+  <!-- 隱藏的檔案輸入元素 -->
+  <input type="file" id="paymentDocumentFileInput" ref="fileInput" @change="handleFileSelection" style="display: none;"
+    accept="*/*">
+
+  {% endblock content %}
+  {% block extra_js %}
+  <script>
+    // 定義此頁面專用的麵包屑資訊
+    window.pageBreadcrumbs = {
+      menu: "請款列表",
+      menuUrl: "{% url 'payments' %}",
+      submenu: "{{ page_title }}",
+      submenuUrl: "#",
+      currentPage: "請款單詳情"
+    };
+
+    // 如果 breadcrumbApp 已經掛載，則更新它
+    if (typeof breadcrumbApp !== 'undefined') {
+      breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
+      breadcrumbApp.updateBreadcrumb();
+    }
+  </script>
   <script src="{% static 'crm/js/pages/payments/payment_detail.js' %}"></script>
   {% endblock extra_js %}

@@ -20,6 +20,7 @@ router.register(
 )  # 新增 PaymentProject 視圖集
 router.register(r"companys", views.CompanyViewSet)  # 添加公司路由
 router.register(r"bank-accounts", views.BankAccountViewSet)  # 添加銀行賬戶路由
+router.register(r"payment-documents", views.PaymentDocumentViewSet)  # 添加內存請款單檔案路由
 
 urlpatterns = [
     path("", views.index, name="index"),

@@ -12,6 +12,7 @@ from .models import (
     PaymentProject,
     Company,  # 添加 Company
     BankAccount,  # 添加 BankAccount
+    PaymentDocument,  # 添加 PaymentDocument
 )
 from django.contrib.auth.models import User
 
@@ -401,3 +402,47 @@ class CompanySerializer(serializers.ModelSerializer):
             "contact_person",
             "bank_accounts",
         ]
+
+
+class PaymentDocumentSerializer(serializers.ModelSerializer):
+    """內存請款單檔案序列化器"""
+    
+    uploaded_by_name = serializers.SerializerMethodField(read_only=True)
+    file_size_display = serializers.SerializerMethodField(read_only=True)
+    display_filename = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = PaymentDocument
+        fields = [
+            'id',
+            'payment',
+            'file',
+            'original_filename',
+            'file_size',
+            'file_size_display',
+            'display_filename',
+            'uploaded_by',
+            'uploaded_by_name',
+            'uploaded_at',
+        ]
+        read_only_fields = ['file_size', 'uploaded_at']
+    
+    def get_uploaded_by_name(self, obj):
+        """取得上傳者姓名"""
+        if obj.uploaded_by and hasattr(obj.uploaded_by, 'profile'):
+            return obj.uploaded_by.profile.name or obj.uploaded_by.username
+        return obj.uploaded_by.username if obj.uploaded_by else '未知'
+    
+    def get_file_size_display(self, obj):
+        """取得人類可讀的檔案大小"""
+        return obj.get_file_size_display()
+    
+    def get_display_filename(self, obj):
+        """取得顯示用的檔案名稱"""
+        return obj.get_display_filename()
+    
+    def validate_file(self, value):
+        """驗證檔案大小限制（1MB）"""
+        if value.size > 1024 * 1024:  # 1MB
+            raise serializers.ValidationError("檔案大小不能超過 1MB")
+        return value
