@@ -10,7 +10,8 @@ from rest_framework import viewsets, filters, permissions, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import (
     Owner,
     Project,
@@ -49,6 +50,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
 from .permissions import IsAdminOrCanRequestPayment, IsAdmin
+from .utils.import_utils import import_owners_from_file, import_projects_from_file
 
 @login_required(login_url="signin")
 def category(request):
@@ -89,6 +91,14 @@ def export(request):
     if not request.user.profile.is_admin:
         raise PermissionDenied
     return render(request, "crm/pages/export.html")
+
+
+@login_required(login_url="signin")
+def import_data(request):
+    """匯入檔案頁面"""
+    if not request.user.profile.is_admin:
+        raise PermissionDenied
+    return render(request, "crm/pages/import.html")
 
 
 @login_required(login_url="signin")
@@ -815,6 +825,50 @@ class BankAccountViewSet(BaseViewSet):
             queryset = queryset.filter(company_id=company_id)
             
         return queryset
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def import_owners(request):
+    """匯入業主資料"""
+    if not request.user.profile.is_admin:
+        return Response({"detail": "您沒有權限執行此操作"}, status=403)
+
+    try:
+        # 確保請求中包含檔案
+        if 'file' not in request.FILES:
+            return Response({"detail": "請求中未包含檔案"}, status=400)
+
+        file = request.FILES['file']
+
+        # 呼叫匯入工具函式
+        result = import_owners_from_file(file)
+
+        return Response(result, status=200)
+    except Exception as e:
+        return Response({"detail": str(e)}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def import_projects(request):
+    """匯入專案資料"""
+    if not request.user.profile.is_admin:
+        return Response({"detail": "您沒有權限執行此操作"}, status=403)
+
+    try:
+        # 確保請求中包含檔案
+        if 'file' not in request.FILES:
+            return Response({"detail": "請求中未包含檔案"}, status=400)
+
+        file = request.FILES['file']
+
+        # 呼叫匯入工具函式
+        result = import_projects_from_file(file)
+
+        return Response(result, status=200)
+    except Exception as e:
+        return Response({"detail": str(e)}, status=500)
 
 
 from rest_framework.decorators import api_view, permission_classes
@@ -1556,3 +1610,110 @@ def export_categories_csv(request):
         writer.writerow(row)
     
     return response
+
+
+# 匯入功能 API endpoints
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated, IsAdmin])
+@parser_classes([MultiPartParser, FormParser])
+def import_owners_api(request):
+    """業主資料匯入 API"""
+    if 'file' not in request.FILES:
+        return Response(
+            {'error': '請選擇要匯入的檔案'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    uploaded_file = request.FILES['file']
+    
+    # 檢查檔案類型
+    file_extension = uploaded_file.name.lower().split('.')[-1]
+    if file_extension not in ['csv', 'xlsx', 'xls']:
+        return Response(
+            {'error': '不支援的檔案格式，請使用 CSV 或 Excel 檔案'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # 儲存暫存檔案
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_extension}') as temp_file:
+            for chunk in uploaded_file.chunks():
+                temp_file.write(chunk)
+            temp_file_path = temp_file.name
+        
+        # 執行匯入
+        file_type = 'excel' if file_extension in ['xlsx', 'xls'] else 'csv'
+        result = import_owners_from_file(temp_file_path, file_type)
+        
+        # 清理暫存檔案
+        os.unlink(temp_file_path)
+        
+        return Response({
+            'success': True,
+            'message': f'匯入完成：成功 {result.success_count} 筆，錯誤 {result.error_count} 筆',
+            'result': result.to_dict()
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        # 清理暫存檔案（如果存在）
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        
+        return Response(
+            {'error': f'匯入過程中發生錯誤: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated, IsAdmin])
+@parser_classes([MultiPartParser, FormParser])
+def import_projects_api(request):
+    """專案資料匯入 API"""
+    if 'file' not in request.FILES:
+        return Response(
+            {'error': '請選擇要匯入的檔案'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    uploaded_file = request.FILES['file']
+    
+    # 檢查檔案類型
+    file_extension = uploaded_file.name.lower().split('.')[-1]
+    if file_extension not in ['csv', 'xlsx', 'xls']:
+        return Response(
+            {'error': '不支援的檔案格式，請使用 CSV 或 Excel 檔案'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # 儲存暫存檔案
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_extension}') as temp_file:
+            for chunk in uploaded_file.chunks():
+                temp_file.write(chunk)
+            temp_file_path = temp_file.name
+        
+        # 執行匯入
+        file_type = 'excel' if file_extension in ['xlsx', 'xls'] else 'csv'
+        result = import_projects_from_file(temp_file_path, file_type)
+        
+        # 清理暫存檔案
+        os.unlink(temp_file_path)
+        
+        return Response({
+            'success': True,
+            'message': f'匯入完成：成功 {result.success_count} 筆，錯誤 {result.error_count} 筆',
+            'result': result.to_dict()
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        # 清理暫存檔案（如果存在）
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        
+        return Response(
+            {'error': f'匯入過程中發生錯誤: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

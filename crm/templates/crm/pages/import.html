@@ -1,0 +1,131 @@
+{% extends "crm/base.html" %}
+{% load static %}
+
+{% block title %}
+匯入檔案 - 立信工程顧問有限公司
+{% endblock title %}
+
+{% block content %}
+<div class="app-main flex-column flex-row-fluid" id="app_main">
+  <div id="app_toolbar" class="app-toolbar">
+    <div id="app_toolbar_container" class="app-container container-fluid d-flex align-items-stretch">
+      <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100"></div>
+    </div>
+  </div>
+  <div id="app_content" class="app-content flex-column-fluid">
+    <div id="app_content_container" class="app-container container-fluid">
+      <div class="d-flex flex-column flex-column-fluid">
+        <div class="card card-flush" id="import_list">
+          <div class="card-header align-items-center pt-7 gap-2 gap-md-5">
+            <div class="mb-5">
+              <h4 class="fw-bold text-gray-800">資料匯入管理</h4>
+              <div class="text-gray-500 fw-semibold fs-6">選擇要匯入的資料類型</div>
+            </div>
+          </div>
+          <!--begin::Card body-->
+          <div class="card-body pt-0">
+            <div v-if="isLoading" class="d-flex justify-content-center py-10">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">匯入中...</span>
+              </div>
+            </div>
+
+            <!-- 匯入選項列表 -->
+            <div class="row g-6 g-xl-9">
+              <!-- 專案資料匯入 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-primary bg-light-primary">
+                        <i class="ki-outline ki-burger-menu fs-2x text-primary"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">專案資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">從CSV或Excel檔案匯入專案基本資訊、進度和相關資料</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" @click="importProjects" :disabled="isLoading">
+                      <i class="ki-outline ki-file-up fs-3"></i>
+                      匯入專案
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 業主資料匯入 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-success bg-light-success">
+                        <i class="ki-outline ki-address-book fs-2x text-success"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">業主資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">從CSV或Excel檔案匯入業主聯絡資訊、統編等基本資料</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-success" @click="importOwners" :disabled="isLoading">
+                      <i class="ki-outline ki-file-up fs-3"></i>
+                      匯入業主
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 匯入說明 -->
+            <div class="mt-10">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">匯入資料說明</h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6 class="fw-bold text-gray-800 mb-3">支援的檔案格式</h6>
+                      <ul class="list-unstyled">
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-check-circle text-success fs-4 me-2"></i>
+                          <span>CSV 檔案 (.csv)</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-check-circle text-success fs-4 me-2"></i>
+                          <span>Excel 檔案 (.xlsx)</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="col-md-6">
+                      <h6 class="fw-bold text-gray-800 mb-3">注意事項</h6>
+                      <ul class="list-unstyled">
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-info fs-4 me-2"></i>
+                          <span>請確保檔案格式符合系統要求</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-info fs-4 me-2"></i>
+                          <span>重複資料將會被跳過</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-info fs-4 me-2"></i>
+                          <span>建議先備份現有資料</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'crm/js/pages/import.js' %}"></script>
+{% endblock extra_js %}

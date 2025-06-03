@@ -25,7 +25,9 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("category/", views.category, name="category"),
     path("owners/", views.owners, name="owners"),
+    
     path("export/", views.export, name="export"),  # 添加匯出頁面路由
+    path("import/", views.import_data, name="import"),  # 添加匯入頁面路由
     path("companys/", views.companys, name="companys"),  # 添加公司列表頁面路由
     path("company/<int:company_id>/details/", views.company_details, name="company_details"),  # 添加公司詳情頁面路由
     path("projects/", views.projects, name="projects"),
@@ -70,4 +72,7 @@ urlpatterns = [
     path("export/payments/csv/", views.export_payments_csv, name="export_payments_csv"),
     path("export/invoices/csv/", views.export_invoices_csv, name="export_invoices_csv"),
     path("export/categories/csv/", views.export_categories_csv, name="export_categories_csv"),
+    # 匯入 API 端點
+    path("api/import/owners/", views.import_owners_api, name="import_owners_api"),
+    path("api/import/projects/", views.import_projects_api, name="import_projects_api"),
 ]
