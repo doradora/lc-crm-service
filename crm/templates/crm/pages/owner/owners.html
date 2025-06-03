@@ -13,7 +13,7 @@
                 <div class="d-flex flex-column flex-column-fluid">
                     <div class="card card-flush" id="owners_list">
                         <div class="card-header align-items-center py-5 gap-2 gap-md-5">
-                            <div class="card-title w-100">
+                            <div class="card-title gap-2 w-100">
                                 <div class="d-flex align-items-center position-relative my-1">
                                     <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
                                     <input type="text"
@@ -24,9 +24,9 @@
                                 <div class="d-flex position-relative my-1">
                                     <button class="btn btn-light" @click="fetchOwners()">搜尋</button>
                                 </div>
-                                <div class="d-flex align-items-center ms-auto">
+                                <div class="d-flex align-items-center ms-auto gap-2">
                                     <button class="btn btn-primary" @click.prevent="showAddOwnerModal">新增業主</button>
-                                    <span class="text-muted me-2">每頁顯示</span>
+                                    <span class="text-muted fs-6">每頁顯示</span>
                                     <select class="form-select form-select-sm w-75px"
                                             v-model.number="pageSize"
                                             @change="pageSizeChanged">

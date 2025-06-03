@@ -54,7 +54,7 @@
                   <i class="ki-outline ki-arrow-left fs-7 me-1"></i>
                   返回所有專案
                 </a>
-                <span class="text-muted me-2">每頁顯示</span>
+                <span class="text-muted fs-6">每頁顯示</span>
                 <select class="form-select form-select-sm w-75px" v-model.number="pageSize" @change="pageSizeChanged">
                   <option value="10">10</option>
                   <option value="20">20</option>
@@ -97,7 +97,7 @@
                       </div>
                     </div>
                   </td>
-                  <td>[[ getOwnerName(project.owner) ]]</td>
+                  <td>[[ project.owner_name ]]</td>
                   <td>[[ getCategoryName(project.category) ]]</td>
                   <td>
                     <div class="badge" :class="getStatusBadgeClass(project)">[[ project.is_completed ? '已完成' : '進行中' ]]

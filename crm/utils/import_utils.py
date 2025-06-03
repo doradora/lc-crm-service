@@ -446,7 +446,7 @@ class ProjectImporter(BaseImporter):
                     
                     # 只在創建新使用者時一併創立 UserProfile
                     if user_created:
-                        UserProfile.objects.create(user=manager, name=name)
+                        UserProfile.objects.create(user=manager, name=name, is_project_manager=True)
 
             # 檢查是否已存在專案
             if Project.objects.filter(year=year, category=category, project_number=project_number).exists():
