@@ -24,7 +24,9 @@ router.register(r"bank-accounts", views.BankAccountViewSet)  # 添加銀行賬�
 urlpatterns = [
     path("", views.index, name="index"),
     path("category/", views.category, name="category"),
-    path("owners/", views.owners, name="owners"),    path("companys/", views.companys, name="companys"),  # 添加公司列表頁面路由
+    path("owners/", views.owners, name="owners"),
+    path("export/", views.export, name="export"),  # 添加匯出頁面路由
+    path("companys/", views.companys, name="companys"),  # 添加公司列表頁面路由
     path("company/<int:company_id>/details/", views.company_details, name="company_details"),  # 添加公司詳情頁面路由
     path("projects/", views.projects, name="projects"),
     path("quotations/", views.quotations, name="quotations"),
@@ -61,4 +63,11 @@ urlpatterns = [
     path("api/", include(router.urls)),
     # 新增獲取公司銀行帳戶的API端點
     path("api/company/<int:company_id>/bank_accounts/", views.get_bank_accounts_for_company, name="get_bank_accounts_for_company"),
+      # 新增匯出各類資料到CSV的路由
+    path("export/projects/csv/", views.export_projects_csv, name="export_projects_csv"),
+    path("export/owners/csv/", views.export_owners_csv, name="export_owners_csv"),
+    path("export/quotations/csv/", views.export_quotations_csv, name="export_quotations_csv"),
+    path("export/payments/csv/", views.export_payments_csv, name="export_payments_csv"),
+    path("export/invoices/csv/", views.export_invoices_csv, name="export_invoices_csv"),
+    path("export/categories/csv/", views.export_categories_csv, name="export_categories_csv"),
 ]

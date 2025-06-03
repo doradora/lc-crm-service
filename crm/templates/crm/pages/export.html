@@ -1,0 +1,194 @@
+{% extends "crm/base.html" %}
+{% load static %}
+
+{% block title %}
+匯出檔案 - 立信工程顧問有限公司
+{% endblock title %}
+
+{% block content %}
+<div class="app-main flex-column flex-row-fluid" id="app_main">
+  <div id="app_toolbar" class="app-toolbar">
+    <div id="app_toolbar_container" class="app-container container-fluid d-flex align-items-stretch">
+      <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100"></div>
+    </div>
+  </div>
+  <div id="app_content" class="app-content flex-column-fluid">
+    <div id="app_content_container" class="app-container container-fluid">
+      <div class="d-flex flex-column flex-column-fluid">
+        <div class="card card-flush" id="export_list">
+          <div class="card-header align-items-center pt-7 gap-2 gap-md-5">
+            <div class="mb-5">
+              <h4 class="fw-bold text-gray-800">資料匯出管理</h4>
+              <div class="text-gray-500 fw-semibold fs-6">選擇要匯出的資料類型</div>
+            </div>
+          </div>
+          <!--begin::Card body-->
+          <div class="card-body pt-0">
+            <div v-if="isLoading" class="d-flex justify-content-center py-10">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">匯出中...</span>
+              </div>
+            </div>
+
+            <!-- 匯出選項列表 -->
+            <div class="row g-6 g-xl-9">
+              <!-- 專案資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-primary bg-light-primary">
+                        <i class="ki-outline ki-burger-menu fs-2x text-primary"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">專案資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出所有專案的基本資訊、進度和相關資料</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" @click="exportProjects" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出專案
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 業主資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-success bg-light-success">
+                        <i class="ki-outline ki-address-book fs-2x text-success"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">業主資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出業主聯絡資訊、統編等基本資料</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-success" @click="exportOwners" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出業主
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 請款資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-warning bg-light-warning">
+                        <i class="ki-outline ki-dollar fs-2x text-warning"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">請款資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出請款單、金額、日期等財務資料</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-warning" @click="exportPayments" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出請款
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 發票資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-info bg-light-info">
+                        <i class="ki-outline ki-bill fs-2x text-info"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">發票資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出發票記錄、開立日期、金額等資訊</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-info" @click="exportInvoices" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出發票
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 報價資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-danger bg-light-danger">
+                        <i class="ki-outline ki-calculator fs-2x text-danger"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">報價資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出專案報價、金額、日期等資訊</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger" @click="exportQuotations" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出報價
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 案件類別資料匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-secondary bg-light-secondary">
+                        <i class="ki-outline ki-category fs-2x text-secondary"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">案件類別</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出案件類別代碼、說明、自定義欄位等資訊</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" @click="exportCategories" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出類別
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 綜合報表匯出 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-dark bg-light-dark">
+                        <i class="ki-outline ki-chart-simple fs-2x text-dark"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">綜合報表</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯出所有資料類型的CSV檔案</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-dark" @click="exportAll" :disabled="isLoading">
+                      <i class="ki-outline ki-cloud-download fs-3"></i>
+                      匯出全部
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'crm/js/pages/export.js' %}"></script>
+{% endblock extra_js %}
