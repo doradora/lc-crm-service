@@ -401,7 +401,7 @@
                     </div>
                     <div class="d-flex flex-column w-xl-50 gap-5">
                         <!-- 請款狀態卡片 -->
-                        <div v-if="project.is_completed" class="card">
+                        <div v-if="project.is_completed && (currentUser && currentUser.profile && currentUser.profile.can_request_payment)" class="card">
                             <div class="card-header">
                                 <div class="card-title">
                                     <h4 class="fw-bold">相關請款資訊</h4>

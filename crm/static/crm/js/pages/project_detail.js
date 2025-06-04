@@ -39,6 +39,7 @@ const projectDetail = createApp({
       categories: [],
       users: [],
       projectManagers: [],
+      currentUser: {},
 
       // 自定義欄位相關
       categoryFields: {}, // 類別定義的欄位結構
@@ -1032,6 +1033,7 @@ const projectDetail = createApp({
     this.fetchCategories();
     this.fetchUsers();
     this.fetchProjectDetails();
+    this.currentUser = window.CURRENT_USER_DATA || {};
 
     // 監聴標籤頁切換事件
     document.querySelectorAll('a[data-bs-toggle="tab"]').forEach((tab) => {
