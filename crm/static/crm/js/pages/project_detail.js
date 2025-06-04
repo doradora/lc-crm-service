@@ -445,7 +445,45 @@ const projectDetail = createApp({
 
     // 刪除專案
     deleteProject() {
-      if (confirm("確定要刪除此專案嗎？此操作無法還原！")) {
+      // 檢查使用者權限：必須是管理員或該專案的經理
+      if (!window.CURRENT_USER_DATA) {
+        Swal.fire({
+          title: "無權限!",
+          text: "您沒有權限刪除專案！",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      const currentUserId = Number(window.CURRENT_USER_DATA.id);
+      const isAdmin = window.CURRENT_USER_DATA.profile.is_admin;
+      
+      // 檢查是否為該專案的經理
+      const isProjectManager = this.project && this.project.managers && this.project.managers.includes(currentUserId);
+      
+      // 只有管理員或該專案的經理可以刪除
+      if (!isAdmin && !isProjectManager) {
+        Swal.fire({
+          title: "無權限!",
+          text: "您沒有權限刪除此專案！只有管理員或該專案的經理可以執行此操作。",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: "確認刪除",
+        text: "確定要刪除此專案嗎？此操作無法還原！",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "刪除",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
         fetch(`/crm/api/projects/${this.projectId}/`, {
           method: "DELETE",
           headers: {
@@ -470,7 +508,8 @@ const projectDetail = createApp({
               confirmButtonText: "確定",
             });
           });
-      }
+        }
+      });
     },
 
     // 業主搜尋和選擇

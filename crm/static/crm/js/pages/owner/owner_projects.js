@@ -254,14 +254,18 @@ const ownerProjectsApp = createApp({
       // 關閉下拉選單
       this.activeMenu = null;
     },
-    submitProjectForm() {
-      // 添加表單驗證
+    submitProjectForm() {      // 添加表單驗證
       if (
         !this.newProject.category ||
         !this.newProject.name ||
         !this.newProject.manager
       ) {
-        alert("請填寫所有必填欄位!");
+        Swal.fire({
+          title: "表單驗證失敗!",
+          text: "請填寫所有必填欄位!",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
         return;
       }
 
@@ -279,13 +283,28 @@ const ownerProjectsApp = createApp({
         return;
       }
 
+      // 如果是新增專案且當前使用者有專案經理權限，則自動加入為專案經理
+      const projectData = { ...this.newProject };
+      if (window.CURRENT_USER_DATA && window.CURRENT_USER_DATA.profile.is_project_manager) {
+        // 確保 managers 是陣列，並加入當前使用者
+        if (!projectData.managers) {
+          projectData.managers = [];
+        } else if (!Array.isArray(projectData.managers)) {
+          projectData.managers = [];
+        }
+        // 避免重複加入
+        if (!projectData.managers.includes(window.CURRENT_USER_DATA.id)) {
+          projectData.managers.push(window.CURRENT_USER_DATA.id);
+        }
+      }
+
       fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken,
         },
-        body: JSON.stringify(this.newProject),
+        body: JSON.stringify(projectData),
       })
         .then((response) => {
           if (!response.ok) {
@@ -299,15 +318,73 @@ const ownerProjectsApp = createApp({
           this.fetchOwnerProjects(this.currentPage);
           this.hideAddProjectModal();
           // 顯示成功消息
-          alert(this.isEditMode ? "專案更新成功!" : "專案創建成功!");
-        })
-        .catch((error) => {
+          Swal.fire({
+            title: "成功!",
+            text: this.isEditMode ? "專案更新成功!" : "專案創建成功!",
+            icon: "success",
+            confirmButtonText: "確定",
+          });
+        })        .catch((error) => {
           console.error("Error submitting project:", error);
-          alert("提交失敗: " + error.message);
+          Swal.fire({
+            title: "錯誤!",
+            text: "提交失敗: " + error.message,
+            icon: "error",
+            confirmButtonText: "確定",
+          });
         });
     },
     deleteProject(projectId) {
-      if (confirm("確定要刪除此專案嗎？此操作無法還原！")) {
+      // 檢查使用者權限：必須是管理員或該專案的經理
+      if (!window.CURRENT_USER_DATA) {
+        Swal.fire({
+          title: "無權限!",
+          text: "您沒有權限刪除專案！",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      const currentUserId = Number(window.CURRENT_USER_DATA.id);
+      const isAdmin = window.CURRENT_USER_DATA.profile.is_admin;
+        // 找到要刪除的專案
+      const projectToDelete = this.projects.find(p => p.id === projectId);
+      if (!projectToDelete) {
+        Swal.fire({
+          title: "錯誤!",
+          text: "找不到指定的專案！",
+          icon: "error",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      // 檢查是否為該專案的經理
+      const isProjectManager = projectToDelete.managers && projectToDelete.managers.includes(currentUserId);
+      
+      // 只有管理員或該專案的經理可以刪除
+      if (!isAdmin && !isProjectManager) {
+        Swal.fire({
+          title: "無權限!",
+          text: "您沒有權限刪除此專案！只有管理員或該專案的經理可以執行此操作。",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: "確認刪除",
+        text: "確定要刪除此專案嗎？此操作無法還原！",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "刪除",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
         fetch(`/crm/api/projects/${projectId}/`, {
           method: "DELETE",
           headers: {
@@ -323,7 +400,8 @@ const ownerProjectsApp = createApp({
             this.fetchOwnerProjects(this.currentPage);
           })
           .catch((error) => console.error("Error deleting project:", error));
-      }
+        }
+      });
     },
     viewQuotations(projectId) {
       window.location.href = `/crm/project/${projectId}/quotations/`;

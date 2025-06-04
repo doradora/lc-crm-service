@@ -157,7 +157,57 @@ const projectList = createApp({
   },
   methods: {
     deleteProject(projectId) {
-      if (confirm("確定要刪除此專案嗎？此操作無法還原！")) {
+      // 檢查使用者權限：必須是管理員或該專案的經理
+      if (!window.CURRENT_USER_DATA) {
+        Swal.fire({
+          title: "無權限!",
+          text: "您沒有權限刪除專案！",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      const currentUserId = Number(window.CURRENT_USER_DATA.id);
+      const isAdmin = window.CURRENT_USER_DATA.profile.is_admin;
+      
+      // 找到要刪除的專案
+      const projectToDelete = this.projects.find(p => p.id === projectId);
+      if (!projectToDelete) {
+        Swal.fire({
+          title: "錯誤!",
+          text: "找不到指定的專案！",
+          icon: "error",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      // 檢查是否為該專案的經理
+      const isProjectManager = projectToDelete.managers && projectToDelete.managers.includes(currentUserId);
+
+      // 只有管理員或該專案的經理可以刪除
+      if (!isAdmin && !isProjectManager) {
+        Swal.fire({
+          title: "無權限!",
+          text: "您沒有權限刪除此專案！只有管理員或該專案的經理可以執行此操作。",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: "確認刪除",
+        text: "確定要刪除此專案嗎？此操作無法還原！",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "刪除",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
         fetch(`/crm/api/projects/${projectId}/`, {
           method: "DELETE",
           headers: {
@@ -174,7 +224,8 @@ const projectList = createApp({
             this.activeMenu = null;
           })
           .catch((error) => console.error("無法刪除:", error));
-      }
+        }
+      });
     },
     editProject(project) {
       // 設置編輯模式
@@ -414,10 +465,15 @@ const projectList = createApp({
       );
       modal.hide();
     },
-    submitProjectForm() {
+    submitProjectForm(user) {
       // 如果未選擇業主，顯示錯誤訊息
       if (!this.newProject.owner) {
-        alert("請選擇或新增業主");
+        Swal.fire({
+          title: "表單驗證失敗!",
+          text: "請選擇或新增業主",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
         return;
       }
 
@@ -433,6 +489,11 @@ const projectList = createApp({
       if (this.isEditMode && this.newProject.project_number) {
         // 在編輯模式下，我們不修改 project_number，讓它維持原樣
         // DRF 會忽略此欄位，因為我們已將其設為 read_only
+      }
+
+      // 如果有專案經理權限，則新增至這個專案中
+      if (window.CURRENT_USER_DATA && window.CURRENT_USER_DATA.profile.is_project_manager) {
+        formData.managers = [window.CURRENT_USER_DATA.id];
       }
 
       const url = this.isEditMode
@@ -471,11 +532,14 @@ const projectList = createApp({
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert(
-            this.isEditMode
+          Swal.fire({
+            title: "錯誤!",
+            text: this.isEditMode
               ? `更新專案失敗：${error.message}`
-              : `創建專案失敗：${error.message}`
-          );
+              : `創建專案失敗：${error.message}`,
+            icon: "error",
+            confirmButtonText: "確定",
+          });
         });
     },
     // 業主搜尋和選擇
