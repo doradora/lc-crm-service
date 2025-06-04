@@ -283,7 +283,7 @@ const ownerProjectsApp = createApp({
         return;
       }
 
-      // 如果是新增專案且當前使用者有專案經理權限，則自動加入為專案經理
+      // 如果是新增專案且當前使用者有專案負責人權限，則自動加入為專案負責人
       const projectData = { ...this.newProject };
       if (window.CURRENT_USER_DATA && window.CURRENT_USER_DATA.profile.is_project_manager) {
         // 確保 managers 是陣列，並加入當前使用者

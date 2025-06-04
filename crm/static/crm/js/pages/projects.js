@@ -6,7 +6,7 @@ const projectList = createApp({
       owners: [], // 業主資料
       categories: [], // 類別資料
       users: [], // 用戶資料
-      projectManagers: [], // 專案經理列表
+      projectManagers: [], // 專案負責人列表
       designers: [], // 設計師列表
       isLoading: false,
       searchQuery: "",
@@ -491,7 +491,7 @@ const projectList = createApp({
         // DRF 會忽略此欄位，因為我們已將其設為 read_only
       }
 
-      // 如果有專案經理權限，則新增至這個專案中
+      // 如果有專案負責人權限，則新增至這個專案中
       if (window.CURRENT_USER_DATA && window.CURRENT_USER_DATA.profile.is_project_manager) {
         formData.managers = [window.CURRENT_USER_DATA.id];
       }

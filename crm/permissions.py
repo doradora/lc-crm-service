@@ -2,7 +2,7 @@ from rest_framework import permissions
 
 class IsAdminOrCanRequestPayment(permissions.BasePermission):
     """
-    自訂權限，允許管理員或具有請款權限的使用者存取。
+    自訂權限，允許管理員或具有請款人員的使用者存取。
     """
     message = "您沒有權限執行此操作。" # 可選，自訂錯誤訊息
 

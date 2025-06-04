@@ -18,7 +18,7 @@ class UserProfile(models.Model):
     is_admin = models.BooleanField(default=False, verbose_name="管理員權限")
     is_designer = models.BooleanField(default=False, verbose_name="設計師權限")
     is_project_manager = models.BooleanField(default=False, verbose_name="專案管理權限")
-    can_request_payment = models.BooleanField(default=False, verbose_name="請款權限")
+    can_request_payment = models.BooleanField(default=False, verbose_name="請款人員")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
 
     class Meta:

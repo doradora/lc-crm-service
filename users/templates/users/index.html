@@ -30,7 +30,7 @@
                       <option value="all">所有角色</option>
                       <option value="is_admin">管理員</option>
                       <option value="is_designer">設計師</option>
-                      <option value="is_project_manager">專案經理</option>
+                      <option value="is_project_manager">專案負責人</option>
                     </select>
                   </div>
                   <button class="btn btn-light" @click="fetchUsers()">搜尋</button>
@@ -277,7 +277,7 @@
                                    type="checkbox"
                                    id="is_project_manager"
                                    v-model="newUser.profile.is_project_manager">
-                            <label class="form-check-label" for="is_project_manager">專案經理</label>
+                            <label class="form-check-label" for="is_project_manager">專案負責人</label>
                           </div>
                         </div>
                           <div class="mb-7">
@@ -287,7 +287,7 @@
                                    type="checkbox"
                                    id="can_request_payment"
                                    v-model="newUser.profile.can_request_payment">
-                            <label class="form-check-label" for="can_request_payment">請款權限</label>
+                            <label class="form-check-label" for="can_request_payment">請款人員</label>
                           </div>
                         </div>
 

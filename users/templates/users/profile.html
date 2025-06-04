@@ -162,7 +162,7 @@
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="is_project_manager"
                           v-model="editData.profile.is_project_manager">
-                        <label class="form-check-label" for="is_project_manager">專案經理</label>
+                        <label class="form-check-label" for="is_project_manager">專案負責人</label>
                       </div>
                     </div>
                     <div class="mb-7">
@@ -170,7 +170,7 @@
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="can_request_payment"
                           v-model="editData.profile.can_request_payment">
-                        <label class="form-check-label" for="can_request_payment">請款權限</label>
+                        <label class="form-check-label" for="can_request_payment">請款人員</label>
                       </div>
                     </div>
 
@@ -231,14 +231,14 @@
         let roles = [];
         if (profile.is_admin) roles.push("管理員");
         if (profile.is_designer) roles.push("設計師");
-        if (profile.is_project_manager) roles.push("專案經理");
+        if (profile.is_project_manager) roles.push("專案負責人");
         if (profile.can_request_payment) roles.push("請款");
         return roles;
       },
       getRoleBadgeClass(role) {
         if (role == "管理員") return "badge-light-danger";
         if (role == "設計師") return "badge-light-success";
-        if (role == "專案經理") return "badge-light-primary";
+        if (role == "專案負責人") return "badge-light-primary";
         if (role == "請款") return "badge-light-warning";
         return "badge-light-warning";
       },

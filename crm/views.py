@@ -258,7 +258,7 @@ class AdminOnlyViewSet(viewsets.ModelViewSet):
     
 class CanPaymentViewSet(viewsets.ModelViewSet):
     """
-    僅限請款權限的混合類
+    僅限請款人員的混合類
     """
 
     permission_classes = [permissions.IsAuthenticated, IsAdminOrCanRequestPayment]

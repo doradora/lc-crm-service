@@ -213,7 +213,7 @@ const userList = createApp({
       let roles = [];
       if (profile.is_admin) roles.push("管理員");
       if (profile.is_designer) roles.push("設計師");
-      if (profile.is_project_manager) roles.push("專案經理");
+      if (profile.is_project_manager) roles.push("專案負責人");
       if (profile.can_request_payment) roles.push("請款");
       return roles;
     },
@@ -221,14 +221,14 @@ const userList = createApp({
       let roles = [];
       if (profile.is_admin) roles.push("管理員");
       if (profile.is_designer) roles.push("設計師");
-      if (profile.is_project_manager) roles.push("專案經理");
+      if (profile.is_project_manager) roles.push("專案負責人");
       if (can_request_payment) roles.push("請款");
       return roles;
     },
     getRoleBadgeClass(role) {
       if (role == "管理員") return "badge-light-danger";
       if (role == "設計師") return "badge-light-success";
-      if (role == "專案經理") return "badge-light-primary";
+      if (role == "專案負責人") return "badge-light-primary";
       if (role == "請款") return "badge-light-warning";
       return "badge-light-warning";
     },
