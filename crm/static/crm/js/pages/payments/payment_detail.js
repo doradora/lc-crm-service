@@ -83,8 +83,8 @@ const paymentDetail = createApp({
         bank_code: "",
         company: null, // 將與當前選中的公司關聯
       },
-      // 專案報表名稱映射表 - 用於編輯時暫存
-      projectReportNames: {}, // 專案ID -> 報表名稱的映射
+      // 專案報告書名稱映射表 - 用於編輯時暫存
+      projectReportNames: {}, // 專案ID -> 報告書名稱的映射
       // 內存請款單相關資料
       paymentDocuments: [], // 內存請款單文件列表
       isUploadingDocument: false, // 上傳狀態
@@ -186,39 +186,39 @@ const paymentDetail = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.projects = data.results;
-          // 初始化專案報表名稱映射
+          // 初始化專案報告書名稱映射
           this.initializeProjectReportNames();
         })
         .catch((error) => console.error("Error fetching projects:", error));
     },
 
-    // 初始化專案報表名稱映射
+    // 初始化專案報告書名稱映射
     initializeProjectReportNames() {
       this.projects.forEach(project => {
         this.projectReportNames[project.id] = project.report_name || '';
       });
     },
 
-    // 獲取專案的報表名稱
+    // 獲取專案的報告書名稱
     getProjectReportName(projectId) {
       if (!projectId) return '';
       return this.projectReportNames[projectId] || '';
-    },    // 更新專案的報表名稱
+    },    // 更新專案的報告書名稱
     updateProjectReportName(projectId, reportName) {
       if (projectId) {
         this.projectReportNames[projectId] = reportName;
       }
     },
 
-    // 批量更新所有已修改專案的報表名稱
+    // 批量更新所有已修改專案的報告書名稱
     updateProjectReportNames() {
       const updatePromises = [];
 
-      // 僅針對報表名稱有變更的專案進行處理
+      // 僅針對報告書名稱有變更的專案進行處理
       this.projects.forEach((project) => {
         const updatedReportName = this.projectReportNames[project.id];
         if (updatedReportName && project.report_name !== updatedReportName) {
-          // 如果報表名稱有變更，發送PATCH請求更新
+          // 如果報告書名稱有變更，發送PATCH請求更新
           updatePromises.push(
             fetch(`/crm/api/projects/${project.id}/`, {
               method: "PATCH",
@@ -674,7 +674,7 @@ const paymentDetail = createApp({
           return Promise.all(projectPromises);
         })
         .then(() => {
-          // 更新專案的報表名稱
+          // 更新專案的報告書名稱
           return this.updateProjectReportNames();
         })
         .then(() => {
@@ -1279,7 +1279,7 @@ const paymentDetail = createApp({
       this.fetchProjects(),
     ])
       .then(() => {
-        // 當付款詳情和專案列表都載入完成後，初始化報表名稱映射
+        // 當付款詳情和專案列表都載入完成後，初始化報告書名稱映射
         this.initializeProjectReportNames();
       });
     this.fetchOwners(); // 新增：獲取業主列表
