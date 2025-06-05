@@ -121,9 +121,6 @@
                         <a class="menu-link px-3" @click.prevent="viewProjectDetails(project.id)">編輯詳細資料</a>
                       </div>
                       <div class="menu-item px-3">
-                        <a class="menu-link px-3" @click.prevent="viewQuotations(project.id)">查看報價</a>
-                      </div>
-                      <div class="menu-item px-3">
                         <a class="menu-link px-3" @click.prevent="viewInvoices(project.id)">查看請款</a>
                       </div>
                     </div>
@@ -290,9 +287,6 @@
       },
       viewProjectDetails(projectId) {
         window.location.href = `/crm/project/${projectId}/details/`;
-      },
-      viewQuotations(projectId) {
-        window.location.href = `/crm/project/${projectId}/quotations/`;
       },
       viewInvoices(projectId) {
         window.location.href = `/crm/payments/?project=${projectId}`;

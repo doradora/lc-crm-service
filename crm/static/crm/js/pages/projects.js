@@ -258,12 +258,6 @@ const projectList = createApp({
       // 關閉下拉選單
       this.activeMenu = null;
     },
-    viewQuotations(projectId) {
-      // 導航到該專案的報價列表頁面
-      window.location.href = `/crm/project/${projectId}/quotations/`;
-      // 關閉下拉選單
-      this.activeMenu = null;
-    },
     viewInvoices(projectId) {
       // 導航到詢專案的請款列表頁面
       window.location.href = `/crm/payments/?project=${projectId}`;

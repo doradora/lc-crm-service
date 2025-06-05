@@ -69,21 +69,6 @@ const exportApp = createApp({
     },
 
     /**
-     * 匯出報價資料
-     */
-    async exportQuotations() {
-      try {
-        this.isLoading = true;
-        await this.downloadFile('/crm/export/quotations/csv/');
-        this.showSuccessMessage('報價資料匯出成功');
-      } catch (error) {
-        this.showErrorMessage('報價資料匯出失敗', error);
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    /**
      * 匯出案件類別資料
      */
     async exportCategories() {
@@ -109,7 +94,6 @@ const exportApp = createApp({
         const exportTasks = [
           { method: this.exportProjects, name: '專案資料' },
           { method: this.exportOwners, name: '業主資料' },
-          { method: this.exportQuotations, name: '報價資料' },
           { method: this.exportPayments, name: '請款資料' },
           { method: this.exportInvoices, name: '發票資料' },
           { method: this.exportCategories, name: '案件類別資料' }
