@@ -26,7 +26,7 @@ const paymentDetail = createApp({
       // 新增發票相關資料
       newInvoice: {
         invoice_number: "",
-        amount: 0,
+        amount: 0, // 未稅金額
         tax_amount: 0,
         issue_date: "",
         notes: "",
@@ -34,6 +34,7 @@ const paymentDetail = createApp({
         account_entry_date: null, // 新增
         payment_method: "", // 新增
         actual_received_amount: null, // 新增
+        gross_amount: 0, // 含稅金額
       },
       editingInvoice: false,
       editingInvoiceId: null,
@@ -929,12 +930,12 @@ const paymentDetail = createApp({
         tax_amount: 0,
         issue_date: new Date().toISOString().split("T")[0],
         notes: "",
-        payment_received_date: null, // 新增初始化
-        account_entry_date: null, // 新增初始化
-        payment_method: "", // 新增初始化
-        actual_received_amount: null, // 新增初始化
+        payment_received_date: null,
+        account_entry_date: null,
+        payment_method: "",
+        actual_received_amount: null,
+        gross_amount: 0,
       };
-
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
       );
@@ -945,13 +946,12 @@ const paymentDetail = createApp({
     editInvoice(invoiceId) {
       this.editingInvoice = true;
       this.editingInvoiceId = invoiceId;
-
-      // 找到對應的發票
       const invoice = this.payment.invoices.find((inv) => inv.id === invoiceId);
       if (invoice) {
-        this.newInvoice = { ...invoice };
+        // 若有 gross_amount 則帶入，否則自動計算
+        const gross = invoice.gross_amount !== undefined ? invoice.gross_amount : (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0));
+        this.newInvoice = { ...invoice, gross_amount: gross };
       }
-
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
       );
@@ -1252,6 +1252,21 @@ const paymentDetail = createApp({
             text: error.message,
           });
         });
+    },
+
+    // 四捨五入到整數（模擬 Excel ROUND）
+    round(value, digits = 0) {
+      const factor = Math.pow(10, digits);
+      return Math.round(value * factor) / factor;
+    },
+
+    // 當含稅金額變動時自動計算未稅與稅額
+    handleGrossAmountChange() {
+      const gross = Number(this.newInvoice.gross_amount) || 0;
+      const amount = this.round(gross / 1.05, 0);
+      const tax = gross - amount;
+      this.newInvoice.amount = amount;
+      this.newInvoice.tax_amount = tax;
     },
   },
   mounted() {    // 從URL獲取payment ID

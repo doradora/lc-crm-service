@@ -34,7 +34,8 @@ createApp({
         account_entry_date: "",
         payment_method: "",
         actual_received_amount: "",
-        notes: ""
+        notes: "",
+        gross_amount: "", // 含稅金額
       },
       menuPosition: {
         x: 0,
@@ -172,6 +173,7 @@ createApp({
       this.resetInvoiceForm();
       this.isEdit = false;
       this.validationErrors = {};
+      this.invoiceForm.gross_amount = "";
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
     },
@@ -190,9 +192,9 @@ createApp({
         account_entry_date: invoice.account_entry_date || "",
         payment_method: invoice.payment_method || "",
         actual_received_amount: invoice.actual_received_amount || "",
-        notes: invoice.notes || ""
+        notes: invoice.notes || "",
+        gross_amount: (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0)),
       };
-
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
       this.activeMenu = null;
@@ -229,48 +231,46 @@ createApp({
         this.showNotification('請填寫必填欄位', 'error');
         return;
       }
-
       this.isSaving = true;
-
       try {
         const formData = { ...this.invoiceForm };
-
-        // 處理空值
+        delete formData.gross_amount;
         Object.keys(formData).forEach(key => {
           if (formData[key] === '') {
             formData[key] = null;
           }
         });
-
         const url = this.isEdit
           ? `/crm/api/invoices/${this.invoiceForm.id}/`
           : '/crm/api/invoices/';
-
         const method = this.isEdit ? 'PATCH' : 'POST';
-
-        const response = await fetch(url, {
+        fetch(url, {
           method: method,
           headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': this.getCsrfToken()
           },
           body: JSON.stringify(formData)
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || '操作失敗');
-        }
-
-        this.showNotification(this.isEdit ? '發票更新成功！' : '發票新增成功！', 'success');
-        this.closeInvoiceModal();
-        this.fetchInvoices(this.currentPage);
-
+        })
+          .then(async response => {
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || '操作失敗');
+            }
+            this.showNotification(this.isEdit ? '發票更新成功！' : '發票新增成功！', 'success');
+            this.closeInvoiceModal();
+            this.fetchInvoices(this.currentPage);
+          })
+          .catch(error => {
+            console.error('Error saving invoice:', error);
+            this.showNotification(error.message || '操作失敗', 'error');
+          })
+          .finally(() => {
+            this.isSaving = false;
+          });
       } catch (error) {
-        console.error('Error saving invoice:', error);
-        this.showNotification(error.message || '操作失敗', 'error');
-      } finally {
         this.isSaving = false;
+        this.showNotification(error.message || '操作失敗', 'error');
       }
     },
     async markAsPaid(invoiceId) {
@@ -505,6 +505,19 @@ createApp({
       
       const result = await Swal.fire(options);
       return result.isConfirmed;
-    }
+    },
+
+    // 四捨五入到整數（模擬 Excel ROUND）
+    round(value, digits = 0) {
+      const factor = Math.pow(10, digits);
+      return Math.round(value * factor) / factor;
+    },
+    handleGrossAmountChange() {
+      const gross = Number(this.invoiceForm.gross_amount) || 0;
+      const amount = this.round(gross / 1.05, 0);
+      const tax = gross - amount;
+      this.invoiceForm.amount = amount;
+      this.invoiceForm.tax_amount = tax;
+    },
   }
 }).mount('#app_main');

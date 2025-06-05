@@ -193,7 +193,9 @@
             </div>
           </div>
         </div>
-      </div> <!-- 新增/編輯發票 Modal -->
+      </div> 
+      
+      <!-- 新增/編輯發票 Modal -->
       <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered mw-650px">
           <div class="modal-content">
@@ -205,7 +207,7 @@
                 <i class="ki-outline ki-cross fs-2"></i>
               </div>
             </div>
-            <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+            <div class="modal-body scroll-y mx-2 my-2 h-700px">
               <div class="row mb-5">
                 <div class="col-md-6">
                   <div class="form-group">
@@ -218,27 +220,28 @@
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <div class="form-group">
-                    <label class="form-label required">請款單</label>
-                    <select class="form-select" v-model="invoiceForm.payment" required
-                      :class="{ 'is-invalid': validationErrors.payment }">
-                      <option value="">請選擇請款單</option>
-                      <option v-for="payment in payments" :key="payment.id" :value="payment.id">
-                        [[ payment.payment_number ]]
-                      </option>
-                    </select>
-                    <div v-if="validationErrors.payment" class="invalid-feedback">
-                      請選擇請款單
+                  <div class="form-group mb-5">
+                    <label class="form-label required">發票開立日期</label>
+                    <input type="date" class="form-control" v-model="invoiceForm.issue_date" required
+                      :class="{ 'is-invalid': validationErrors.issue_date }" />
+                    <div v-if="validationErrors.issue_date" class="invalid-feedback">
+                      請選擇發票開立日期
                     </div>
                   </div>
                 </div>
               </div>
+              
               <div class="row mb-5">
                 <div class="col-md-4">
                   <div class="form-group mb-5">
-                    <label class="form-label required">未稅金額</label>
-                    <input type="number" class="form-control" v-model="invoiceForm.amount" required
-                      :class="{ 'is-invalid': validationErrors.amount }" />
+                    <label class="form-label required text-end">發票金額(含稅)</label>
+                    <input type="number" class="form-control" v-model="invoiceForm.gross_amount" @input="handleGrossAmountChange" required />
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group mb-5">
+                    <label class="form-label required text-end">發票金額(未稅)</label>
+                    <input type="number" class="form-control" v-model="invoiceForm.amount" readonly required :class="{ 'is-invalid': validationErrors.amount }" />
                     <div v-if="validationErrors.amount" class="invalid-feedback">
                       請輸入未稅金額
                     </div>
@@ -250,13 +253,20 @@
                     <input type="number" class="form-control" v-model="invoiceForm.tax_amount" />
                   </div>
                 </div>
-                <div class="col-md-4">
-                  <div class="form-group mb-5">
-                    <label class="form-label required">發票開立日期</label>
-                    <input type="date" class="form-control" v-model="invoiceForm.issue_date" required
-                      :class="{ 'is-invalid': validationErrors.issue_date }" />
-                    <div v-if="validationErrors.issue_date" class="invalid-feedback">
-                      請選擇發票開立日期
+              </div>
+              <div class="row mb-5">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label class="form-label required">請款單</label>
+                    <select class="form-select" v-model="invoiceForm.payment" required
+                      :class="{ 'is-invalid': validationErrors.payment }">
+                      <option value="">請選擇請款單</option>
+                      <option v-for="payment in payments" :key="payment.id" :value="payment.id">
+                        [[ payment.payment_number ]]
+                      </option>
+                    </select>
+                    <div v-if="validationErrors.payment" class="invalid-feedback">
+                      請選擇請款單
                     </div>
                   </div>
                 </div>

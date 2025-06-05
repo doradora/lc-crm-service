@@ -9,6 +9,7 @@ build/
 .env
 lcenv/
 venv/
+
 # Django
 *.log
 *.pot
@@ -19,6 +20,7 @@ venv/
 db.sqlite3
 media/
 staticfiles/
+docs/
 
 # Node
 node_modules/
