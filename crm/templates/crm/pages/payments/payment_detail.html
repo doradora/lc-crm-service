@@ -284,9 +284,8 @@
                       </button>
                     </div>
                   </div>
-                  
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-200">
+                    <table class="table table-row-bordered table-row-gray-200" style="min-width:750px;">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>發票號碼</th>
@@ -359,10 +358,8 @@
                       </button>
                     </div>
                   </div>
-
-                  <!-- 檔案列表表格 -->
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-200">
+                    <table class="table table-row-bordered table-row-gray-200" style="min-width:800px;">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>檔案名稱</th>
@@ -668,3 +665,7 @@
   </script>
   <script src="{% static 'crm/js/pages/payments/payment_detail.js' %}"></script>
   {% endblock extra_js %}
+<style>
+  /* 讓表格欄位不自動換行，避免壓縮 */
+  .table-responsive th, .table-responsive td { white-space: nowrap; }
+</style>

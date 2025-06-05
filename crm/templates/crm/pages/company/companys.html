@@ -8,7 +8,7 @@
     </div>
   </div>
   <div id="app_content" class="app-content flex-column-fluid">
-    <div id="app_content_container" class="app-container container-fluid">
+    <div id="app_content_container">
       <div class="d-flex flex-column flex-column-fluid">
         <div class="card card-flush" id="companys_list">
           <div class="card-header align-items-center py-5 gap-2 gap-md-5">
@@ -40,59 +40,63 @@
                 <span class="visually-hidden">載入中...</span>
               </div>
             </div>
-            <table class="table align-middle table-row-dashed table-hover fs-6 gy-5">
-              <thead>
-                <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
-                  <th class="min-w-200px">公司名稱</th>
-                  <th class="text-center min-w-100px">統一編號</th>
-                  <th class="text-center min-w-100px">電話/傳真</th>
-                  <th class="text-center min-w-100px">聯絡人</th>
-                  <th class="text-end min-w-70px">操作</th>
-                </tr>
-              </thead>
-              <tbody class="fw-semibold text-gray-600">
-                <tr v-for="company in companys" :key="company.id">                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="ms-5">
-                        <a :href="'/crm/company/' + company.id + '/details/'" class="text-gray-800 text-hover-primary">[[ company.name ]]</a>
+            <div class="table-responsive">
+              <table class="table align-middle table-row-dashed table-hover table-striped fs-6 gy-5 gs-7">
+                <thead>
+                  <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                    <th class="min-w-200px">公司名稱</th>
+                    <th class="text-center min-w-100px">統一編號</th>
+                    <th class="text-center min-w-100px">電話/傳真</th>
+                    <th class="text-center min-w-100px">聯絡人</th>
+                    <th class="text-end min-w-70px">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="fw-semibold text-gray-600">
+                  <tr v-for="company in companys" :key="company.id">
+                    <td>
+                      <a :href="'/crm/company/' + company.id + '/details/'" class="text-gray-800 text-hover-primary">[[ company.name ]]</a>
+                    </td>
+                    <td class="text-center">
+                      <span class="fw-bold">[[ company.tax_id ]]</span>
+                    </td>
+                    <td class="text-center">
+                      <span class="fw-bold">[[ company.phone ]]</span>
+                      <div class="text-muted" v-if="company.fax">[[ company.fax ]]</div>
+                    </td>
+                    <td class="text-center">
+                      <span class="fw-bold">[[ company.contact_person ]]</span>
+                    </td>
+                    <td class="text-end">
+                      <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary"
+                        @click="toggleMenu(company.id)">
+                        <i class="ki-outline ki-down fs-5"></i>
+                      </button>
+                      <div
+                        class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-125px py-4"
+                        data-kt-menu="true" :style="getMenuStyle(company.id)"
+                        :class="{'show': activeMenu === company.id}">
+                        <div class="menu-item px-3">
+                          <a class="menu-link px-3" @click.prevent="editCompany(company)">
+                            編輯資料
+                          </a>
+                        </div>
+                        <div class="menu-item px-3">
+                          <a class="menu-link px-3" @click.prevent="viewCompanyDetails(company.id)">
+                            查看詳情
+                          </a>
+                        </div>
+                        <hr class="my-1" />
+                        <div class="menu-item px-3">
+                          <a class="menu-link px-3 text-danger" @click.prevent="deleteCompany(company.id)">
+                            刪除
+                          </a>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    <span class="fw-bold">[[ company.tax_id ]]</span>
-                  </td>
-                  <td class="text-center">
-                    <span class="fw-bold">[[ company.phone ]]</span>
-                    <div class="text-muted" v-if="company.fax">[[ company.fax ]]</div>
-                  </td>
-                  <td class="text-center">
-                    <span class="fw-bold">[[ company.contact_person ]]</span>
-                  </td>
-                  <td class="text-end">
-                    <a href="#" class="btn btn-sm btn-light btn-flex btn-center btn-active-light-primary"
-                      @click.prevent="toggleMenu(company.id)">
-                      操作
-                      <i class="ki-outline ki-down fs-5 ms-1"></i>
-                    </a>
-                    <div
-                      class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-125px py-4"
-                      data-kt-menu="true" :style="getMenuStyle(company.id)"
-                      :class="{'show': activeMenu === company.id}">
-                      <div class="menu-item px-3">
-                        <a href="#" class="menu-link px-3" @click.prevent="editCompany(company)">
-                          編輯
-                        </a>
-                      </div>
-                      <div class="menu-item px-3">
-                        <a href="#" class="menu-link px-3 text-danger" @click.prevent="deleteCompany(company.id)">
-                          刪除
-                        </a>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <!-- 分頁控制 -->
             <div class="d-flex justify-content-center align-items-center flex-wrap">
               <ul class="pagination">
