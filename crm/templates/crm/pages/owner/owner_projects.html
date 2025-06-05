@@ -62,7 +62,8 @@
                                 <tbody class="fw-semibold text-gray-600">
                                     <tr v-for="project in projects" :key="project.id">
                                         <td>
-                                            <span class="badge badge-light">[[ project.year ]]-[[ project.project_number ]]</span>
+                                            <span class="badge badge-light">[[ project.year ]][[project.category ?
+                                                getCategoryCode(project.category) : 'N']][[ project.project_number ]]</span>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">

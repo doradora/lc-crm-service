@@ -344,7 +344,7 @@ class ProjectImporter(BaseImporter):
 
             # 處理資料並新增專案
             year = int(data["year"]) if data["year"] else None
-            project_number = str(data["project_number"]).zfill(4) if data["project_number"] else None
+            project_number = str(data["project_number"]).zfill(3) if data["project_number"] else None
             quotation = self.parse_decimal(data.get("quotation"))
             invoice_amount = self.parse_decimal(data.get("invoice_amount"))
             is_completed = self.parse_boolean(data.get("is_completed"))

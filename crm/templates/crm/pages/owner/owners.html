@@ -60,8 +60,8 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="ms-5">
-                                                    <a @click.prevent="editOwner(owner)"
-                                                       class="text-gray-800 text-hover-primary fs-5 fw-bold">[[ owner.company_name ]]</a>
+                                                    <a @click.prevent="viewProjects(owner.id)" href="#"
+                                                       class="text-gray-800 text-hover-primary fs-5 fw-bold pe-auto">[[ owner.company_name ]]</a>
                                                     <div class="text-muted">[[ owner.address ]]</div>
                                                 </div>
                                             </div>

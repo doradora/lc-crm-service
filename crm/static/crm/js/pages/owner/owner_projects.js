@@ -158,6 +158,11 @@ const ownerProjectsApp = createApp({
       const category = this.categoryMap[categoryId];
       return category ? `${category.code}: ${category.description}` : "未分類";
     },
+    getCategoryCode(categoryId) {
+      if (!categoryId) return "N";
+      const category = this.categoryMap[categoryId];
+      return category ? category.code : "N";
+    },
     // 修正 getManagerName 方法
     getManagerName(managerId) {
       const manager = this.userMap[managerId];
