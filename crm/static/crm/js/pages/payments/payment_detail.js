@@ -378,7 +378,8 @@ const paymentDetail = createApp({
           });
         }
         return response.json();
-      })      .then(_data => {
+      })      
+      .then(_data => {
         Swal.fire({
           icon: 'success',
           title: '上傳成功',
@@ -387,7 +388,7 @@ const paymentDetail = createApp({
         });
         
         // 重新獲取檔案列表
-        this.fetchPaymentDocuments();
+        this.fetchPaymentDocuments(); // TODO
         
         // 清空檔案輸入
         const fileInput = document.getElementById('paymentDocumentFileInput');
@@ -1045,7 +1046,7 @@ const paymentDetail = createApp({
         })
         .then(() => {
           this.hideAddInvoiceModal();
-          this.fetchPaymentDetails(); // 重新獲取資料
+          this.fetchInvoicesForCurrentPayment(); // 只重新獲取發票
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -1072,16 +1073,14 @@ const paymentDetail = createApp({
           fetch(`/crm/api/invoices/${invoiceId}/`, {
             method: "DELETE",
             headers: {
-              "X-CSRFToken": document.querySelector(
-                '[name="csrfmiddlewaretoken"]'
-              ).value,
+              "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value,
             },
           })
             .then((response) => {
               if (!response.ok) {
                 throw new Error("刪除失敗");
               }
-              this.fetchPaymentDetails(); // 重新獲取資料
+              this.fetchInvoicesForCurrentPayment(); // 只重新獲取發票
               Swal.fire("已刪除!", "發票已被刪除。", "success");
             })
             .catch((error) => {
@@ -1275,6 +1274,30 @@ const paymentDetail = createApp({
       const tax = gross - amount;
       this.newInvoice.amount = amount;
       this.newInvoice.tax_amount = tax;
+    },
+
+    // 重新獲取當前請款單的發票
+    fetchInvoicesForCurrentPayment() {
+      if (!this.paymentId) return;
+      return fetch(`/crm/api/invoices/?payment=${this.paymentId}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("無法獲取發票資料");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // 支援分頁API或直接回傳陣列
+          this.payment.invoices = data.results || data;
+        })
+        .catch((error) => {
+          console.error("Error fetching invoices:", error);
+          Swal.fire({
+            icon: "error",
+            title: "錯誤",
+            text: "獲取發票資料失敗：" + error.message,
+          });
+        });
     },
   },
   mounted() {    // 從URL獲取payment ID
