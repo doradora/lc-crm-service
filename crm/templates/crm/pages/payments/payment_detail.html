@@ -71,6 +71,18 @@
                   </div>
                 </div>
                 <div class="mb-5">
+                  <label class="form-label fw-semibold">已開發票金額</label>
+                  <div class="form-control-plaintext">
+                    [[ formatCurrency(totalInvoiceAmount + totalInvoiceTaxAmount) ]]
+                  </div>
+                </div>
+                <div class="mb-5">
+                  <label class="form-label fw-semibold">已實收金額</label>
+                  <div class="form-control-plaintext">
+                    [[ formatCurrency(totalActualReceivedAmount) ]]
+                  </div>
+                </div>
+                <div class="mb-5">
                   <label class="form-label fw-semibold">收款公司</label>
                   <div v-if="!isEditing" class="form-control-plaintext">
                     [[ payment.company_name ]]
@@ -189,12 +201,16 @@
                 <!-- 專案明細 Tab -->
                 <div class="tab-pane fade show active" id="projects_tab" role="tabpanel">
                   <div class="card-toolbar">
-                    <button v-if="isEditing" class="btn btn-sm btn-light-primary" @click="addProjectItem">
-                      <i class="ki-outline ki-plus fs-2"></i>新增專案
-                    </button>
+                    <div v-if="isEditing" class="card-toolbar mb-5">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <button class="btn btn-sm btn-light-primary" @click="addProjectItem">
+                          <i class="ki-outline ki-plus fs-2"></i>新增專案
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-100">
+                    <table class="table table-row-bordered table-row-gray-200">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>專案名稱 & 報告書名稱</th>
@@ -249,7 +265,7 @@
                         </tr>
                       </tbody>
                       <tfoot v-if="payment.payment_projects && payment.payment_projects.length > 0">
-                        <tr>
+                        <tr class="fw-bold fs-6 text-gray-800">
                           <th>總計</th>
                           <th v-if="!isEditing"></th>
                           <th class="text-end">[[ formatCurrency(getTotalAmount()) ]]</th>
@@ -261,11 +277,16 @@
                 </div>
                 <!-- 關聯發票 Tab -->
                 <div class="tab-pane fade" id="invoices_tab" role="tabpanel">
-                  <button v-if="isEditing" class="btn btn-sm btn-light-primary" @click="createInvoice">
-                    <i class="ki-outline ki-plus fs-2"></i>建立發票
-                  </button>
+                  <div v-if="isEditing" class="card-toolbar mb-5">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <button class="btn btn-sm btn-light-primary" @click="createInvoice">
+                        <i class="ki-outline ki-plus fs-2"></i>建立發票
+                      </button>
+                    </div>
+                  </div>
+                  
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-100">
+                    <table class="table table-row-bordered table-row-gray-200">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>發票號碼</th>
@@ -318,9 +339,10 @@
                       <tfoot v-if="payment.invoices && payment.invoices.length > 0">
                         <tr class="fw-bold fs-6 text-gray-800">
                           <td>總計</td>
-                          <td>[[ formatCurrency(totalInvoiceAmount) ]]</td>
-                          <td>[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
-                          <td class="text-end" :colspan="isEditing ? 6 : 5">
+                          <td class="text-end">[[ formatCurrency(totalInvoiceAmount) ]]</td>
+                          <td class="text-end">[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
+                          <td class="text-end" :colspan="3">[[ formatCurrency(totalActualReceivedAmount) ]]</td>
+                          <td class="text-end" :colspan="isEditing ? 3 : 2">
                             發票總額:[[ formatCurrency(totalInvoiceAmount + totalInvoiceTaxAmount) ]]
                           </td>
                         </tr>
@@ -331,7 +353,7 @@
                 <div class="tab-pane fade" id="saved_payment_tab" role="tabpanel">
                   <div v-if="isEditing" class="card-toolbar mb-5">
                     <div class="d-flex justify-content-between align-items-center">
-                      <button class="btn btn-sm btn-primary" @click="triggerFileUpload" :disabled="isUploadingDocument">
+                      <button class="btn btn-sm btn-light-primary" @click="triggerFileUpload" :disabled="isUploadingDocument">
                         <i class="ki-outline ki-file-up fs-6"></i>
                         [[ isUploadingDocument ? '上傳中...' : '上傳檔案' ]]
                       </button>
@@ -340,9 +362,9 @@
 
                   <!-- 檔案列表表格 -->
                   <div class="table-responsive">
-                    <table class="table table-row-dashed table-row-gray-300 gy-7">
+                    <table class="table table-row-bordered table-row-gray-200">
                       <thead>
-                        <tr class="fw-semibold fs-6 text-gray-800">
+                        <tr class="fw-bold fs-6 text-gray-800">
                           <th>檔案名稱</th>
                           <th>檔案大小</th>
                           <th>上傳時間</th>
@@ -523,7 +545,7 @@
           </div>
           <!-- 專案列表 -->
           <div class="table-responsive mb-5">
-            <table class="table table-row-bordered table-row-gray-100">
+            <table class="table table-row-bordered table-row-gray-200">
               <thead>
                 <tr class="fw-bold fs-6 text-gray-800">
                   <th width="40px">

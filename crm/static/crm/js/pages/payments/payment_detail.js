@@ -116,6 +116,14 @@ const paymentDetail = createApp({
         return total + Number(invoice.tax_amount || 0);
       }, 0);
     },
+    totalActualReceivedAmount() {
+      if (!this.payment || !this.payment.invoices || this.payment.invoices.length === 0) {
+        return 0;
+      }
+      return this.payment.invoices.reduce((total, invoice) => {
+        return total + Number(invoice.actual_received_amount || 0);
+      }, 0);
+    },
   },
   methods: {
     // 獲取付款詳情
