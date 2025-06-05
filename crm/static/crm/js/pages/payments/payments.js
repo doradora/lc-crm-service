@@ -116,6 +116,16 @@ const paymentList = createApp({
       return projectNames.join(", ");
     },
 
+    // 計算請款單的關聯發票實收金額總和
+    getInvoiceActualReceivedAmount(payment) {
+      if (!payment.invoices || payment.invoices.length === 0) {
+        return 0;
+      }
+      return payment.invoices.reduce((total, invoice) => {
+        return total + Number(invoice.actual_received_amount || 0);
+      }, 0);
+    },
+
     // 格式化日期
     formatDate(dateString) {
       if (!dateString) return "-";

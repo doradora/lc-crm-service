@@ -572,6 +572,14 @@ class PaymentViewSet(CanPaymentViewSet):
         owner_id = self.request.query_params.get("owner", None)
         if owner_id:
             queryset = queryset.filter(projects__owner_id=owner_id)
+        
+        # 付款狀態過濾
+        paid = self.request.query_params.get("paid", None)
+        if paid is not None:
+            if paid.lower() == "true":
+                queryset = queryset.filter(paid=True)
+            elif paid.lower() == "false":
+                queryset = queryset.filter(paid=False)
 
         return queryset.order_by("-date_issued")
 
