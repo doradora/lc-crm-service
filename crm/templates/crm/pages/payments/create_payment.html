@@ -217,7 +217,7 @@
                                                     </div>
                                                 </td>
                                                 <td>[[ project.owner_name || 'N/A' ]]</td>
-                                                <td>[[ project.category.code || 'N/A' ]][[project.category.description]]</td>
+                                                <td>[[ project.category_detail.code || 'N/A' ]][[project.category_detail.description]]</td>
                                                 <td>
                                                 <span v-if="project.managers_info && project.managers_info.length > 0">
                                                     <span v-for="(mgr, index) in project.managers_info" :key="mgr.id || index">
