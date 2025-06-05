@@ -283,7 +283,7 @@ class CategoryViewSet(BaseViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        return Category.objects.annotate(projects_count=Count("project"))
+        return Category.objects.annotate(projects_count=Count("project")).order_by("code")
 
     @action(detail=True, methods=["get"])
     def custom_fields(self, request, pk=None):
@@ -476,7 +476,7 @@ class ProjectViewSet(BaseViewSet):
 
         # 類別分布數據
         category_data = []
-        categories = Category.objects.all()
+        categories = Category.objects.all().order_by("code")
         for category in categories:
             category_count = Project.objects.filter(category=category).count()
             if category_count > 0:
@@ -1588,7 +1588,7 @@ def export_categories_csv(request):
     writer = csv.writer(response)
     
     # 取得所有案件類別資料
-    categories = Category.objects.all()
+    categories = Category.objects.all().order_by("code")
 
     # 定義欄位標題（中文）
     headers = [

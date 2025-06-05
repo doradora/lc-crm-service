@@ -122,7 +122,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     # 在獲取時增加名稱字段
     owner_name = serializers.SerializerMethodField(read_only=True)
     category = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all()
+        queryset=Category.objects.all().order_by("code")
     )  # 這裡改成可寫入
     category_detail = CategorySerializer(source='category', read_only=True)
     managers = serializers.PrimaryKeyRelatedField(

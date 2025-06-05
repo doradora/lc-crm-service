@@ -148,7 +148,7 @@ class Command(BaseCommand):
 
     def check_categories(self):
         """檢查資料庫中的類別"""
-        categories = Category.objects.all()
+        categories = Category.objects.all().order_by("code")
         self.stdout.write(
             self.style.SUCCESS(f"資料庫中共有 {categories.count()} 個類別:")
         )
