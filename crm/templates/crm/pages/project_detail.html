@@ -167,13 +167,14 @@
                                                 </div>
                                                 <div class="col-md-4 mb-5">
                                                     <label class="form-label">專案類別</label>
-                                                    <select v-if="isEditMode" class="form-select" v-model="project.category">
+                                                    <!-- 禁止修改專案類別 -->
+                                                    <!-- <select v-if="isEditMode" class="form-select" v-model="project.category">
                                                         <option v-for="category in categories"
                                                                 :key="category.id"
                                                                 :value="category.id">
                                                             [[ category.code ]]: [[ category.description ]]
                                                         </option>
-                                                    </select>
+                                                    </select> -->
                                                     <div class="form-control-plaintext">[[ project.category_detail.code ]]: [[ project.category_detail.description ]]</div>
                                                 </div>
                                                 <div class="col-md-4 mb-5">
