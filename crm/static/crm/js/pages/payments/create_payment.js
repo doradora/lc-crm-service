@@ -38,6 +38,7 @@ const paymentsList = createApp({
       },
       selectAllChecked: false, // 全選狀態
       paymentItems: [], // 新增：付款項目陣列初始化
+      projectNameFilter: '', // 新增：專案名稱前端過濾
     };
   },
   directives: {
@@ -76,6 +77,23 @@ const paymentsList = createApp({
 
       // 按降序排列（最近的年份在前）
       return range.sort((a, b) => b - a);
+    },
+    filteredProjects() {
+      if (!this.projectNameFilter.trim()) {
+        return this.projects;
+      }
+      const keyword = this.projectNameFilter.trim().toLowerCase();
+      return this.projects.filter(p => {
+        const nameMatch = p.name && p.name.toLowerCase().includes(keyword);
+        // 搜尋負責人
+        let managerMatch = false;
+        if (Array.isArray(p.managers_info)) {
+          managerMatch = p.managers_info.some(mgr =>
+            mgr.name && mgr.name.toLowerCase().includes(keyword)
+          );
+        }
+        return nameMatch || managerMatch;
+      });
     },
   },
   methods: {
@@ -242,7 +260,6 @@ const paymentsList = createApp({
       this.isCompletedFilter = true;
       this.isUninvoicedFilter = true;
       this.isPaidFilter = false;
-      this.fetchProjects(); // 重新獲取數據
     },
     // 切換專案選擇狀態
     toggleProjectSelection(project) {

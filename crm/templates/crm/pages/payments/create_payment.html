@@ -160,6 +160,19 @@
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 fw-bold text-primary">專案清單</h6>
+                                <!-- 新增：專案名稱前端過濾輸入框 -->
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ki-outline ki-magnifier"></i></span>
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="projectNameFilter"
+                                               placeholder="即時搜尋專案名稱與負責人...">
+                                        <button class="btn btn-light" v-if="projectNameFilter" @click="projectNameFilter = ''">
+                                            <i class="ki-outline ki-cross"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <div v-if="isLoading" class="d-flex justify-content-center py-10">
@@ -184,10 +197,10 @@
                                             </tr>
                                         </thead>
                                         <tbody class="fw-semibold text-gray-600">
-                                            <tr v-if="projects.length === 0">
+                                            <tr v-if="filteredProjects.length === 0">
                                                 <td colspan="6" class="text-center">沒有符合條件的專案</td>
                                             </tr>
-                                            <tr v-for="project in projects" :key="project.id">
+                                            <tr v-for="project in filteredProjects" :key="project.id">
                                                 <td>
                                                     <input type="checkbox"
                                                            :value="project.id"
@@ -199,7 +212,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="d-flex align-items-center">
-                                                        <div class="ms-5">
+                                                        <div>
                                                             <a :href="`/crm/project/${project.id}/details/`" class="text-gray-800 text-hover-primary fs-5 fw-bold">
                                                                 <i class="ki-duotone ki-medal-star" :class="{ 'text-warning': project.is_completed }">
                                                                     <span class="path1"></span>
@@ -207,11 +220,11 @@
                                                                     <span class="path3"></span>
                                                                     <span class="path4"></span>
                                                                 </i>
-                                                                [[ project.name ]]
-                                                                <i v-if="project.is_invoiced" class="ki-duotone ki-archive-tick text-success">
+                                                                <i v-if="project.is_invoiced" class="ki-duotone ki-archive-tick text-success ms-1">
                                                                     <span class="path1"></span>
                                                                     <span class="path2"></span>
                                                                 </i>
+                                                                [[ project.name ]]
                                                             </a>
                                                         </div>
                                                     </div>
