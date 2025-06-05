@@ -23,7 +23,7 @@
                                            class="form-control form-control-solid w-250px ps-12"
                                            placeholder="搜尋請款單號/專案" />
                                 </div>
-                                <div class="d-flex position-relative my-1 ms-3">
+                                <div class="d-flex position-relative my-1 ms-3 col-md-6 ">
                                     <div class="w-200 mw-150px me-2">
                                         <select class="form-select" v-model="paidFilter" data-placeholder="付款狀態">
                                             <option value="">所有狀態</option>
@@ -31,11 +31,40 @@
                                             <option value="unpaid">未付款</option>
                                         </select>
                                     </div>
-                                    <div class="w-200 mw-150px me-2">
-                                        <select class="form-select" v-model="projectFilter" data-placeholder="篩選專案">
-                                            <option value="">所有專案</option>
-                                            <option v-for="project in projects" :key="project.id" :value="project.id" :selected="project.id == projectFilter">[[ project.name ]]</option>
-                                        </select>
+                                    <div class="me-2 position-relative" v-click-outside="() => showProjectSuggestions = false">
+                                        <div class="input-group">
+                                            <input type="text"
+                                                   class="form-control"
+                                                   v-model="projectSearch"
+                                                   @input="onProjectSearch"
+                                                   @focus="showProjectSuggestions = true"
+                                                   placeholder="搜尋專案名稱..."
+                                                   autocomplete="off">
+                                            <button class="btn btn-light"
+                                                    type="button"
+                                                    @click="clearProjectSelection"
+                                                    v-if="projectFilter">
+                                                <i class="ki-outline ki-cross fs-2"></i>
+                                            </button>
+                                        </div>
+                                        <!-- 自動完成下拉選單 -->
+                                        <div class="dropdown-menu w-100 position-absolute"
+                                             :class="{'show': showProjectSuggestions}"
+                                             style="max-height: 300px; overflow-y: auto">
+                                            <div v-if="projectSuggestions.length === 0 && projectSearch" class="dropdown-item text-muted">無符合條件的專案</div>
+                                            <a v-for="project in projectSuggestions"
+                                               :key="project.id"
+                                               class="dropdown-item"
+                                               href="#"
+                                               @click.prevent="selectProjectSuggestion(project)">
+                                                [[ project.name ]]
+                                                <span v-if="project.managers_info && project.managers_info.length" class="text-muted">
+                                                    <template v-for="(manager, idx) in project.managers_info" :key="manager.id">
+                                                        [[ manager.name ]]<span v-if="idx < project.managers_info.length - 1">, </span>
+                                                    </template>
+                                                </span>
+                                            </a>
+                                        </div>
                                     </div>
                                     <button class="btn btn-light" @click="fetchPayments()">搜尋</button>
                                 </div>

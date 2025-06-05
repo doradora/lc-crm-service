@@ -3,11 +3,14 @@ const paymentList = createApp({
   data() {
     return {
       payments: [],
-      projects: [], // 所有專案
+      projects: [], // 所有專案（保留給付款單顯示用）
       isLoading: false,
       searchQuery: "",
       paidFilter: "", // 付款狀態過濾
-      projectFilter: "", // 專案過濾
+      projectFilter: "", // 專案過濾（實際選到的專案id）
+      projectSearch: "", // 專案搜尋框內容
+      projectSuggestions: [], // 專案搜尋建議清單
+      showProjectSuggestions: false, // 是否顯示建議清單
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
@@ -18,6 +21,22 @@ const paymentList = createApp({
       },
       projectMap: {}, // 專案 ID 到專案名稱的映射
     };
+  },  
+  directives: {
+    // 點擊元素外部時觸發的自定義指令
+    clickOutside: {
+      mounted(el, binding) {
+        el._clickOutside = (event) => {
+          if (!(el === event.target || el.contains(event.target))) {
+            binding.value(event);
+          }
+        };
+        document.addEventListener("click", el._clickOutside);
+      },
+      unmounted(el) {
+        document.removeEventListener("click", el._clickOutside);
+      },
+    },
   },
   computed: {
     // 計算需要顯示的頁碼
@@ -85,20 +104,6 @@ const paymentList = createApp({
         .finally(() => {
           this.isLoading = false;
         });
-    },
-
-    // 獲取專案列表，用於專案過濾
-    fetchProjects() {
-      fetch(`/crm/api/projects/?format=json&page_size=1000`)
-        .then((response) => response.json())
-        .then((data) => {
-          this.projects = data.results;
-          // 建立專案 ID 到專案名稱的映射
-          this.projects.forEach((project) => {
-            this.projectMap[project.id] = project.name;
-          });
-        })
-        .catch((error) => console.error("Error fetching projects:", error));
     },
 
     // 獲取付款單的專案名稱
@@ -263,6 +268,17 @@ const paymentList = createApp({
           this.activeMenu = null;
         }
       }
+      // 新增：隱藏專案建議清單
+      if (this.showProjectSuggestions) {
+        const input = document.querySelector('input[v-model="projectSearch"]');
+        const ul = document.querySelector('.list-group.position-absolute');
+        if (
+          (!input || !input.contains(event.target)) &&
+          (!ul || !ul.contains(event.target))
+        ) {
+          this.showProjectSuggestions = false;
+        }
+      }
     },
 
     // 處理每頁數量變更
@@ -275,18 +291,83 @@ const paymentList = createApp({
     createNewPayment() {
       window.location.href = "/crm/create_payment/";
     },
+
+    // 動態搜尋專案
+    onProjectSearch() {
+      const keyword = this.projectSearch.trim();
+      // 如果keyword沒變，則直接return
+      if (this._lastProjectSearchKeyword === keyword) {
+        return;
+      }
+      this._lastProjectSearchKeyword = keyword;
+
+      this._projectSearchToken = (this._projectSearchToken || 0) + 1;
+      const currentToken = this._projectSearchToken;
+      if (!keyword) {
+        fetch('/crm/api/projects/?format=json&ordering=-id&page_size=10')
+          .then(res => res.json())
+          .then(data => {
+            if (this._projectSearchToken !== currentToken) return; // 只處理最新請求
+            this.projectSuggestions = data.results;
+            this.showProjectSuggestions = true;
+          });
+      } else {
+        fetch(`/crm/api/projects/?format=json&search=${encodeURIComponent(keyword)}&page_size=10`)
+          .then(res => res.json())
+          .then(data => {
+            if (this._projectSearchToken !== currentToken) return; // 只處理最新請求
+            this.projectSuggestions = data.results;
+            this.showProjectSuggestions = true;
+          });
+      }
+    },
+
+    // 選擇建議專案
+    selectProjectSuggestion(project) {
+      this.projectFilter = project.id;
+      this.projectSearch = project.name;
+      this.showProjectSuggestions = false;
+    },
+
+    // 清除專案選擇
+    clearProjectSelection() {
+      this.projectFilter = '';
+      this.projectSearch = '';
+      this.projectSuggestions = [];
+      this.showProjectSuggestions = false;
+      fetch('/crm/api/projects/?format=json&ordering=-id&page_size=10')
+        .then(res => res.json())
+        .then(data => {
+          this.projectSuggestions = data.results;
+        });
+    },
   },
   mounted() {
     const urlParams = new URLSearchParams(window.location.search);
     const projectParam = urlParams.get('project');
     if (projectParam) {
       this.projectFilter = projectParam;
+      fetch(`/crm/api/projects/${projectParam}/?format=json`)
+        .then(res => res.json())
+        .then(data => {
+          this.projectSearch = data.name;
+        });
+    } else {
+      fetch('/crm/api/projects/?format=json&ordering=-id&page_size=10')
+        .then(res => res.json())
+        .then(data => {
+          this.projectSuggestions = data.results;
+        });
     }
     this.fetchPayments();
-    this.fetchProjects();
-    document.addEventListener("click", this.handleClickOutside);
+    // document.addEventListener("click", this.handleClickOutside);
   },
   unmounted() {
-    document.removeEventListener("click", this.handleClickOutside);
+    // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
+    document.querySelectorAll("[v-click-outside]").forEach((el) => {
+      if (el._clickOutside) {
+        document.removeEventListener("click", el._clickOutside);
+      }
+    });
   },
 }).mount("#app_main");
