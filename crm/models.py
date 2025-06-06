@@ -380,31 +380,31 @@ class BankAccount(models.Model):
 def payment_document_upload_path(instance, filename):
     """
     生成內存請款單檔案的上傳路徑
-    格式: media/payment_documents/YYYY/owner.id/
+    格式: payment_documents/{year}/{payment_number}/{檔案名稱}
+    payment_number 會自動處理特殊字元
     """
+    import re
     year = timezone.now().year
-    owner_id = instance.payment.owner.id
-    
+    payment_number = instance.payment.payment_number
+    # 將 payment_number 轉為安全字元（僅保留中英文、數字、底線、減號，其餘轉為底線）
+    safe_payment_number = re.sub(r'[^\w\u4e00-\u9fff-]', '_', payment_number)
+
     # 取得原檔名（不含副檔名）和副檔名
     name, ext = os.path.splitext(filename)
-    
     # 生成檔案名：{原檔名}_{請款單號}_內存請款單
-    new_filename = f"{name}_{instance.payment.payment_number}_內存請款單{ext}"
-    
+    new_filename = f"{name}_{payment_number}_內存請款單{ext}"
     # 檢查是否有重複檔名，如果有則加上數字後綴
-    base_path = f"payment_documents/{year}/{owner_id}/"
+    base_path = f"payment_documents/{year}/{safe_payment_number}/"
     full_path = os.path.join(base_path, new_filename)
-    
     counter = 1
     while PaymentDocument.objects.filter(
         payment=instance.payment, 
         file__icontains=new_filename
     ).exists():
-        name_with_counter = f"{name}_{instance.payment.payment_number}_內存請款單({counter})"
+        name_with_counter = f"{name}_{payment_number}_內存請款單({counter})"
         new_filename = f"{name_with_counter}{ext}"
         full_path = os.path.join(base_path, new_filename)
         counter += 1
-    
     return full_path
 
 
