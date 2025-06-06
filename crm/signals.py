@@ -15,7 +15,11 @@ def set_project_invoiced_on_add(sender, instance, created, **kwargs):
 
 @receiver(post_delete, sender=PaymentProject)
 def unset_project_invoiced_on_remove(sender, instance, **kwargs):
-    project = instance.project
+    try:
+        project = instance.project
+    except Project.DoesNotExist:
+        logger.warning(f"[PaymentProject:{instance.id}] 關聯的 Project 不存在，略過 is_invoiced 邏輯")
+        return
     if project:
         has_payment = PaymentProject.objects.filter(project=project).exists()
         if not has_payment and project.is_invoiced:
