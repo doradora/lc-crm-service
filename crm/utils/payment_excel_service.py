@@ -56,25 +56,53 @@ def generate_payment_excel(payment):
         # 設定匯款帳號資訊（如果有的話）
         if payment.selected_bank_account:
             bank_account = payment.selected_bank_account
-            original_ws["B30"] = f"戶名：{bank_account.account_name}"
-            original_ws["B31"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
-            original_ws["B32"] = f"銀行名稱：{bank_account.bank_name}"
+            original_ws["B28"] = f"戶名：{bank_account.account_name}"
+            original_ws["B29"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
+            original_ws["B30"] = f"銀行名稱：{bank_account.bank_name}"
 
         # 獲取請款單關聯的專案明細
         payment_projects = payment.paymentproject_set.select_related("project", "project__category")
         owner = payment.owner.company_name
 
-        # 創建專案明細列表
+        # --- 專案排序：先依類別名稱字母順，再依自訂欄位值排序 ---
+        def get_sort_key(pp):
+            project = pp.project
+            if not project or not project.category:
+                return ("", [])
+            category_code = project.category.code or ""
+            # 依自訂欄位順序取值
+            custom_schema = project.category.custom_field_schema or {}
+            custom_order = sorted(
+                [(k, v.get("order", 0)) for k, v in custom_schema.items()], key=lambda x: x[1]
+            )
+            custom_values = []
+            for field, _ in custom_order:
+                val = getattr(project, "custom_fields", {}).get(field)
+                # 強制轉成 str，dict 也會變成字串，避免 unhashable type 錯誤
+                try:
+                    custom_values.append(str(val) if val is not None else "")
+                except Exception:
+                    custom_values.append("")
+            return (category_code, tuple(custom_values))  # tuple 可 hash
+        payment_projects = sorted(payment_projects, key=get_sort_key)
+
+        # --- 創建專案明細列表 ---
         project_details = []
         for idx, pp in enumerate(payment_projects, 1):
             if not pp.project:
                 logger.warning(f"請款單關聯專案不存在 (payment id={payment.id}, paymentproject id={pp.id})")
                 continue
+            project = pp.project
+            # 工程明細：專案名稱+報告書名稱（換行）
+            if getattr(project, "report_name", None):
+                detail_name = f"{project.name}\n{project.report_name}"
+            else:
+                detail_name = project.name
             detail = {
                 "項次": idx,
-                "工程明細": f"{pp.project.name}{f'\n{pp.description}' if pp.description else ''}",
+                "工程明細": detail_name,
                 "金額": pp.amount,
-                "project": pp.project,
+                "project": project,
             }
             project_details.append(detail)
         if not project_details:
@@ -84,19 +112,32 @@ def generate_payment_excel(payment):
             ]
 
         total_pages = (len(project_details) + 9) // 10
-        all_custom_fields = {"pcode": {"display_name": "案號", "order": 0}}
+        # --- 收集所有自訂欄位，依「類別代碼字母順」再依 order 排序，案號最前 ---
+        all_custom_fields = []  # [(category_code, field_name, order, display_name)]
         for detail in project_details:
             project = detail["project"]
             if project and project.category and project.category.custom_field_schema:
+                category_code = getattr(project.category, "code", "") or ""
                 for field_name, field_props in project.category.custom_field_schema.items():
-                    if field_name not in all_custom_fields:
-                        all_custom_fields[field_name] = {
-                            "display_name": field_props.get("display_name", field_name),
-                            "order": field_props.get("order", 0),
-                        }
-        sorted_custom_fields = sorted(
-            all_custom_fields.items(), key=lambda x: x[1]["order"]
-        )
+                    display_name = field_props.get("display_name", field_name)
+                    order = field_props.get("order", 0)
+                    all_custom_fields.append((category_code, field_name, order, display_name))
+        # 去除重複 (category_code, field_name)
+        seen = set()
+        unique_fields = []
+        for item in all_custom_fields:
+            key = (item[0], item[1])
+            if key not in seen:
+                seen.add(key)
+                unique_fields.append(item)
+        # 排序：類別代碼字母順 → order → field_name
+        unique_fields.sort(key=lambda x: (x[0], x[2], x[1]))
+        # 案號(pcode)永遠最前
+        sorted_custom_fields = [("pcode", {"display_name": "案號"})]
+        for _, field_name, _, display_name in unique_fields:
+            if field_name != "pcode":
+                sorted_custom_fields.append((field_name, {"display_name": display_name}))
+        # 產生 custom_field_columns
         custom_field_columns = {}
         next_col = 4
         for field_name, field_props in sorted_custom_fields:
@@ -105,6 +146,9 @@ def generate_payment_excel(payment):
         max_column = 3
         if custom_field_columns:
             max_column = max(max_column, max(custom_field_columns.values()))
+
+        # 計算所有專案總金額
+        total_amount = sum(pp.amount or 0 for pp in payment.paymentproject_set.all())
 
         for page in range(total_pages):
             if page == 0:
@@ -126,11 +170,15 @@ def generate_payment_excel(payment):
             ws.page_margins.header = 0.32
             ws.page_margins.footer = 0.32
             ws["B4"] = payment.payment_number
-            ws["C5"] = (
-                f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y%m/%d')}"
-            )
+            # 民國年格式：西元年-1911
+            date_obj = payment.date_issued if payment.date_issued else datetime.now()
+            roc_year = date_obj.year - 1911
+            roc_date_str = f"{roc_year}年{date_obj.month}月{date_obj.day}日"
+            ws["C5"] = f"{roc_date_str}"
             ws["B5"] = owner or "未指定業主"
             ws["C17"] = "=SUM(C7:C16)"
+            # --- C18顯示所有專案總金額 ---
+            ws["C18"] = total_amount
             start_idx = page * 10
             end_idx = min(start_idx + 10, len(project_details))
             page_details = project_details[start_idx:end_idx]
@@ -140,11 +188,22 @@ def generate_payment_excel(payment):
                     col = custom_field_columns[field_name]
                     cell = ws.cell(row=header_row, column=col)
                     cell.value = field_props["display_name"]
-                    cell.font = Font(bold=True)
+                    cell.font = Font(bold=True, size=12, name="Microsoft JhengHei")
                     cell.alignment = Alignment(horizontal="center", vertical="center")
+            # --- 寫入專案明細 ---
             _fill_project_details(ws, page_details, 7, custom_field_columns)
-            for row_idx in range(6, 7 + len(page_details)):
-                auto_adjust_row_height(ws, row_idx)
+            # --- 若專案數量<10，於第n+1列工程明細欄填"以下空白" ---
+            if len(page_details) < 10:
+                empty_row = 7 + len(page_details)
+                ws.cell(row=empty_row, column=2).value = "以下空白"
+                ws.cell(row=empty_row, column=2).font = Font(size=12, name="Microsoft JhengHei")
+                ws.cell(row=empty_row, column=2).alignment = Alignment(wrap_text=True, vertical="top")
+            # --- 7~16列列高45，字體12，微軟正黑體 ---
+            for row_idx in range(7, 17):
+                for col_idx in range(1, ws.max_column + 1):
+                    cell = ws.cell(row=row_idx, column=col_idx)
+                    cell.font = Font(size=12, name="Microsoft JhengHei")
+                ws.row_dimensions[row_idx].height = 45
             for col_idx in range(3, ws.max_column + 1):
                 auto_adjust_column_width(ws, col_idx)
 
@@ -168,35 +227,61 @@ def _fill_project_details(ws, project_details, start_row, custom_field_columns):
         amount_cell = ws.cell(row=row, column=3)
         amount_cell.value = detail["金額"]
         amount_cell.number_format = "#,##0"
-        amount_cell = ws.cell(row=row, column=4)
-        if detail["project"]:
-            amount_cell.value = f"{detail['project'].year-1911}{detail['project'].category.code}{detail['project'].project_number}"
-        amount_cell.number_format = "#,##0"
-        amount_cell = ws.cell(row=row, column=4+len(custom_field_columns))
-        amount_cell.value = detail["金額"]
-        amount_cell.number_format = "#,##0"
+        # --- 案號格式：西元年4碼+類別代碼+3碼案號（補零） ---
+        pcode_cell = ws.cell(row=row, column=4)
         project = detail["project"]
+        if project:
+            year = getattr(project, "year", None)
+            category = getattr(project, "category", None)
+            code = getattr(category, "code", "") if category else ""
+            number = getattr(project, "project_number", "")
+            if year and code and number is not None:
+                pcode = f"{year}{code}{str(number).zfill(3)}"
+                pcode_cell.value = pcode
+            else:
+                pcode_cell.value = ""
+        # --- 自訂欄位 ---
+        last_custom_col = max(custom_field_columns.values()) if custom_field_columns else None
         if project and hasattr(project, "custom_fields") and custom_field_columns:
             for field_name, col in custom_field_columns.items():
-                if field_name in getattr(project, "custom_fields", {}):
-                    cell = ws.cell(row=row, column=col)
-                    cell.value = project.custom_fields[field_name]
-                    cell.border = Border(
-                        top=Side(style="mediumDashDot"),
-                        bottom=Side(style="mediumDashDot"),
-                    )
-                    column_letter = get_column_letter(col)
-                    ws.column_dimensions[column_letter].hidden = False
-                    if project.category and project.category.custom_field_schema:
-                        field_type = project.category.custom_field_schema.get(
-                            field_name, {}
-                        ).get("type")
-                        if field_type == "number":
-                            cell.number_format = "#,##0.00"
-                        elif field_type == "date":
-                            cell.number_format = "yyyy-mm-dd"
-                        elif field_type == "boolean":
-                            cell.value = "是" if cell.value else "否"
+                if field_name == "pcode":
+                    continue  # 已處理
+                val = getattr(project, "custom_fields", {}).get(field_name)
+                cell = ws.cell(row=row, column=col)
+                # bool/None/空值顯示為是/否
+                if project.category and project.category.custom_field_schema:
+                    field_type = project.category.custom_field_schema.get(
+                        field_name, {}
+                    ).get("type")
+                    if field_type == "boolean":
+                        if val in [True, "True", "true", 1, "1"]:
+                            cell.value = "是"
+                        else:
+                            cell.value = "否"
+                    else:
+                        cell.value = val if val not in [None, ""] else "否" if field_type == "boolean" else ""
+                else:
+                    cell.value = val if val is not None else ""
+                cell.border = Border(
+                    top=Side(style="mediumDashDot"),
+                    bottom=Side(style="mediumDashDot"),
+                )
+                column_letter = get_column_letter(col)
+                ws.column_dimensions[column_letter].hidden = False
+                if project.category and project.category.custom_field_schema:
+                    field_type = project.category.custom_field_schema.get(
+                        field_name, {}
+                    ).get("type")
+                    if field_type == "number":
+                        cell.number_format = "#,##0.00"
+                    elif field_type == "date":
+                        cell.number_format = "yyyy-mm-dd"
+            # 最右邊自訂欄位的右一格填入金額
+            if last_custom_col:
+                right_cell = ws.cell(row=row, column=last_custom_col + 1)
+                right_cell.value = detail["金額"]
+                right_cell.number_format = "#,##0"
+
 
 def auto_adjust_column_width(ws, column_index=None):
     for col_idx in range(1, ws.max_column + 1) if column_index is None else [column_index]:
