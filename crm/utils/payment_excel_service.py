@@ -207,6 +207,67 @@ def generate_payment_excel(payment):
             for col_idx in range(3, ws.max_column + 1):
                 auto_adjust_column_width(ws, col_idx)
 
+        # === 新增：收款註記(發票)區塊填入 ===
+        # 收款註記起始列
+        receipt_note_start_row = 36
+        receipt_note_columns = [
+            (1, "收款日"),
+            (2, "發票日期/字軌號碼"),
+            (3, "案號"),
+            (4, "收款方式"),
+            (5, "入帳日"),
+            (6, "金額"),
+            (7, "存放行庫"),
+            (8, "備註"),
+        ]
+        # 寫入標題列
+        for col, title in receipt_note_columns:
+            cell = original_ws.cell(row=receipt_note_start_row, column=col)
+            cell.value = title
+            cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = Border(
+                top=Side(style="mediumDashDot"),
+                bottom=Side(style="thin")
+            )
+        # 寫入發票資料
+        invoice_qs = payment.invoices.all() if hasattr(payment, 'invoices') else []
+        bank_name = payment.selected_bank_account.bank_name if payment.selected_bank_account else ""
+        for idx, invoice in enumerate(invoice_qs, 1):
+            row = receipt_note_start_row + idx
+            # 收款日
+            original_ws.cell(row=row, column=1).value = invoice.payment_received_date.strftime('%Y-%m-%d') if invoice.payment_received_date else ""
+            # 發票日期/字軌號碼
+            v = ""
+            if invoice.issue_date:
+                v += invoice.issue_date.strftime('%Y-%m-%d')
+            if invoice.invoice_number:
+                v += f"/{invoice.invoice_number}"
+            original_ws.cell(row=row, column=2).value = v
+            # 案號(空白)
+            original_ws.cell(row=row, column=3).value = ""
+            # 收款方式
+            original_ws.cell(row=row, column=4).value = dict(invoice.PAYMENT_METHOD_CHOICES).get(invoice.payment_method, invoice.payment_method) if invoice.payment_method else ""
+            # 入帳日
+            original_ws.cell(row=row, column=5).value = invoice.account_entry_date.strftime('%Y-%m-%d') if invoice.account_entry_date else ""
+            # 金額
+            original_ws.cell(row=row, column=6).value = invoice.amount
+            # 金額格式
+            original_ws.cell(row=row, column=6).number_format = "#,##0"
+            # 存放行庫
+            original_ws.cell(row=row, column=7).value = bank_name
+            # 備註
+            original_ws.cell(row=row, column=8).value = invoice.notes or ""
+            # 格式設定
+            for col in range(1, 9):
+                cell = original_ws.cell(row=row, column=col)
+                cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
+                cell.alignment = Alignment(vertical="center")
+                if col in [2, 3, 4, 5]:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = Border(bottom=Side(style="thin"))
+            original_ws.row_dimensions[row].height = 30
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
