@@ -53,6 +53,10 @@ from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
 from .permissions import IsAdminOrCanRequestPayment, IsAdmin
 from .utils.import_utils import import_owners_from_file, import_projects_from_file
+from .utils.payment_excel_service import generate_payment_excel
+import logging
+
+logger = logging.getLogger(__name__)
 
 @login_required(login_url="signin")
 def category(request):
@@ -908,325 +912,25 @@ def index(request):
 def export_payment_excel(request, payment_id):
     """匯出請款單為Excel檔案"""
     try:
-        template_file = os.path.join(settings.BASE_DIR, "crm", "excel", "payment.xlsx")
-        wb = load_workbook(template_file)
-        original_ws = wb["請款單"]  # 保存原始模板工作表的引用
-
-        # 獲取請款單資訊
         payment = get_object_or_404(Payment, id=payment_id)
-                
-        # 設定收款公司資訊
-        company = payment.company
-        original_ws["B20"] = f"公司名稱：{company.name}"  
-        original_ws["B21"] = f"負責人：{company.responsible_person}"
-        original_ws["B22"] = f"統一編號：{company.tax_id}"
-        original_ws["B23"] = f"地址：{company.address}"
-        original_ws["B24"] = f"電話：{company.phone}"
-        original_ws["B25"] = f"傳真：{company.fax if company.fax else ''}"
-        original_ws["B26"] = f"聯絡人：{company.contact_person}"
-        
-        # 設定匯款帳號資訊（如果有的話）
-        if payment.selected_bank_account:
-            bank_account = payment.selected_bank_account
-            original_ws["B30"] = f"戶名：{bank_account.account_name}"
-            original_ws["B31"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
-            original_ws["B32"] = f"銀行名稱：{bank_account.bank_name}"
-
-        # 獲取請款單關聯的專案明細
-        payment_projects = PaymentProject.objects.filter(
-            payment=payment
-        ).select_related("project", "project__category")
-
-        # 獲取業主資訊
-        owner = payment.owner.company_name
-
-        # 創建專案明細列表
-        project_details = []
-        for idx, pp in enumerate(payment_projects, 1):
-            # 檢查項目是否存在
-            if pp.project:
-                detail = {
-                    "項次": idx,
-                    "工程明細": f"{pp.project.name}{f'\n{pp.description}' if pp.description else ''}",
-                    "金額": pp.amount,
-                    "project": pp.project,  # 保存專案對象以便後續提取 custom_fields
-                }
-                project_details.append(detail)
-
-        # 如果沒有專案明細，使用空列表
-        if not project_details:
-            project_details = [
-                {"項次": 1, "工程明細": "無專案明細", "金額": 0, "project": None}
-            ]
-
-        # 計算需要的頁數
-        total_pages = (len(project_details) + 9) // 10  # 向上取整，每頁最多10個專案
-
-        # 準備自定義欄位標頭和順序
-        all_custom_fields = {
-            "pcode": {"display_name": "案號", "order": 0}
-        }  # 預設類別欄位
-
-        # 掃描所有專案，收集不同的自定義欄位
-        for detail in project_details:
-            project = detail["project"]
-            if project and project.category and project.category.custom_field_schema:
-                for (
-                    field_name,
-                    field_props,
-                ) in project.category.custom_field_schema.items():
-                    if field_name not in all_custom_fields:
-                        all_custom_fields[field_name] = {
-                            "display_name": field_props.get("display_name", field_name),
-                            "order": field_props.get("order", 0),
-                        }
-
-        # 依照 order 排序自定義欄位
-        sorted_custom_fields = sorted(
-            all_custom_fields.items(), key=lambda x: x[1]["order"]
-        )
-
-        # 設定自定義欄位的欄號
-        custom_field_columns = {}
-        next_col = 4  # 從第4欄開始放置自定義欄位（項次、工程明細、金額後面）
-
-        for field_name, field_props in sorted_custom_fields:
-            custom_field_columns[field_name] = next_col
-            next_col += 1
-            
-        # 計算最大列數以設定正確的列印區域
-        max_column = 3  # 默認有項次、工程明細、金額三列
-        if custom_field_columns:
-            max_column = max(max_column, max(custom_field_columns.values()))
-
-        # 處理每一頁的數據
-        for page in range(total_pages):
-            # 對於第一頁，使用原始工作表；對於後續頁面，複製原始工作表
-            if page == 0:
-                ws = original_ws
-                for col in range(len(sorted_custom_fields)-1):
-                    copy_column_and_insert(ws, source_col=5, target_col=4)
-            else:
-                # 使用 copy_worksheet 一次性複製整個工作表（包含所有格式和樣式）
-                ws = wb.copy_worksheet(original_ws)
-                ws.title = f"請款單-第{page+1}頁"
-                
-                # 清除複製工作表的原始數據
-                for r in range(7, 17):  # 清除 row 7-16
-                    for c in range(1, max_column + 2):
-                        cell = ws.cell(row=r, column=c)
-                        cell.value = None
-                
-            # 設置列印區域
-            ws.print_area = "A1:C35" 
-            ws.page_margins.left = 0.72  # 左邊界 0.5 吋
-            ws.page_margins.right = 0.72  # 右邊界 0.5 吋
-            ws.page_margins.top = 0.36  # 上邊界 1 吋
-            ws.page_margins.bottom = 0.36
-            ws.page_margins.header = 0.32  # 頁首 0.3 吋
-            ws.page_margins.footer = 0.32  # 頁尾 0.3 吋
-            
-            # 設置基本資訊
-            ws["B4"] = payment.payment_number
-            ws["C5"] = (
-                f"日期: {payment.date_issued.strftime('%Y/%m/%d') if payment.date_issued else datetime.now().strftime('%Y%m/%d')}"
-            )
-            ws["B5"] = owner or "未指定業主"
-            ws["C17"] = "=SUM(C7:C16)"  # 計算金額總和
-
-            # 獲取此頁的專案明細
-            start_idx = page * 10
-            end_idx = min(start_idx + 10, len(project_details))
-            page_details = project_details[start_idx:end_idx]
-
-            # 加入自定義欄位標頭
-            if sorted_custom_fields:
-                header_row = 6
-                for field_name, field_props in sorted_custom_fields:
-                    col = custom_field_columns[field_name]
-                    cell = ws.cell(row=header_row, column=col)
-                    cell.value = field_props["display_name"]
-                    cell.font = Font(bold=True)
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                    # cell.border = Border(
-                    #     left=Side(style="thin"),
-                    #     right=Side(style="thin"),
-                    #     top=Side(style="thin"),
-                    #     bottom=Side(style="thin"),
-                    # )
-
-            # 填入此頁的工程明細數據
-            _fill_project_details(ws, page_details, 7, custom_field_columns)
-            
-            # 自動調整包含專案明細的行高
-            for row_idx in range(6, 7 + len(page_details)):
-                auto_adjust_row_height(ws, row_idx)
-            
-            # 自動調整所有列寬
-            for col_idx in range(3, ws.max_column + 1):
-                auto_adjust_column_width(ws, col_idx)
-
-        # 建立 HTTP 回應
+        output = generate_payment_excel(payment)
+        filename = f"payment_{payment.payment_number}_{datetime.now().strftime('%Y%m%d')}.xlsx"
         response = HttpResponse(
+            output.getvalue(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        response["Content-Disposition"] = (
-            f'attachment; filename="payment_{payment.payment_number}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
-        )
-
-        # 儲存 Excel 到 response
-        wb.save(response)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
-
+    except FileNotFoundError as e:
+        logger.error(f"匯出Excel失敗: {str(e)}")
+        return HttpResponse(f"匯出Excel失敗：找不到樣板檔案，請聯絡管理員。", status=500)
+    except ValueError as e:
+        logger.error(f"匯出Excel失敗: {str(e)}")
+        return HttpResponse(f"匯出Excel失敗：資料不完整，{str(e)}", status=500)
     except Exception as e:
-        # 發生錯誤時返回錯誤信息
-        error_details = traceback.format_exc()  # 獲取詳細錯誤訊息
-        print(f"匯出Excel失敗: {str(e)}\n{error_details}")
+        import traceback
+        logger.error(f"匯出Excel失敗: {str(e)}\n{traceback.format_exc()}")
         return HttpResponse(f"匯出Excel失敗: {str(e)}", status=500)
-
-
-def _fill_project_details(ws, project_details, start_row, custom_field_columns):
-    """填入專案明細和自定義欄位資料
-
-    Args:
-        ws: Excel工作表
-        project_details: 專案明細列表
-        start_row: 起始行號
-        custom_field_columns: 自定義欄位的列號對應
-    """
-
-    for i, detail in enumerate(project_details):
-        row = start_row + i
-
-        # 基本資訊
-        item_cell = ws.cell(row=row, column=1)
-        item_cell.value = detail["項次"]
-
-        # 工程明細單元格
-        detail_cell = ws.cell(row=row, column=2)
-        detail_cell.value = detail["工程明細"]
-        detail_cell.alignment = Alignment(wrap_text=True, vertical="top")
-
-        # 金額單元格
-        amount_cell = ws.cell(row=row, column=3)
-        amount_cell.value = detail["金額"]
-        amount_cell.number_format = "#,##0"
-
-        amount_cell = ws.cell(row=row, column=4)
-        amount_cell.value = f"{detail['project'].year-1911}{detail['project'].category.code}{detail['project'].project_number}"
-        print(f"專案代碼: {detail['project'].year}")
-        amount_cell.number_format = "#,##0"
-        
-        amount_cell = ws.cell(row=row, column=4+len(custom_field_columns))
-        amount_cell.value = detail["金額"]
-        amount_cell.number_format = "#,##0"
-
-        # 填入自定義欄位資料
-        project = detail["project"]
-        if project and project.custom_fields and custom_field_columns:
-            # 填入自定義欄位數據並設定格式
-            for field_name, col in custom_field_columns.items():
-                if field_name in project.custom_fields:
-                    cell = ws.cell(row=row, column=col)
-                    cell.value = project.custom_fields[field_name]
-                    cell.border = Border(
-                        top=Side(style="mediumDashDot"),
-                        bottom=Side(style="mediumDashDot"),
-                    )
-                    
-                    # 確保欄是可見的
-                    column_letter = get_column_letter(col)
-                    ws.column_dimensions[column_letter].hidden = False
-
-                    # 根據欄位類型設置格式
-                    if project.category and project.category.custom_field_schema:
-                        field_type = project.category.custom_field_schema.get(
-                            field_name, {}
-                        ).get("type")
-                        if field_type == "number":
-                            cell.number_format = "#,##0.00"
-                        elif field_type == "date":
-                            cell.number_format = "yyyy-mm-dd"
-                        elif field_type == "boolean":
-                            cell.value = "是" if cell.value else "否"
-
-def auto_adjust_column_width(ws, column_index=None):
-    """根據儲存格內容自動調整列寬
-    
-    Args:
-        ws: 工作表對象
-        column_index: 要調整的列索引，如果為None則調整所有列
-    """
-    for col_idx in range(1, ws.max_column + 1) if column_index is None else [column_index]:
-        max_length = 0
-        column = get_column_letter(col_idx)
-        
-        # 尋找該列中最長的內容
-        for row in range(1, ws.max_row + 1):
-            cell = ws.cell(row=row, column=col_idx)
-            if cell.value:
-                # 計算儲存格內容的顯示寬度 (漢字佔用更多空間)
-                try:
-                    cell_length = 0
-                    for char in str(cell.value):
-                        if ord(char) > 127:  # 漢字或其他全形字符
-                            cell_length += 2.1
-                        else:
-                            cell_length += 1.4
-                    
-                    # 考慮字體粗體或特殊格式
-                    if cell.font and cell.font.bold:
-                        cell_length *= 1.1
-                        
-                    # 更新最大長度
-                    if cell_length > max_length:
-                        max_length = cell_length
-                except:
-                    # 處理無法計算長度的情況
-                    pass
-        
-        # 設置列寬 (加一些額外空間)
-        adjusted_width = max_length + 4
-        ws.column_dimensions[column].width = adjusted_width if adjusted_width > 10 else 10
-        
-def auto_adjust_row_height(ws, row_index=None):
-    """根據儲存格內容自動調整行高
-    
-    Args:
-        ws: 工作表對象
-        row_index: 要調整的行索引，如果為None則調整所有行
-    """
-    for row_idx in range(1, ws.max_row + 1) if row_index is None else [row_index]:
-        max_lines = 1
-        
-        # 尋找該行中包含換行最多的儲存格
-        for col_idx in range(1, ws.max_column + 1):
-            cell = ws.cell(row=row_idx, column=col_idx)
-            if cell.value:
-                # 計算換行數量
-                line_count = str(cell.value).count('\n') + 1
-                
-                # 檢查是否啟用了自動換行
-                if cell.alignment and cell.alignment.wrap_text:
-                    # 估算因自動換行產生的行數
-                    # 先獲取列寬
-                    col_letter = get_column_letter(col_idx)
-                    col_width = ws.column_dimensions[col_letter].width
-                    
-                    if col_width:
-                        # 假設每行可容納的字符數
-                        chars_per_line = int(col_width / 1.2) # 1.2 是粗略估算值
-                        if chars_per_line > 0:
-                            text_length = len(str(cell.value).replace('\n', ''))
-                            estimated_lines = text_length / chars_per_line
-                            line_count = max(line_count, int(estimated_lines) + 1)
-                
-                if line_count > max_lines:
-                    max_lines = line_count
-        
-        # 設置行高 (每行約 20 點)
-        row_height = max_lines * 20
-        ws.row_dimensions[row_idx].height = row_height
         
 def copy_column_and_insert(ws, source_col: int, target_col: int):
     """
