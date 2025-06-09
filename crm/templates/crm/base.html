@@ -83,7 +83,7 @@
           icon: "ki-outline ki-address-book fs-2",
           subItems: [{ title: "業主列表", url: "{% url 'owners' %}" }],
         },
-        {% if user.profile.can_request_payment or user.profile.is_admin %}
+        {% if user.profile.is_admin or user.profile.can_request_payment %}
           {
             id: "accounting",
             title: "帳務",
@@ -94,7 +94,7 @@
             ],
           },
         {% endif %} 
-        {% if user.profile.is_admin %}
+        {% if user.profile.is_admin or user.profile.can_request_payment %}
           {
             id: "users",
             title: "公司人員",
@@ -109,7 +109,10 @@
             icon: "ki-outline ki-gear fs-2",
             subItems: [
               { title: "收款公司", url: "{% url 'companys' %}" },
+              
+              {% if user.profile.is_admin %}
               { title: "案件類別", url: "{% url 'category' %}" },
+              {% endif %} 
               { title: "匯入資料", url: "{% url 'import' %}" },
               { title: "匯出檔案", url: "{% url 'export' %}" },
             ],

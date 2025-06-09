@@ -231,15 +231,24 @@ const companyList = createApp({
           if (!result.ok) {
             let errorDetails = [];
             Object.keys(result.data).forEach((key) => {
-              console.log(result.data[key]);
               if (key === "tax_id") {
                 errorDetails.push("統一編號錯誤，可能已經重複或有誤。");
+              } else {
+                errorDetails.push(result.data[key]);
               }
             });
             if (errorDetails.length > 0) {
-              errorMsg = errorDetails.join("\n");
+              Swal.fire({
+                title: "錯誤!",
+                html: errorDetails.join("<br>"),
+                icon: "error",
+                confirmButtonText: "確認",
+              });
+              throw new Error(errorDetails.join("\n"));
             }
-            throw new Error(errorMsg);
+            if (errorDetails.length > 0) {
+              throw new Error(errorDetails.join("\n"));
+            }
           } else if (result.status === 201) {
             Swal.fire({
               title: "成功!",

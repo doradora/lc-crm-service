@@ -28,6 +28,7 @@ const companyDetail = createApp({
       totalPages: 1,
       companyId: null,
       isAdmin: typeof is_superuser !== 'undefined' && is_superuser, // 檢查是否為管理員
+      isPayment: typeof is_payment !== 'undefined' && is_payment, // 檢查是否為付款人
       isEditMode: false,
       isLoading: true,
       isLoadingPayments: true,

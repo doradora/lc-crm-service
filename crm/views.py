@@ -94,7 +94,7 @@ def invoices(request):
 @login_required(login_url="signin")
 def export(request):
     """匯出檔案頁面"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     return render(request, "crm/pages/export.html")
 
@@ -102,7 +102,7 @@ def export(request):
 @login_required(login_url="signin")
 def import_data(request):
     """匯入檔案頁面"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     return render(request, "crm/pages/import.html")
 
@@ -211,7 +211,7 @@ def payment_details(request, payment_id):
 @login_required(login_url="signin")
 def companys(request):
     """顯示收款公司列表"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     return render(request, "crm/pages/company/companys.html")
 
@@ -221,7 +221,7 @@ def company_details(request, company_id):
     """
     顯示公司詳情頁面
     """
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     
     try:
@@ -784,10 +784,10 @@ class CompanyViewSet(BaseViewSet):
 
     def get_permissions(self):
         """
-        確保只有管理員可以訪問公司資訊
+        company 相關操作（新增、查詢、修改、刪除、銀行帳戶）允許 admin 或 can_request_payment
         """
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'bank_accounts', 'add_bank_account']:
-            return [permissions.IsAuthenticated(), IsAdmin()]
+            return [permissions.IsAuthenticated(), IsAdminOrCanRequestPayment()]
         return [permissions.IsAuthenticated()]
         
     def get_queryset(self):
@@ -842,10 +842,10 @@ class BankAccountViewSet(BaseViewSet):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
 def import_owners(request):
     """匯入業主資料"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         return Response({"detail": "您沒有權限執行此操作"}, status=403)
 
     try:
@@ -864,10 +864,10 @@ def import_owners(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
 def import_projects(request):
     """匯入專案資料"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         return Response({"detail": "您沒有權限執行此操作"}, status=403)
 
     try:
@@ -888,7 +888,7 @@ def import_projects(request):
 from rest_framework.decorators import api_view, permission_classes
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
 def get_bank_accounts_for_company(request, company_id):
     """根據公司ID獲取該公司的所有銀行帳號"""
     try:
@@ -958,7 +958,7 @@ def copy_column_and_insert(ws, source_col: int, target_col: int):
 @login_required(login_url="signin")
 def export_projects_csv(request):
     """匯出所有專案資料為 CSV 格式"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied    # 設定檔案名稱
     now = timezone.now()
     filename = f"專案資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
@@ -1024,7 +1024,7 @@ def export_projects_csv(request):
 @login_required(login_url="signin")
 def export_owners_csv(request):
     """匯出所有業主資料為 CSV 格式"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     
     # 設定檔案名稱
@@ -1078,7 +1078,7 @@ def export_owners_csv(request):
 @login_required(login_url="signin")
 def export_quotations_csv(request):
     """匯出所有報價資料為 CSV 格式"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     
     # 設定檔案名稱
@@ -1132,7 +1132,7 @@ def export_quotations_csv(request):
 @login_required(login_url="signin")
 def export_payments_csv(request):
     """匯出所有請款資料為 CSV 格式"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     
     # 設定檔案名稱
@@ -1202,7 +1202,7 @@ def export_payments_csv(request):
 @login_required(login_url="signin")
 def export_invoices_csv(request):
     """匯出所有發票資料為 CSV 格式"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     
     # 設定檔案名稱
@@ -1269,7 +1269,7 @@ def export_invoices_csv(request):
 @login_required(login_url="signin")
 def export_categories_csv(request):
     """匯出所有案件類別資料為 CSV 格式"""
-    if not request.user.profile.is_admin:
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     
     # 設定檔案名稱
@@ -1328,7 +1328,7 @@ def export_categories_csv(request):
 
 # 匯入功能 API endpoints
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated, IsAdmin])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
 @parser_classes([MultiPartParser, FormParser])
 def import_owners_api(request):
     """業主資料匯入 API"""
@@ -1381,7 +1381,7 @@ def import_owners_api(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated, IsAdmin])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
 @parser_classes([MultiPartParser, FormParser])
 def import_projects_api(request):
     """專案資料匯入 API"""
