@@ -13,33 +13,53 @@
             <div id="app_content_container">
                 <div class="d-flex flex-column flex-column-fluid">
                     <div class="card card-flush" id="projects_list">
-                        <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+                        <div class="card-header align-items-center py-5">
                             <div class="card-title w-100">
-                                <div class="d-flex align-items-center position-relative my-1">
-                                    <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
-                                    <input type="text"
-                                           v-model="searchQuery"
-                                           class="form-control form-control-solid w-250px ps-12"
-                                           placeholder="搜尋專案名稱" />
+                                <!-- 搜尋列 -->
+                                <div class="d-flex flex-column flex-md-row gap-2">
+                                    <div class="d-flex align-items-center position-relative flex-grow-1">
+                                        <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
+                                        <input type="text" v-model="searchQuery" class="form-control form-control-solid ps-12"
+                                               placeholder="搜尋專案名稱" />
+                                    </div>
+                                    <!-- 篩選按鈕 -->
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                                            <i class="ki-outline ki-filter me-2"></i>篩選條件
+                                        </button>
+                                        <button class="btn btn-light" @click="fetchOwnerProjects()">搜尋</button>
+                                    </div>
                                 </div>
-                                <div class="d-flex position-relative my-1">
-                                    <div class="w-200 mw-150px me-2">
-                                        <select class="form-select" v-model="categoryFilter" data-placeholder="所有類別">
-                                            <option value="">所有類別</option>
-                                            <option v-for="category in categories"
-                                                    :key="category.id"
-                                                    :value="category.id">
-                                                [[ category.code ]]: [[ category.description ]]
-                                            </option>
-                                        </select>
+                                <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
+                                    <span class="text-muted me-2">每頁顯示</span>
+                                    <select class="form-select form-select-sm w-75px" v-model.number="pageSize" @change="pageSizeChanged">
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                    <button class="btn btn-primary" @click.prevent="showAddProjectModal">新增專案</button>
+                                </div>
+                            </div>
+                            <div class="card-title">
+                                <!-- 可摺疊的篩選區域 -->
+                                <div class="collapse" id="filterCollapse">
+                                    <div class="d-flex flex-column flex-md-row gap-2">
+                                        <div class="flex-grow-1">
+                                            <select class="form-select" v-model="categoryFilter" data-placeholder="所有類別">
+                                                <option value="">所有類別</option>
+                                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                                    [[ category.code ]]: [[ category.description ]]
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <select class="form-select" v-model="yearFilter" data-placeholder="年份">
+                                                <option value="">所有年份</option>
+                                                <option v-for="year in availableYears" :key="year" :value="year">[[ year ]]</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="w-200 mw-150px me-2">
-                                        <select class="form-select" v-model="yearFilter" data-placeholder="年份">
-                                            <option value="">所有年份</option>
-                                            <option v-for="year in availableYears" :key="year" :value="year">[[ year ]]</option>
-                                        </select>
-                                    </div>
-                                    <button class="btn btn-light" @click="fetchOwnerProjects()">搜尋</button>
                                 </div>
                             </div>
                         </div>
