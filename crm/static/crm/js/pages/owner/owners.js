@@ -62,24 +62,57 @@ const ownerList = createApp({
   },
   methods: {
     deleteOwner(ownerId) {
-      if (confirm("確定要刪除此業主嗎？")) {
-        fetch(`/crm/api/owners/${ownerId}/`, {
-          method: "DELETE",
-          headers: {
-            "X-CSRFToken": document.querySelector(
-              '[name="csrfmiddlewaretoken"]'
-            ).value,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("刪除失敗");
-            }
-            this.fetchOwners(this.currentPage); // 重新獲取當前頁數據
-            this.activeMenu = null;
+      Swal.fire({
+        title: "確定要刪除此業主嗎？",
+        text: "此操作無法還原，請確認是否刪除。",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "確認刪除",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch(`/crm/api/owners/${ownerId}/`, {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                '[name="csrfmiddlewaretoken"]'
+              ).value,
+            },
           })
-          .catch((error) => console.error("無法刪除:", error));
-      }
+            .then((response) => {
+              if (!response.ok) {
+                Swal.fire({
+                  title: "錯誤!",
+                  text: "刪除失敗，請稍後再試。",
+                  icon: "error",
+                  confirmButtonText: "確認",
+                });
+                return;
+              }
+              // 刪除成功
+              Swal.fire({
+                title: "成功!",
+                text: "業主已成功刪除。",
+                icon: "success",
+                confirmButtonText: "確認",
+              }).then(() => {
+                this.fetchOwners(this.currentPage); // 重新獲取當前頁數據
+                this.activeMenu = null;
+              });
+            })
+            .catch((error) => {
+              Swal.fire({
+                title: "錯誤!",
+                text:
+                  error && error.message
+                    ? error.message
+                    : "刪除時發生未知錯誤。",
+                icon: "error",
+                confirmButtonText: "確認",
+              });
+            });
+        }
+      });
     },
     editOwner(owner) {
       // 設置編輯模式
@@ -235,15 +268,25 @@ const ownerList = createApp({
           if (!result.ok) {
             let errorDetails = [];
             Object.keys(result.data).forEach((key) => {
-              console.log(result.data[key]);
+              // 根據欄位給予不同錯誤訊息
               if (key === "tax_id") {
                 errorDetails.push("統一編號錯誤，可能已經重複或有誤。");
+              } else if (key === "email") {
+                errorDetails.push("Email 格式錯誤或已存在。");
+              } else {
+                // 其他欄位錯誤
+                errorDetails.push(`${key}: ${result.data[key]}`);
               }
             });
-            if (errorDetails.length > 0) {
-              errorMsg = errorDetails.join("\n");
-            }
-            throw new Error(errorMsg);
+            const errorMsg = errorDetails.join("\n");
+            Swal.fire({
+              title: "錯誤!",
+              text: errorMsg,
+              icon: "error",
+              confirmButtonText: "確認",
+            });
+            // 錯誤時直接 return，不進行後續操作
+            return Promise.reject(new Error(errorMsg));
           } else if (result.status === 201) {
             Swal.fire({
               title: "成功!",
@@ -261,16 +304,21 @@ const ownerList = createApp({
           }
         })
         .then(() => {
-          this.hideAddOwnerModal(); // 提交成功後關閉 Modal
-          this.fetchOwners(this.currentPage); // 刷新業主列表
+          // 只有成功時才會執行
+          this.hideAddOwnerModal();
+          this.fetchOwners(this.currentPage);
         })
         .catch((error) => {
-          Swal.fire({
-            title: "錯誤!",
-            text: error.message,
-            icon: "error",
-            confirmButtonText: "確認",
-          });
+          // 已在上方顯示過錯誤訊息，這裡可選擇不再顯示
+          // 或保留以防萬一
+          if (error && error.message) {
+            Swal.fire({
+              title: "錯誤!",
+              text: error.message,
+              icon: "error",
+              confirmButtonText: "確認",
+            });
+          }
         });
     },
     // 處理每頁數量變更

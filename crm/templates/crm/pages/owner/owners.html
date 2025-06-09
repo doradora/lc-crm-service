@@ -145,29 +145,37 @@
                         統一編號(公司)或手機號碼(個人)<span class="text-danger">*</span>
                       </label>
                     </div>
-                    <div class="row">
-                      <div class="form-floating mb-7 col">
-                        <input type="text" class="form-control" id="phone" v-model="newOwner.phone" placeholder="電話號碼"
-                          required />
-                        <label for="phone">
-                          電話<span class="text-danger">*</span>
-                        </label>
+                    <div class="row mb-7">
+                      <div class="col">
+                        <div class="form-floating">
+                          <input type="text" class="form-control" id="phone" v-model="newOwner.phone" placeholder="電話號碼"
+                            required />
+                          <label for="phone">
+                            電話<span class="text-danger">*</span>
+                          </label>
+                        </div>
                       </div>
-                      <div class="form-floating mb-7 col">
-                        <input type="text" class="form-control" id="fax" v-model="newOwner.fax" placeholder="傳真" />
-                        <label for="fax">傳真</label>
+                      <div class="col">
+                        <div class="form-floating">
+                          <input type="text" class="form-control" id="fax" v-model="newOwner.fax" placeholder="傳真" />
+                          <label for="fax">傳真</label>
+                        </div>
                       </div>
                     </div>
-                    <div class="row">
-                      <div class="form-floating mb-7 col">
-                        <input type="text" class="form-control" id="mobile" v-model="newOwner.mobile"
-                          placeholder="手機號碼" />
-                        <label for="mobile">手機</label>
+                    <div class="row mb-7">
+                      <div class="col">
+                        <div class="form-floating col">
+                          <input type="text" class="form-control" id="mobile" v-model="newOwner.mobile"
+                            placeholder="手機號碼" />
+                          <label for="mobile">手機</label>
+                        </div>
                       </div>
-                      <div class="form-floating mb-7 col">
-                        <input type="email" class="form-control" id="email" v-model="newOwner.email"
-                          placeholder="name@example.com" />
-                        <label for="email">電子郵件</label>
+                      <div class="col">
+                        <div class="form-floating col">
+                          <input type="email" class="form-control" id="email" v-model="newOwner.email"
+                            placeholder="name@example.com" required />
+                          <label for="email">電子郵件<span class="text-danger">*</span></label>
+                        </div>
                       </div>
                     </div>
                     <div class="form-floating mb-7">
@@ -178,9 +186,9 @@
                       </label>
                     </div>
                     <div class="form-floating mb-7">
-                      <textarea class="form-control" id="address" v-model="newOwner.address" placeholder="地址"
+                      <textarea class="form-control" id="address" v-model="newOwner.address" placeholder="地址" required
                         style="height: 100px"></textarea>
-                      <label for="address">地址</label>
+                      <label for="address">地址<span class="text-danger">*</span></label>
                     </div>
                     <div class="modal-footer">
                       <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
