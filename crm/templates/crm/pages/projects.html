@@ -3,8 +3,10 @@
 {% block content %}
 <div class="app-main flex-column flex-row-fluid" id="app_main">
   <div id="app_toolbar" class="app-toolbar">
-    <div id="app_toolbar_container" class="app-container container-fluid d-flex align-items-stretch">
-      <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100"></div>
+    <div id="app_toolbar_container" class="d-flex align-items-stretch w-100">
+      <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap justify-content-end gap-4 w-100">
+        <button class="btn btn-primary" @click.prevent="showAddProjectModal">新增專案</button>
+      </div>
     </div>
   </div>
   <div id="app_content" class="app-content flex-column-fluid">
@@ -51,7 +53,6 @@
                 </div>
               </div>
               <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
-                <button class="btn btn-primary" @click.prevent="showAddProjectModal">新增專案</button>
                 <span class="text-muted fs-6">每頁顯示</span>
                 <select class="form-select form-select-sm w-75px" v-model.number="pageSize" @change="pageSizeChanged">
                   <option value="10">10</option>

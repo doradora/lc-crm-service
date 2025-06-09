@@ -3,10 +3,9 @@
 {% block content %}
     <div class="app-main flex-column flex-row-fluid" id="app_main">
         <div id="app_toolbar" class="app-toolbar ms-auto">
-            <div id="app_toolbar_container"
-                 class="app-container container-fluid d-flex align-items-stretch">
-                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
-                   
+            <div id="app_toolbar_container" class="d-flex align-items-stretch w-100">
+                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap justify-content-end gap-4 w-100">
+                    <button class="btn btn-primary" @click.prevent="createCategory">新增類別</button>
                 </div>
             </div>
         </div>
@@ -14,15 +13,9 @@
             <div id="app_content_container">
                 <div class="d-flex flex-column flex-column-fluid">
                     <div class="card card-flush" id="category_list">
-                        <div class="card-header align-items-center py-5 gap-2 gap-md-5">
-                            <div class="card-title w-100 gap-2 d-flex">
-                                <div class="d-flex align-items-center ms-auto gap-2">
-                                    <button class="btn btn-primary" @click.prevent="createCategory">新增類別</button>
-                                </div>
-                            </div>
-                        </div>
+
                         <!--begin::Card body-->
-                        <div class="card-body pt-0">
+                        <div class="card-body pt-5">
                             <div v-if="isLoading" class="d-flex justify-content-center py-10">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">載入中...</span>
