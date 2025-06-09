@@ -3,6 +3,7 @@ const userList = createApp({
   data() {
     return {
       users: [],
+      currentUser: {},
       isLoading: false,
       searchQuery: "",
       roleFilter: "all",
@@ -348,11 +349,91 @@ const userList = createApp({
       this.currentPage = 1; // 更改每頁數量時重置為第一頁
       this.fetchUsers(1);
     },
+    impersonateUser(user) {
+      // getCookie 寫在 methods 外層，這裡直接呼叫 this.getCookie
+      const csrfToken = this.getCookie('csrftoken') || (document.querySelector('input[name="csrfmiddlewaretoken"]') && document.querySelector('input[name="csrfmiddlewaretoken"]').value);
+      if (!csrfToken) {
+        Swal.fire({
+          title: '切換失敗',
+          text: '找不到 CSRF token，請重新整理頁面',
+          icon: 'error',
+          confirmButtonText: '確定'
+        });
+        return;
+      }
+      Swal.fire({
+        title: `確定要以「${user.profile.name || user.username}」身份登入？`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch('/users/api/impersonate/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ user_id: user.id })
+          })
+            .then(async (response) => {
+              // 若不是 2xx，嘗試解析 json 並顯示錯誤
+              let data;
+              try {
+                data = await response.json();
+              } catch {
+                data = {};
+              }
+              if (response.ok && data.message) {
+                Swal.fire({
+                  title: '切換成功',
+                  text: data.message,
+                  icon: 'success',
+                  confirmButtonText: '確定'
+                }).then(() => {
+                  window.location.href = '/';
+                });
+              } else {
+                Swal.fire({
+                  title: '切換失敗',
+                  text: data.error || `發生未知錯誤 (狀態碼: ${response.status})`,
+                  icon: 'error',
+                  confirmButtonText: '確定'
+                });
+              }
+            })
+            .catch(() => {
+              Swal.fire({
+                title: '切換失敗',
+                text: '請稍後再試',
+                icon: 'error',
+                confirmButtonText: '確定'
+              });
+            });
+        }
+      });
+    },
+    getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    },
   },
   watch: {},
   mounted() {
     this.fetchUsers();
     document.addEventListener("click", this.handleClickOutside);
+    this.currentUser = window.CURRENT_USER_DATA; // 獲取當前用戶信息
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏

@@ -12,6 +12,9 @@ from .serializers import (
 )
 from .permissions import IsAdmin
 from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.http import JsonResponse
 
 
 @login_required(login_url="signin")
@@ -76,3 +79,23 @@ class UserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(profile__can_request_payment=True)
 
         return queryset.order_by("username")
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ImpersonateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': '缺少 user_id'}, status=400)
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return JsonResponse({'error': '找不到該用戶'}, status=404)
+        # 切換 session
+        login(request, target_user)
+        return JsonResponse({'message': f'已切換為 {target_user.first_name}{target_user.last_name} 身份'})
+
+    def get(self, request):
+        return JsonResponse({'error': '僅支援 POST'}, status=405)

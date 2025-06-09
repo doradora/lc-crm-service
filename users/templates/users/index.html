@@ -99,6 +99,9 @@
                           <div class="menu-item px-3">
                             <a class="menu-link px-3" @click.prevent="editUser(user, true)">修改密碼</a>
                           </div>
+                          <div class="menu-item px-3" v-if="currentUser.profile && currentUser.profile.is_admin === 'true'">
+                            <a class="menu-link px-3 text-primary" @click.prevent="impersonateUser(user)">以此身份登入</a>
+                          </div>
                           <hr class="my-1" />
                           <div class="menu-item px-3">
                             <a class="menu-link px-3 text-danger" @click.prevent="deleteUser(user.id)">刪除</a>
@@ -291,5 +294,14 @@
   </div>
 {% endblock content %}
 {% block extra_js %}
+  <script>
+    window.CURRENT_USER_DATA = {
+      id: {{ request.user.id|default:'null' }},
+      username: "{{ request.user.username|escapejs }}",
+      profile: {
+        is_admin: "{% if request.user.profile.is_admin %}true{% else %}false{% endif %}"
+      }
+    };
+  </script>
   <script src="{% static 'users/js/users_list.js' %}"></script>
 {% endblock extra_js %}
