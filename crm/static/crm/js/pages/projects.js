@@ -740,6 +740,14 @@ const projectList = createApp({
       this.currentPage = 1; // 更改每頁數量時重置為第一頁
       this.fetchProjects(1);
     },
+    // 重設篩選條件
+    resetFilters() {
+      this.categoryFilter = "";
+      this.completedFilter = "";
+      this.startYearFilter = "";
+      this.endYearFilter = "";
+      this.fetchProjects(1);
+    },
   },
   mounted() {
     const urlParams = new URLSearchParams(window.location.search);

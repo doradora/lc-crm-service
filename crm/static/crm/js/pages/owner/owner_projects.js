@@ -11,6 +11,7 @@ const ownerProjectsApp = createApp({
       searchQuery: "",
       categoryFilter: "",
       yearFilter: "",
+      completedFilter: "", // 新增 completedFilter 狀態欄位
       currentPage: 1,
       totalPages: 1,
       pageSize: 10,
@@ -102,6 +103,12 @@ const ownerProjectsApp = createApp({
 
       if (this.yearFilter) {
         url += `&year=${this.yearFilter}`;
+      }
+
+      if (this.completedFilter === "completed") {
+        url += `&is_completed=true`;
+      } else if (this.completedFilter === "in_progress") {
+        url += `&is_completed=false`;
       }
 
       fetch(url)
@@ -418,6 +425,11 @@ const ownerProjectsApp = createApp({
       window.location.href = `/crm/project/${projectId}/details/`;
       // 關閉下拉選單
       this.activeMenu = null;
+    },
+    resetFilters() {
+      this.categoryFilter = "";
+      this.yearFilter = "";
+      this.fetchOwnerProjects(1);
     },
   },
   mounted() {
