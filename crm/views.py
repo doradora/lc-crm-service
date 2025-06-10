@@ -957,56 +957,51 @@ def copy_column_and_insert(ws, source_col: int, target_col: int):
 
 @login_required(login_url="signin")
 def export_projects_csv(request):
-    """匯出所有專案資料為 CSV 格式"""
+    """匯出所有專案資料為 CSV 格式，支援年份篩選"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
-        raise PermissionDenied    # 設定檔案名稱
+        raise PermissionDenied
+    import csv
     now = timezone.now()
     filename = f"專案資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
-
-    # 建立 HttpResponse 並設定內容類型
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    
-    # 對中文檔案名稱進行 URL 編碼，同時提供備用的 ASCII 檔案名稱
     from urllib.parse import quote
-    ascii_filename = f"projects_{now.strftime('%Y%m%d-%H%M%S')}.csv"
+    ascii_filename = f"projects_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     encoded_filename = quote(filename.encode('utf-8'))
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
-
-    # 加入 BOM 以支援 Excel 正確顯示中文
     response.write('\ufeff')
-
-    # 寫入 CSV 資料
     writer = csv.writer(response)
-      # 取得所有專案資料
+    # 取得查詢參數
+    year_start = request.GET.get('year_start')
+    year_end = request.GET.get('year_end')
     projects = Project.objects.all().select_related('owner', 'category').prefetch_related('managers', 'quotations')
-
-    # 定義欄位標題（中文）
+    if year_start:
+        projects = projects.filter(year__gte=year_start)
+    if year_end:
+        projects = projects.filter(year__lte=year_end)
     headers = [
         '年份', '案件類別', '案件編號', '案件名稱', '業主', 
         '負責人', '繪圖', '聯絡方式', '報價', '是否完成', 
         '請款日期', '請款金額', '收款日期', '發票日期', 
         '是否請款', '是否收款', '備註'
     ]
-    
-    # 寫入標題列
-    writer.writerow(headers)    # 寫入每一列資料
+    writer.writerow(headers)
     for project in projects:
-        # 取得專案負責人名稱
-        managers_names = ', '.join([manager.profile.name if hasattr(manager, 'profile') and manager.profile.name else manager.username for manager in project.managers.all()])
-        
-        # 取得該專案的所有報價金額，組合成字串
+        managers_names = ', '.join([
+            manager.profile.name if hasattr(manager, 'profile') and manager.profile.name else manager.username
+            for manager in project.managers.all()
+        ])
         quotations_list = project.quotations.all()
-        quotations_text = ', '.join([f'${q.amount}' for q in quotations_list]) if quotations_list.exists() else ''
+        quotations_text = ', '.join([f'${{q.amount}}' for q in quotations_list]) if quotations_list.exists() else ''
         row = [
             project.year,
             f"{project.category.code}:{project.category.description}" if project.category else '',
-            str(project.project_number) if project.project_number else '',  # 轉換為字串避免前導單引號
+            str(project.project_number) if project.project_number else '',
             project.name,
             project.owner.company_name if project.owner else '',
             managers_names,
             project.drawing,
             project.contact_info,
-            quotations_text,  # 使用處理過的報價資料
+            quotations_text,
             '是' if project.is_completed else '否',
             project.invoice_date.strftime('%Y-%m-%d') if project.invoice_date else '',
             project.invoice_amount if project.invoice_amount else '',
@@ -1016,49 +1011,30 @@ def export_projects_csv(request):
             '是' if project.is_paid else '否',
             project.notes
         ]
-        
         writer.writerow(row)
-
     return response
 
 @login_required(login_url="signin")
 def export_owners_csv(request):
-    """匯出所有業主資料為 CSV 格式"""
+    """匯出所有業主資料為 CSV 格式（不再依年份過濾）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
-    
-    # 設定檔案名稱
+    import csv
     now = timezone.now()
     filename = f"業主資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
-
-    # 建立 HttpResponse 並設定內容類型
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    
-    # 對中文檔案名稱進行 URL 編碼，同時提供備用的 ASCII 檔案名稱
     from urllib.parse import quote
-    ascii_filename = f"owners_{now.strftime('%Y%m%d-%H%M%S')}.csv"
+    ascii_filename = f"owners_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     encoded_filename = quote(filename.encode('utf-8'))
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
-
-    # 加入 BOM 以支援 Excel 正確顯示中文
     response.write('\ufeff')
-
-    # 寫入 CSV 資料
     writer = csv.writer(response)
-    
-    # 取得所有業主資料
     owners = Owner.objects.all()
-
-    # 定義欄位標題（中文）
     headers = [
         '公司名稱', '統一編號', '電話', '傳真', 
         '電子信箱', '手機', '地址', '聯絡人'
     ]
-    
-    # 寫入標題列
     writer.writerow(headers)
-    
-    # 寫入每一列資料
     for owner in owners:
         row = [
             owner.company_name,
@@ -1070,49 +1046,36 @@ def export_owners_csv(request):
             owner.address,
             owner.contact_person
         ]
-        
         writer.writerow(row)
-    
     return response
 
 @login_required(login_url="signin")
 def export_quotations_csv(request):
-    """匯出所有報價資料為 CSV 格式"""
+    """匯出所有報價資料為 CSV 格式，支援年份篩選（依專案年份）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
-    
-    # 設定檔案名稱
+    import csv
     now = timezone.now()
-    filename = f"報價資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
-
-    # 建立 HttpResponse 並設定內容類型
+    filename = f"報價資料_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    
-    # 對中文檔案名稱進行 URL 編碼，同時提供備用的 ASCII 檔案名稱
     from urllib.parse import quote
-    ascii_filename = f"quotations_{now.strftime('%Y%m%d-%H%M%S')}.csv"
+    ascii_filename = f"quotations_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     encoded_filename = quote(filename.encode('utf-8'))
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
-
-    # 加入 BOM 以支援 Excel 正確顯示中文
     response.write('\ufeff')
-
-    # 寫入 CSV 資料
     writer = csv.writer(response)
-    
-    # 取得所有報價資料
+    year_start = request.GET.get('year_start')
+    year_end = request.GET.get('year_end')
     quotations = Quotation.objects.all().select_related('project', 'project__owner', 'project__category')
-
-    # 定義欄位標題（中文）
+    if year_start:
+        quotations = quotations.filter(project__year__gte=year_start)
+    if year_end:
+        quotations = quotations.filter(project__year__lte=year_end)
     headers = [
         '專案年份', '專案類別', '專案編號', '專案名稱', '業主', 
         '報價金額', '報價發行日期'
     ]
-    
-    # 寫入標題列
     writer.writerow(headers)
-    
-    # 寫入每一列資料
     for quotation in quotations:
         project = quotation.project
         row = [
@@ -1124,127 +1087,102 @@ def export_quotations_csv(request):
             quotation.amount,
             quotation.date_issued.strftime('%Y-%m-%d') if quotation.date_issued else ''
         ]
-        
         writer.writerow(row)
-    
     return response
 
 @login_required(login_url="signin")
 def export_payments_csv(request):
-    """匯出所有請款資料為 CSV 格式"""
+    """匯出所有請款資料為 CSV 格式，支援年份篩選（依專案年份）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
-    
-    # 設定檔案名稱
+    import csv
     now = timezone.now()
-    filename = f"請款資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
-
-    # 建立 HttpResponse 並設定內容類型
+    filename = f"請款資料_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    
-    # 對中文檔案名稱進行 URL 編碼，同時提供備用的 ASCII 檔案名稱
     from urllib.parse import quote
-    ascii_filename = f"payments_{now.strftime('%Y%m%d-%H%M%S')}.csv"
+    ascii_filename = f"payments_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     encoded_filename = quote(filename.encode('utf-8'))
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
-
-    # 加入 BOM 以支援 Excel 正確顯示中文
     response.write('\ufeff')
-
-    # 寫入 CSV 資料
     writer = csv.writer(response)
-    
-    # 取得所有請款資料
-    payments = Payment.objects.all().select_related('owner', 'company', 'selected_bank_account', 'created_by').prefetch_related('projects')    # 定義欄位標題（中文）
+    year_start = request.GET.get('year_start')
+    year_end = request.GET.get('year_end')
+    payments = Payment.objects.all().prefetch_related('projects', 'paymentproject_set', 'paymentproject_set__project').select_related('owner', 'company', 'selected_bank_account', 'created_by')
+    if year_start:
+        payments = payments.filter(projects__year__gte=year_start)
+    if year_end:
+        payments = payments.filter(projects__year__lte=year_end)
+    payments = payments.distinct()
     headers = [
-        '請款單號', '業主', '收款公司', '匯款名稱', '匯款帳號', '銀行代碼', '匯款銀行', 
-        '相關專案', '請款總金額', '發行日期', '付款截止日期', 
-        '是否已付款', '實際付款日期', '備註', '建立者', '建立時間'
+        '請款單號', '業主', '收款公司', '請款金額', '請款日期', 
+        '到期日', '是否已付款', '付款日', '備註', '建立者', '建立時間'
     ]
-    
-    # 寫入標題列
     writer.writerow(headers)
-      # 寫入每一列資料
     for payment in payments:
-        # 取得相關專案清單
-        projects_list = payment.projects.all()
-        projects_text = ', '.join([project.name for project in projects_list])
-        
-        # 取得匯款帳號相關資訊
-        account_name = payment.selected_bank_account.account_name if payment.selected_bank_account else ''
-        account_number = payment.selected_bank_account.account_number if payment.selected_bank_account else ''
-        bank_code = payment.selected_bank_account.bank_code if payment.selected_bank_account else ''
-        bank_name = payment.selected_bank_account.bank_name if payment.selected_bank_account else ''
-        
         row = [
             payment.payment_number,
             payment.owner.company_name if payment.owner else '',
             payment.company.name if payment.company else '',
-            account_name,
-            account_number,
-            bank_code,
-            bank_name,
-            projects_text,
             payment.amount,
             payment.date_issued.strftime('%Y-%m-%d') if payment.date_issued else '',
             payment.due_date.strftime('%Y-%m-%d') if payment.due_date else '',
             '是' if payment.paid else '否',
             payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else '',
-            payment.notes if payment.notes else '',
+            payment.notes,
             payment.created_by.profile.name if payment.created_by and hasattr(payment.created_by, 'profile') and payment.created_by.profile.name else (payment.created_by.username if payment.created_by else ''),
             payment.created_at.strftime('%Y-%m-%d %H:%M:%S') if payment.created_at else ''
         ]
-        
         writer.writerow(row)
-    
     return response
 
 @login_required(login_url="signin")
 def export_invoices_csv(request):
-    """匯出所有發票資料為 CSV 格式"""
+    """匯出所有發票資料為 CSV 格式，支援年份篩選（依請款單關聯專案年份）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
-    
-    # 設定檔案名稱
+    import csv
     now = timezone.now()
-    filename = f"發票資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
-
-    # 建立 HttpResponse 並設定內容類型
+    filename = f"發票資料_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    
-    # 對中文檔案名稱進行 URL 編碼，同時提供備用的 ASCII 檔案名稱
     from urllib.parse import quote
-    ascii_filename = f"invoices_{now.strftime('%Y%m%d-%H%M%S')}.csv"
+    ascii_filename = f"invoices_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     encoded_filename = quote(filename.encode('utf-8'))
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
-
-    # 加入 BOM 以支援 Excel 正確顯示中文
     response.write('\ufeff')
-
-    # 寫入 CSV 資料
     writer = csv.writer(response)
-    
-    # 取得所有發票資料
+    year_start = request.GET.get('year_start')
+    year_end = request.GET.get('year_end')
     invoices = Invoice.objects.all().select_related('payment', 'payment__owner', 'payment__company', 'created_by')
-
-    # 定義欄位標題（中文）
+    if year_start or year_end:
+        # 只篩選有 payment 且 payment 有 projects
+        filtered_invoices = []
+        for invoice in invoices:
+            payment = invoice.payment
+            if not payment:
+                continue
+            projects = payment.projects.all()
+            if not projects.exists():
+                continue
+            years = [p.year for p in projects if p.year]
+            if not years:
+                continue
+            if year_start and all(y < int(year_start) for y in years):
+                continue
+            if year_end and all(y > int(year_end) for y in years):
+                continue
+            filtered_invoices.append(invoice)
+        invoices = filtered_invoices
     headers = [
         '發票號碼', '請款單號', '業主', '收款公司', '發票金額(未稅)', 
         '稅額', '發票開立日期', '收款日', '入帳日', '收款方式', 
         '實收金額', '備註', '建立者', '建立時間'
     ]
-    
-    # 寫入標題列
     writer.writerow(headers)
-    
-    # 寫入每一列資料
     for invoice in invoices:
-        # 轉換收款方式顯示
         payment_method_display = ''
         if invoice.payment_method:
             payment_method_choices = dict(Invoice.PAYMENT_METHOD_CHOICES)
             payment_method_display = payment_method_choices.get(invoice.payment_method, invoice.payment_method)
-        
         row = [
             invoice.invoice_number,
             invoice.payment.payment_number if invoice.payment else '',
@@ -1261,50 +1199,30 @@ def export_invoices_csv(request):
             invoice.created_by.profile.name if invoice.created_by and hasattr(invoice.created_by, 'profile') and invoice.created_by.profile.name else (invoice.created_by.username if invoice.created_by else ''),
             invoice.created_at.strftime('%Y-%m-%d %H:%M:%S') if invoice.created_at else ''
         ]
-        
         writer.writerow(row)
-    
     return response
 
 @login_required(login_url="signin")
 def export_categories_csv(request):
-    """匯出所有案件類別資料為 CSV 格式"""
+    """匯出所有案件類別資料為 CSV 格式（不再依年份過濾）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
-    
-    # 設定檔案名稱
+    import csv
     now = timezone.now()
-    filename = f"案件類別_{now.strftime('%Y%m%d-%H%M%S')}.csv"
-
-    # 建立 HttpResponse 並設定內容類型
+    filename = f"案件類別_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    
-    # 對中文檔案名稱進行 URL 編碼，同時提供備用的 ASCII 檔案名稱
     from urllib.parse import quote
-    ascii_filename = f"categories_{now.strftime('%Y%m%d-%H%M%S')}.csv"
+    ascii_filename = f"categories_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     encoded_filename = quote(filename.encode('utf-8'))
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
-
-    # 加入 BOM 以支援 Excel 正確顯示中文
     response.write('\ufeff')
-
-    # 寫入 CSV 資料
     writer = csv.writer(response)
-    
-    # 取得所有案件類別資料
-    categories = Category.objects.all().order_by("code")
-
-    # 定義欄位標題（中文）
+    categories = Category.objects.all()
     headers = [
-        '類別編號', '類別說明', '自定義欄位'
+        '類別代碼', '類別說明', '自定義欄位'
     ]
-    
-    # 寫入標題列
     writer.writerow(headers)
-    
-    # 寫入每一列資料
     for category in categories:
-        # 處理自定義欄位顯示
         custom_fields_display = ''
         if category.custom_field_schema:
             field_names = []
@@ -1314,15 +1232,12 @@ def export_categories_csv(request):
                 required = '必填' if field_config.get('required', False) else '選填'
                 field_names.append(f"{display_name}({field_type},{required})")
             custom_fields_display = '; '.join(field_names)
-        
         row = [
             category.code,
             category.description,
             custom_fields_display
         ]
-        
         writer.writerow(row)
-    
     return response
 
 

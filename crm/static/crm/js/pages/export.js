@@ -9,12 +9,69 @@ const exportApp = createApp({
   },
   methods: {
     /**
+     * 取得年份選項（2000~今年）
+     */
+    getYearOptions() {
+      const currentYear = new Date().getFullYear();
+      const years = [];
+      for (let y = currentYear; y >= 2000; y--) {
+        years.push(y);
+      }
+      return years;
+    },
+
+    /**
+     * 彈出年份選擇 Swal，回傳 {year_start, year_end} 或 null
+     */
+    async selectYearRange() {
+      const years = this.getYearOptions();
+      const yearOptions = years.map(y => `<option value='${y}'>${y}</option>`).join('');
+      const { value: formValues } = await Swal.fire({
+        title: '選擇匯出年份區間',
+        html:
+          `<div class='mb-2'>\n` +
+          `<label>開始年份</label>\n` +
+          `<select id='swal-year-start' class='swal2-input'><option value=''>開始年份</option>${yearOptions}</select>\n` +
+          `</div>\n` +
+          `<div class='mb-2'>\n` +
+          `<label>結束年份</label>\n` +
+          `<select id='swal-year-end' class='swal2-input'><option value=''>結束年份</option>${yearOptions}</select>\n` +
+          `</div>`,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '匯出',
+        cancelButtonText: '取消',
+        preConfirm: () => {
+          const year_start = document.getElementById('swal-year-start').value;
+          const year_end = document.getElementById('swal-year-end').value;
+          if (year_start && year_end && parseInt(year_start) > parseInt(year_end)) {
+            Swal.showValidationMessage('開始年份不能大於結束年份');
+            return false;
+          }
+          return { year_start, year_end };
+        }
+      });
+      if (!formValues) return null;
+      if (!formValues.year_start && !formValues.year_end) return {}; // 全部
+      return formValues;
+    },
+
+    /**
      * 匯出專案資料
      */
     async exportProjects() {
       try {
+        const yearRange = await this.selectYearRange();
+        if (yearRange === null) return;
         this.isLoading = true;
-        await this.downloadFile('/crm/export/projects/csv/');
+        let url = '/crm/export/projects/csv/';
+        if (yearRange.year_start || yearRange.year_end) {
+          const params = [];
+          if (yearRange.year_start) params.push(`year_start=${yearRange.year_start}`);
+          if (yearRange.year_end) params.push(`year_end=${yearRange.year_end}`);
+          url += '?' + params.join('&');
+        }
+        await this.downloadFile(url);
         this.showSuccessMessage('專案資料匯出成功');
       } catch (error) {
         this.showErrorMessage('專案資料匯出失敗', error);
@@ -28,8 +85,10 @@ const exportApp = createApp({
      */
     async exportOwners() {
       try {
+        // 不再彈出年份選擇
         this.isLoading = true;
-        await this.downloadFile('/crm/export/owners/csv/');
+        let url = '/crm/export/owners/csv/';
+        await this.downloadFile(url);
         this.showSuccessMessage('業主資料匯出成功');
       } catch (error) {
         this.showErrorMessage('業主資料匯出失敗', error);
@@ -43,8 +102,17 @@ const exportApp = createApp({
      */
     async exportPayments() {
       try {
+        const yearRange = await this.selectYearRange();
+        if (yearRange === null) return;
         this.isLoading = true;
-        await this.downloadFile('/crm/export/payments/csv/');
+        let url = '/crm/export/payments/csv/';
+        if (yearRange.year_start || yearRange.year_end) {
+          const params = [];
+          if (yearRange.year_start) params.push(`year_start=${yearRange.year_start}`);
+          if (yearRange.year_end) params.push(`year_end=${yearRange.year_end}`);
+          url += '?' + params.join('&');
+        }
+        await this.downloadFile(url);
         this.showSuccessMessage('請款資料匯出成功');
       } catch (error) {
         this.showErrorMessage('請款資料匯出失敗', error);
@@ -58,8 +126,17 @@ const exportApp = createApp({
      */
     async exportInvoices() {
       try {
+        const yearRange = await this.selectYearRange();
+        if (yearRange === null) return;
         this.isLoading = true;
-        await this.downloadFile('/crm/export/invoices/csv/');
+        let url = '/crm/export/invoices/csv/';
+        if (yearRange.year_start || yearRange.year_end) {
+          const params = [];
+          if (yearRange.year_start) params.push(`year_start=${yearRange.year_start}`);
+          if (yearRange.year_end) params.push(`year_end=${yearRange.year_end}`);
+          url += '?' + params.join('&');
+        }
+        await this.downloadFile(url);
         this.showSuccessMessage('發票資料匯出成功');
       } catch (error) {
         this.showErrorMessage('發票資料匯出失敗', error);
@@ -73,8 +150,10 @@ const exportApp = createApp({
      */
     async exportCategories() {
       try {
+        // 不再彈出年份選擇
         this.isLoading = true;
-        await this.downloadFile('/crm/export/categories/csv/');
+        let url = '/crm/export/categories/csv/';
+        await this.downloadFile(url);
         this.showSuccessMessage('案件類別資料匯出成功');
       } catch (error) {
         this.showErrorMessage('案件類別資料匯出失敗', error);
@@ -88,23 +167,50 @@ const exportApp = createApp({
      */
     async exportAll() {
       try {
+        const yearRange = await this.selectYearRange();
+        if (yearRange === null) return;
         this.isLoading = true;
-        
-        // 依次匯出所有資料類型
         const exportTasks = [
-          { method: this.exportProjects, name: '專案資料' },
-          { method: this.exportOwners, name: '業主資料' },
-          { method: this.exportPayments, name: '請款資料' },
-          { method: this.exportInvoices, name: '發票資料' },
-          { method: this.exportCategories, name: '案件類別資料' }
+          { method: this.exportProjects, name: '專案資料', url: '/crm/export/projects/csv/' },
+          { method: this.exportOwners, name: '業主資料', url: '/crm/export/owners/csv/' },
+          { method: this.exportPayments, name: '請款資料', url: '/crm/export/payments/csv/' },
+          { method: this.exportInvoices, name: '發票資料', url: '/crm/export/invoices/csv/' },
+          { method: this.exportCategories, name: '案件類別資料', url: '/crm/export/categories/csv/' }
         ];
-
-        for (const task of exportTasks) {
-          await task.method.call(this);
-          // 在每次匯出之間稍作停頓，避免同時下載過多檔案
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
+        // Swal 進度條
+        let current = 0;
+        await Swal.fire({
+          title: '綜合報表匯出中',
+          html: `<div id='export-progress-text'>準備中...</div><div class='progress mt-3' style='height:24px;'><div id='export-progress-bar' class='progress-bar progress-bar-striped progress-bar-animated' role='progressbar' style='width: 0%'>0%</div></div>`,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: async () => {
+            const bar = document.getElementById('export-progress-bar');
+            const text = document.getElementById('export-progress-text');
+            for (let i = 0; i < exportTasks.length; i++) {
+              const task = exportTasks[i];
+              text.innerHTML = `正在匯出：<b>${task.name}</b> (${i+1}/${exportTasks.length})`;
+              let url = task.url;
+              // 只有專案/請款/發票才帶年份
+              if ([0,2,3].includes(i) && (yearRange.year_start || yearRange.year_end)) {
+                const params = [];
+                if (yearRange.year_start) params.push(`year_start=${yearRange.year_start}`);
+                if (yearRange.year_end) params.push(`year_end=${yearRange.year_end}`);
+                url += '?' + params.join('&');
+              }
+              await this.downloadFile(url);
+              current = Math.round(((i+1)/exportTasks.length)*100);
+              bar.style.width = current + '%';
+              bar.innerText = current + '%';
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            text.innerHTML = '所有資料匯出完成！';
+            bar.classList.remove('progress-bar-animated');
+            bar.classList.add('bg-success');
+            setTimeout(() => Swal.close(), 1200);
+          }
+        });
         this.showSuccessMessage('所有資料匯出完成');
       } catch (error) {
         this.showErrorMessage('匯出過程中發生錯誤', error);
