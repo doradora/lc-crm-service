@@ -1275,6 +1275,20 @@ const paymentDetail = createApp({
       this.newInvoice.amount = amount;
       this.newInvoice.tax_amount = tax;
     },
+    // 當未稅金額變動時自動計算稅額
+    handleAmountChange() {
+      const gross = Number(this.newInvoice.gross_amount) || 0;
+      const amount = Number(this.newInvoice.amount) || 0;
+      const tax = gross - amount;
+      this.newInvoice.tax_amount = tax;
+    },
+    // 當稅額變動時自動計算未稅金額
+    handleTaxAmountChange() {
+      const gross = Number(this.newInvoice.gross_amount) || 0;
+      const tax = Number(this.newInvoice.tax_amount) || 0;
+      const amount = gross - tax;
+      this.newInvoice.amount = amount;
+    },
 
     // 重新獲取當前請款單的發票
     fetchInvoicesForCurrentPayment() {

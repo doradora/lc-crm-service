@@ -511,13 +511,29 @@ createApp({
     round(value, digits = 0) {
       const factor = Math.pow(10, digits);
       return Math.round(value * factor) / factor;
-    },
+    },    
+    
+    // 當含稅金額變動時自動計算未稅與稅額
     handleGrossAmountChange() {
       const gross = Number(this.invoiceForm.gross_amount) || 0;
       const amount = this.round(gross / 1.05, 0);
       const tax = gross - amount;
       this.invoiceForm.amount = amount;
       this.invoiceForm.tax_amount = tax;
+    },
+    // 當未稅金額變動時自動計算稅額
+    handleAmountChange() {
+      const gross = Number(this.invoiceForm.gross_amount) || 0;
+      const amount = Number(this.invoiceForm.amount) || 0;
+      const tax = gross - amount;
+      this.invoiceForm.tax_amount = tax;
+    },
+    // 當稅額變動時自動計算未稅金額
+    handleTaxAmountChange() {
+      const gross = Number(this.invoiceForm.gross_amount) || 0;
+      const tax = Number(this.invoiceForm.tax_amount) || 0;
+      const amount = gross - tax;
+      this.invoiceForm.amount = amount;
     },
   }
 }).mount('#app_main');

@@ -230,27 +230,28 @@
                 </div>
               </div>
               
-              <div class="row mb-5">
+              <div class="row mb-8">
                 <div class="col-md-4">
-                  <div class="form-group mb-5">
+                  <div class="form-group mb-2">
                     <label class="form-label required text-end">發票金額(含稅)</label>
                     <input type="number" class="form-control" v-model="invoiceForm.gross_amount" @input="handleGrossAmountChange" required />
                   </div>
                 </div>
                 <div class="col-md-4">
-                  <div class="form-group mb-5">
+                  <div class="form-group mb-2">
                     <label class="form-label required text-end">發票金額(未稅)</label>
-                    <input type="number" class="form-control" v-model="invoiceForm.amount" readonly required :class="{ 'is-invalid': validationErrors.amount }" />
-                    <div v-if="validationErrors.amount" class="invalid-feedback">
-                      請輸入未稅金額
-                    </div>
+                    <input type="number" class="form-control" v-model="invoiceForm.amount" @input="handleAmountChange" required />
                   </div>
                 </div>
                 <div class="col-md-4">
-                  <div class="form-group mb-5">
+                  <div class="form-group mb-2">
                     <label class="form-label">稅額</label>
-                    <input type="number" class="form-control" v-model="invoiceForm.tax_amount" />
+                    <input type="number" class="form-control text-end" v-model="invoiceForm.tax_amount" @input="handleTaxAmountChange" />
                   </div>
+                </div>
+                <div class="col">
+                  <span class="text-gray-500 fs-7">輸入發票金額(含稅)，自動計算未稅金額(÷1.05)與稅額(含稅-未稅)。</span><br>
+                  <span class="text-gray-500 fs-7">若不需自動計算稅額，亦可自行輸入未稅金額或稅額。</span>
                 </div>
               </div>
               <div class="row mb-5">
