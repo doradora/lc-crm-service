@@ -24,11 +24,11 @@
           </div>
           <!--begin::Card body-->
           <div class="card-body pt-0">
-            <div v-if="isLoading" class="d-flex justify-content-center py-10">
+            <!-- <div v-if="isLoading" class="d-flex justify-content-center py-10">
               <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">匯入中...</span>
               </div>
-            </div>
+            </div> -->
 
             <!-- 匯入選項列表 -->
             <div class="row g-6 g-xl-9">
@@ -43,7 +43,8 @@
                     </div>
                     <div class="mb-3">
                       <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">專案資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">從CSV或Excel檔案匯入專案基本資訊、進度和相關資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯入專案基本資訊及相關資料</div>
+                      <div class="text-gray-400 fw-semibold fs-7">相關使用者與業主會自動建立</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-primary" @click="importProjects" :disabled="isLoading">
                       <i class="ki-outline ki-file-up fs-3"></i>
@@ -64,7 +65,7 @@
                     </div>
                     <div class="mb-3">
                       <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">業主資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">從CSV或Excel檔案匯入業主聯絡資訊、統編等基本資料</div>
+                      <div class="text-gray-500 fw-semibold fs-6">匯入業主聯絡資訊、統編等基本資料</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-success" @click="importOwners" :disabled="isLoading">
                       <i class="ki-outline ki-file-up fs-3"></i>

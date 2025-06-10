@@ -3,7 +3,6 @@ const importApp = createApp({
   data() {
     return {
       isLoading: false,
-      importHistory: [],
       activeMenu: null,
       selectedFile: null,
       uploadProgress: 0
@@ -106,6 +105,37 @@ const importApp = createApp({
         formData.append('csrfmiddlewaretoken', csrfToken);
       }
 
+      // 動態 loading modal
+      let seconds = 0;
+      let timerInterval = null;
+      let extraTipShown = false;
+      Swal.fire({
+        title: '資料匯入中',
+        html: '<div id="import-loading-msg" style="height: 130px;">請稍候，正在匯入資料...<br><span id="import-elapsed">已等待 0 秒</span><br><br><div class="spinner-border text-primary" role="status"><span class="visually-hidden">匯入中...</span></div></div>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          const elapsed = document.getElementById('import-elapsed');
+          timerInterval = setInterval(() => {
+            seconds++;
+            if (elapsed) {
+              elapsed.innerHTML = `已等待 ${seconds} 秒`;
+            }
+            if (seconds === 1 && !extraTipShown) {
+              extraTipShown = true;
+              const msg = document.getElementById('import-loading-msg');
+              if (msg) {
+                msg.innerHTML += '<br><br><span style="color:#888" class="fs-7">相關使用者與業主會自動建立，仍在處理中，請耐心等候</span>';
+              }
+            }
+          }, 1000);
+        },
+        willClose: () => {
+          if (timerInterval) clearInterval(timerInterval);
+        }
+      });
+
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
@@ -113,6 +143,8 @@ const importApp = createApp({
           'X-CSRFToken': csrfToken
         }
       });
+
+      Swal.close(); // 關閉 loading modal
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -137,7 +169,8 @@ const importApp = createApp({
         timer: 3000,
         showConfirmButton: false
       });
-    },    /**
+    },    
+    /**
      * 顯示匯入結果詳情
      */
     showImportResult(result) {

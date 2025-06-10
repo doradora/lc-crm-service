@@ -76,7 +76,7 @@
               <div class="row mb-6">
                 <label class="col-lg-2 col-form-label fw-semibold fs-6">角色</label>
                 <div class="col-lg-10 fv-row">
-                  <div class="d-flex flex-wrap gap-2">
+                  <div class="d-flex flex-wrap gap-2 py-3">
                     <div v-for="(role, key) in getRoles(user.profile)" class="badge" :class="getRoleBadgeClass(role)"
                       :key="key">[[ role ]]</div>
                   </div>
