@@ -112,6 +112,9 @@
                   </tr>
                 </thead>
                 <tbody class="fw-semibold text-gray-600">
+                  <tr v-if="projects.length === 0">
+                    <td colspan="6" class="text-center">沒有找到專案</td>
+                  </tr>
                   <tr v-for="project in projects" :key="project.id">
                     <td>
                       <span class="badge badge-secondary">[[ project.year ]][[project.category ?
