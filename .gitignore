@@ -21,6 +21,7 @@ db.sqlite3
 media/
 staticfiles/
 docs/
+config/local_settings.py
 
 # Node
 node_modules/
