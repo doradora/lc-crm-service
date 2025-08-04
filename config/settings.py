@@ -128,9 +128,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = 'zh-Hant'
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'Asia/Taipei'
 
 USE_I18N = True
 
@@ -155,3 +155,17 @@ MEDIA_ROOT = BASE_DIR / "media"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+u'''
+Local Settings Override
+=======================
+'''
+try:
+    import local_settings
+except ImportError:
+    pass
+else:
+    for setting in dir(local_settings):
+        if setting in locals():
+            locals()[setting] = getattr(local_settings, setting)
