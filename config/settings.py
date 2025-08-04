@@ -162,7 +162,7 @@ Local Settings Override
 =======================
 '''
 try:
-    import local_settings
+    from config import local_settings
 except ImportError:
     pass
 else:
