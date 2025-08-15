@@ -53,6 +53,14 @@ const projectDetail = createApp({
       filteredOwners: [],
       filteredManagers: [],
 
+      // 業主選擇 Modal 相關數據
+      ownerModalSearchTerm: "",
+      modalOwners: [],
+      isLoadingOwners: false,
+      ownerPagination: null,
+      currentOwnerPage: 1,
+      searchTimeout: null,
+
       // 新增業主相關數據
       newOwner: {
         company_name: "",
@@ -600,27 +608,189 @@ const projectDetail = createApp({
       this.showManagerDropdown = false;
     },
 
-    // 顯示新增業主Modal
-    showAddOwnerModal() {
-      // 如果從搜尋業主時點擊新增，則預填公司名稱
-      if (this.ownerSearchTerm) {
-        this.newOwner.company_name = this.ownerSearchTerm;
-      } else {
-        // 重置新業主表單
-        this.newOwner = {
-          company_name: "",
-          tax_id: "",
-          contact_person: "",
-          phone: "",
-          mobile: "",
-          fax: "",
-          address: "",
-          email: "",
-        };
+    // 顯示業主選擇Modal
+    showOwnerSelectionModal() {
+      // 重置搜尋條件
+      this.ownerModalSearchTerm = "";
+      this.currentOwnerPage = 1;
+      
+      // 顯示Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("selectOwnerModal")
+      );
+      modal.show();
+      
+      // 載入初始資料
+      this.loadOwners();
+    },
+
+    // 隱藏業主選擇Modal
+    hideOwnerSelectionModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("selectOwnerModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 載入業主資料（支援分頁和搜尋）
+    loadOwners(url = null) {
+      this.isLoadingOwners = true;
+      
+      // 建構 API URL
+      let apiUrl = url || "/crm/api/owners/";
+      const params = new URLSearchParams();
+      
+      if (!url) {
+        params.append("page_size", "10");
+        params.append("page", this.currentOwnerPage.toString());
+        
+        if (this.ownerModalSearchTerm.trim()) {
+          params.append("search", this.ownerModalSearchTerm.trim());
+        }
+        
+        apiUrl += "?" + params.toString();
       }
 
-      // 關閉業主下拉選單
-      this.showOwnerDropdown = false;
+      fetch(apiUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.modalOwners = data.results || [];
+          this.ownerPagination = {
+            count: data.count,
+            next: data.next,
+            previous: data.previous
+          };
+          
+          // 從URL中提取當前頁碼
+          if (data.next || data.previous) {
+            const urlObj = new URL(data.next || data.previous, window.location.origin);
+            const currentPageFromUrl = urlObj.searchParams.get('page');
+            if (data.next) {
+              this.currentOwnerPage = parseInt(currentPageFromUrl) - 1;
+            } else {
+              this.currentOwnerPage = parseInt(currentPageFromUrl) + 1;
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading owners:", error);
+          Swal.fire({
+            title: "錯誤!",
+            text: "載入業主資料失敗",
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+          this.modalOwners = [];
+          this.ownerPagination = null;
+        })
+        .finally(() => {
+          this.isLoadingOwners = false;
+        });
+    },
+
+    // 搜尋業主（防抖處理）
+    searchOwners() {
+      // 清除之前的計時器
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout);
+      }
+      
+      // 設置新的計時器，300ms後執行搜尋
+      this.searchTimeout = setTimeout(() => {
+        this.currentOwnerPage = 1;
+        this.loadOwners();
+      }, 300);
+    },
+
+    // 從Modal選擇業主
+    selectOwnerFromModal(owner) {
+      this.project.owner = owner.id;
+      this.ownerSearchTerm = owner.company_name;
+      this.hideOwnerSelectionModal();
+    },
+
+    // 前往特定頁面
+    goToOwnerPage(page) {
+      this.currentOwnerPage = page;
+      this.loadOwners();
+    },
+
+    // 取得頁碼陣列（用於分頁顯示）
+    getOwnerPageNumbers() {
+      if (!this.ownerPagination || this.ownerPagination.count === 0) {
+        return [];
+      }
+      
+      const totalPages = Math.ceil(this.ownerPagination.count / 10);
+      const currentPage = this.currentOwnerPage;
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+        // 如果總頁數小於等於最大顯示頁數，顯示所有頁面
+        const pages = [];
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+        return pages;
+      }
+      
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      // 調整起始頁，確保顯示的頁面數量正確
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      const pages = [];
+      
+      // 添加第一頁和省略號
+      if (startPage > 1) {
+        pages.push(1);
+        if (startPage > 2) {
+          pages.push('...');
+        }
+      }
+      
+      // 添加中間頁面
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // 添加省略號和最後一頁
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          pages.push('...');
+        }
+        pages.push(totalPages);
+      }
+      
+      return pages;
+    },
+
+    // 顯示新增業主Modal
+    showAddOwnerModal() {
+      // 如果從業主選擇Modal來的，先關閉選擇Modal
+      this.hideOwnerSelectionModal();
+      
+      // 重置新業主表單
+      this.newOwner = {
+        company_name: this.ownerModalSearchTerm || "",
+        tax_id: "",
+        contact_person: "",
+        phone: "",
+        mobile: "",
+        fax: "",
+        address: "",
+        email: "",
+      };
 
       // 顯示新增業主Modal
       const modal = new bootstrap.Modal(
@@ -664,10 +834,8 @@ const projectDetail = createApp({
           this.owners.push(data);
 
           // 選擇新增的業主
-          this.selectOwner(data);
-
-          // 更新業主搜尋結果
-          this.filterOwners();
+          this.project.owner = data.id;
+          this.ownerSearchTerm = data.company_name;
 
           // 關閉Modal
           this.hideAddOwnerModal();
@@ -675,7 +843,7 @@ const projectDetail = createApp({
           // 顯示成功提示
           Swal.fire({
             title: "成功!",
-            text: `業主「${data.company_name}」新增成功`,
+            text: `業主「${data.company_name}」新增成功並已選取`,
             icon: "success",
           });
         })
