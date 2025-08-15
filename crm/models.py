@@ -7,7 +7,7 @@ from django.utils import timezone
 class Owner(models.Model):
     company_name = models.CharField(max_length=255)  # 公司名稱
     tax_id = models.CharField(max_length=10, unique=True)  # 統一編號，確保不重複
-    phone = models.CharField(max_length=20)  # 電話
+    phone = models.CharField(max_length=100)  # 電話
     fax = models.CharField(max_length=20, blank=True, null=True)  # 傳真
     email = models.EmailField()  # Email
     mobile = models.CharField(max_length=20, blank=True, null=True)  # 手機
@@ -54,7 +54,7 @@ class Project(models.Model):
     owner = models.ForeignKey(Owner, on_delete=models.CASCADE)  # 所屬業主
     year = models.IntegerField()  # 年份
     project_number = models.CharField(
-        max_length=4, blank=True, null=True
+        max_length=100, blank=True, null=True
     )  # 案件編號，隨年度自動遞增，設置為可空白和可為null
     name = models.CharField(max_length=255)  # 案件名稱
     report_name = models.CharField(max_length=255, null=True)  # 報告名稱，設為非必填
