@@ -8,9 +8,26 @@ const paymentList = createApp({
       searchQuery: "",
       paidFilter: "", // 付款狀態過濾
       projectFilter: "", // 專案過濾（實際選到的專案id）
-      projectSearch: "", // 專案搜尋框內容
-      projectSuggestions: [], // 專案搜尋建議清單
-      showProjectSuggestions: false, // 是否顯示建議清單
+      projectSearchText: "", // 專案搜尋框顯示文字
+      // 專案選擇模態視窗相關
+      projectModalSearchTerm: "",
+      modalProjects: [],
+      isLoadingProjects: false,
+      projectPagination: null,
+      currentProjectPage: 1,
+      searchProjectTimeout: null,
+      // 模態框篩選條件
+      modalOwnerFilter: "",
+      modalCategoryFilter: "",
+      modalStartYearFilter: "",
+      modalEndYearFilter: "",
+      modalCompletedFilter: "",
+      // 資料來源
+      owners: [],
+      categories: [],
+      availableYears: [],
+      minYear: null,
+      maxYear: null,
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
@@ -68,6 +85,38 @@ const paymentList = createApp({
         prev = page;
       }
       return result;
+    },
+
+    // 計算年份範圍
+    yearRange() {
+      // 如果沒有設定最小或最大年份，返回可用年份列表
+      if (this.minYear === null || this.maxYear === null) {
+        return this.availableYears;
+      }
+
+      // 創建從最小年份到最大年份的連續數組
+      const range = [];
+      for (let year = this.minYear; year <= this.maxYear; year++) {
+        range.push(year);
+      }
+
+      // 按降序排列（最近的年份在前）
+      return range.sort((a, b) => b - a);
+    },
+
+    // 業主和類別映射
+    ownerMap() {
+      return this.owners.reduce((acc, owner) => {
+        acc[owner.id] = owner;
+        return acc;
+      }, {});
+    },
+
+    categoryMap() {
+      return this.categories.reduce((acc, category) => {
+        acc[category.id] = category;
+        return acc;
+      }, {});
     },
   },
   methods: {
@@ -268,17 +317,212 @@ const paymentList = createApp({
           this.activeMenu = null;
         }
       }
-      // 新增：隱藏專案建議清單
-      if (this.showProjectSuggestions) {
-        const input = document.querySelector('input[v-model="projectSearch"]');
-        const ul = document.querySelector('.list-group.position-absolute');
-        if (
-          (!input || !input.contains(event.target)) &&
-          (!ul || !ul.contains(event.target))
-        ) {
-          this.showProjectSuggestions = false;
+    },
+
+    // 搜尋專案（防抖處理，用於模態視窗）
+    searchProjects() {
+      // 清除之前的計時器
+      if (this.searchProjectTimeout) {
+        clearTimeout(this.searchProjectTimeout);
+      }
+      
+      // 設置新的計時器，300ms後執行搜尋
+      this.searchProjectTimeout = setTimeout(() => {
+        this.currentProjectPage = 1;
+        this.loadProjects();
+      }, 300);
+    },
+
+    // 從模態視窗選擇專案
+    selectProjectFromModal(project) {
+      this.projectFilter = project.id;
+      this.projectSearchText = `${project.year}${project.category_code || 'N'}${project.project_number} - ${project.name}`;
+      this.hideProjectSelectionModal();
+    },
+
+    // 清除專案選擇
+    clearProjectSelection() {
+      this.projectFilter = '';
+      this.projectSearchText = '';
+    },
+
+    // 顯示專案選擇Modal
+    showProjectSelectionModal() {
+      // 重置搜尋條件
+      this.projectModalSearchTerm = "";
+      this.currentProjectPage = 1;
+      
+      // 顯示Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("selectProjectModal")
+      );
+      modal.show();
+      
+      // 載入初始資料
+      this.loadProjects();
+    },
+
+    // 重置模態框篩選條件
+    resetModalFilters() {
+      this.modalOwnerFilter = "";
+      this.modalCategoryFilter = "";
+      this.modalStartYearFilter = "";
+      this.modalEndYearFilter = "";
+      this.modalCompletedFilter = "";
+      this.projectModalSearchTerm = "";
+      this.currentProjectPage = 1;
+      this.loadProjects();
+    },
+
+    // 隱藏專案選擇Modal
+    hideProjectSelectionModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("selectProjectModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 載入專案資料（支援分頁和搜尋）
+    loadProjects(url = null) {
+      this.isLoadingProjects = true;
+      
+      // 建構 API URL
+      let apiUrl = url || "/crm/api/projects/";
+      const params = new URLSearchParams();
+      
+      if (!url) {
+        params.append("format", "json");
+        params.append("page_size", "10");
+        params.append("page", this.currentProjectPage.toString());
+        
+        if (this.projectModalSearchTerm.trim()) {
+          params.append("search", this.projectModalSearchTerm.trim());
+        }
+
+        // 添加篩選條件
+        if (this.modalOwnerFilter) {
+          params.append("owner", this.modalOwnerFilter);
+        }
+
+        if (this.modalCategoryFilter) {
+          params.append("category", this.modalCategoryFilter);
+        }
+
+        if (this.modalCompletedFilter === "completed") {
+          params.append("is_completed", "true");
+        } else if (this.modalCompletedFilter === "incomplete") {
+          params.append("is_completed", "false");
+        }
+
+        // 使用年份區間過濾
+        if (this.modalStartYearFilter) {
+          params.append("year_start", this.modalStartYearFilter);
+        }
+
+        if (this.modalEndYearFilter) {
+          params.append("year_end", this.modalEndYearFilter);
+        }
+        
+        apiUrl += "?" + params.toString();
+      }
+
+      fetch(apiUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.modalProjects = data.results ? data.results.map(project => {
+            // 處理專案類別代碼
+            if (project.category_detail && project.category_detail.code) {
+              project.category_code = project.category_detail.code;
+              project.category_name = `${project.category_detail.code}: ${project.category_detail.description}`;
+            } else {
+              project.category_code = 'N';
+              project.category_name = '未分類';
+            }
+            return project;
+          }) : [];
+          
+          this.projectPagination = {
+            count: data.count,
+            next: data.next,
+            previous: data.previous,
+          };
+          
+          // 更新當前頁面
+          if (url) {
+            const urlObj = new URL(url);
+            const pageParam = urlObj.searchParams.get("page");
+            if (pageParam) {
+              this.currentProjectPage = parseInt(pageParam);
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("載入專案資料時發生錯誤:", error);
+          this.modalProjects = [];
+          this.projectPagination = null;
+        })
+        .finally(() => {
+          this.isLoadingProjects = false;
+        });
+    },
+
+    // 前往特定頁面
+    goToProjectPage(page) {
+      this.currentProjectPage = page;
+      this.loadProjects();
+    },
+
+    // 取得頁碼陣列（用於分頁顯示）
+    getProjectPageNumbers() {
+      if (!this.projectPagination || this.projectPagination.count === 0) {
+        return [];
+      }
+      
+      const totalPages = Math.ceil(this.projectPagination.count / 10);
+      const currentPage = this.currentProjectPage;
+      const pages = [];
+      
+      // 如果總頁數 <= 7，顯示所有頁碼
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // 總頁數 > 7，使用省略號邏輯
+        if (currentPage <= 4) {
+          // 當前頁在前面
+          for (let i = 1; i <= 5; i++) {
+            pages.push(i);
+          }
+          pages.push("...");
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 3) {
+          // 當前頁在後面
+          pages.push(1);
+          pages.push("...");
+          for (let i = totalPages - 4; i <= totalPages; i++) {
+            pages.push(i);
+          }
+        } else {
+          // 當前頁在中間
+          pages.push(1);
+          pages.push("...");
+          for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+            pages.push(i);
+          }
+          pages.push("...");
+          pages.push(totalPages);
         }
       }
+      
+      return pages;
     },
 
     // 處理每頁數量變更
@@ -292,57 +536,53 @@ const paymentList = createApp({
       window.location.href = "/crm/create_payment/";
     },
 
-    // 動態搜尋專案
-    onProjectSearch() {
-      const keyword = this.projectSearch.trim();
-      // 如果keyword沒變，則直接return
-      if (this._lastProjectSearchKeyword === keyword) {
-        return;
-      }
-      this._lastProjectSearchKeyword = keyword;
-
-      this._projectSearchToken = (this._projectSearchToken || 0) + 1;
-      const currentToken = this._projectSearchToken;
-      if (!keyword) {
-        fetch('/crm/api/projects/?format=json&ordering=-id&page_size=10')
-          .then(res => res.json())
-          .then(data => {
-            if (this._projectSearchToken !== currentToken) return; // 只處理最新請求
-            this.projectSuggestions = data.results;
-            this.showProjectSuggestions = true;
-          });
-      } else {
-        fetch(`/crm/api/projects/?format=json&search=${encodeURIComponent(keyword)}&page_size=10`)
-          .then(res => res.json())
-          .then(data => {
-            if (this._projectSearchToken !== currentToken) return; // 只處理最新請求
-            this.projectSuggestions = data.results;
-            this.showProjectSuggestions = true;
-          });
-      }
+    // 獲取業主列表
+    fetchOwners() {
+      fetch(`/crm/api/owners/?format=json&page_size=1000`)
+        .then((response) => response.json())
+        .then((data) => {
+          this.owners = data.results || [];
+        })
+        .catch((error) => console.error("Error fetching owners:", error));
     },
 
-    // 選擇建議專案
-    selectProjectSuggestion(project) {
-      this.projectFilter = project.id;
-      this.projectSearch = project.name;
-      this.showProjectSuggestions = false;
+    // 獲取類別列表
+    fetchCategories() {
+      fetch(`/crm/api/categories/?format=json&page_size=1000`)
+        .then((response) => response.json())
+        .then((data) => {
+          this.categories = data.results || [];
+        })
+        .catch((error) => console.error("Error fetching categories:", error));
     },
 
-    // 清除專案選擇
-    clearProjectSelection() {
-      this.projectFilter = '';
-      this.projectSearch = '';
-      this.projectSuggestions = [];
-      this.showProjectSuggestions = false;
-      fetch('/crm/api/projects/?format=json&ordering=-id&page_size=10')
-        .then(res => res.json())
-        .then(data => {
-          this.projectSuggestions = data.results;
+    // 獲取可用年份
+    fetchYears() {
+      fetch(`/crm/api/projects/years/`)
+        .then((response) => response.json())
+        .then((data) => {
+          this.availableYears = data.years || [];
+          this.minYear = data.min_year;
+          this.maxYear = data.max_year;
+
+          // 確保當前年份也包含在內
+          const currentYear = new Date().getFullYear();
+          if (currentYear > this.maxYear) {
+            this.maxYear = currentYear;
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching years:", error);
+          // 如果獲取失敗，提供當前年份作為預設值
+          const currentYear = new Date().getFullYear();
+          this.minYear = currentYear;
+          this.maxYear = currentYear;
+          this.availableYears = [currentYear];
         });
     },
   },
   mounted() {
+    // 檢查URL參數中的專案篩選
     const urlParams = new URLSearchParams(window.location.search);
     const projectParam = urlParams.get('project');
     if (projectParam) {
@@ -350,17 +590,17 @@ const paymentList = createApp({
       fetch(`/crm/api/projects/${projectParam}/?format=json`)
         .then(res => res.json())
         .then(data => {
-          this.projectSearch = data.name;
-        });
-    } else {
-      fetch('/crm/api/projects/?format=json&ordering=-id&page_size=10')
-        .then(res => res.json())
-        .then(data => {
-          this.projectSuggestions = data.results;
+          // 設置專案顯示文字
+          const categoryCode = data.category_detail ? data.category_detail.code : 'N';
+          this.projectSearchText = `${data.year}${categoryCode}${data.project_number} - ${data.name}`;
         });
     }
+    
+    // 載入基本資料
     this.fetchPayments();
-    // document.addEventListener("click", this.handleClickOutside);
+    this.fetchOwners();
+    this.fetchCategories();
+    this.fetchYears();
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
