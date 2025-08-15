@@ -74,9 +74,6 @@ const projectList = createApp({
       
       // 新增：動態載入相關的狀態
       loadingOwnerIds: new Set(), // 正在載入的業主ID集合
-      
-      // 即時搜尋相關
-      searchDebounceTimer: null, // 防抖計時器
     };
   },
   computed: {
@@ -144,21 +141,6 @@ const projectList = createApp({
       }
       return result;
     },
-  },
-  watch: {
-    // 監聽搜尋查詢變化，實現即時搜尋
-    searchQuery(_newValue, _oldValue) {
-      // 清除之前的計時器
-      if (this.searchDebounceTimer) {
-        clearTimeout(this.searchDebounceTimer);
-      }
-      
-      // 設定新的防抖計時器 (300ms)
-      this.searchDebounceTimer = setTimeout(() => {
-        this.currentPage = 1; // 搜尋時重置為第一頁
-        this.fetchProjects(1);
-      }, 300);
-    }
   },
   directives: {
     // 自定義指令：點擊元素外部時觸發
@@ -889,10 +871,5 @@ const projectList = createApp({
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
     document.removeEventListener("click", this.handleClickOutside);
-    
-    // 清除防抖計時器
-    if (this.searchDebounceTimer) {
-      clearTimeout(this.searchDebounceTimer);
-    }
   },
 }).mount("#app_main");
