@@ -414,7 +414,8 @@ class ProjectImporter(BaseImporter):
             # 查找或新增案件負責人
             managers = []
             if data.get("manager_name"):
-                for name in re.split(r'[,\n]', data["manager_name"]):
+                # 處理多個負責人情況：支援逗號、換行符、空格分隔
+                for name in re.split(r'[,\n\s]+', data["manager_name"]):
                     name = name.strip()
                     if not name:
                         continue

@@ -65,132 +65,123 @@ class Command(BaseCommand):
         if self.debug:
             self.stdout.write(self.style.WARNING(f"[DEBUG] {message}"))
 
-    def setup_default_data(self):
-        """建立導入所需的預設資料"""
-        # 建立預設使用者
-        self.setup_default_users()
+    # def setup_default_data(self):
+    #     """建立導入所需的預設資料"""
+    #     # 建立預設使用者
+    #     self.setup_default_users()
 
-        # 建立預設類別
-        self.setup_default_categories()
+    #     # 建立預設類別
+    #     self.setup_default_categories()
 
-        # 建立預設業主
-        self.setup_default_owners()
+    #     # 建立預設業主
+    #     self.setup_default_owners()
         
-        # 建立預設收款公司
-        self.setup_default_company()
+    #     # 建立預設收款公司
+    #     self.setup_default_company()
 
-    def setup_default_users(self):
-        """建立CSV中出現的所有使用者，同時建立相應的使用者檔案"""
-        users_to_create = [
-            "王美淇",
-            "陳俊宏",
-            "王岳穎",
-            "李明書",
-            "楊力宇",
-            "羅茗葳",
-            "吳聲信",
-            "陳昱仲",
-            "翁佩芬",
-            "蔡宗林",
-            "黃柚蓁",
-            "郭雅綾",
-        ]
+    # def setup_default_users(self):
+    #     """建立CSV中出現的所有使用者，同時建立相應的使用者檔案"""
+    #     users_to_create = [
+    #         "王美淇",
+    #         "陳俊宏",
+    #         "王岳穎",
+    #         "李明書",
+    #         "楊力宇",
+    #         "羅茗葳",
+    #         "吳聲信",
+    #         "陳昱仲",
+    #         "翁佩芬",
+    #         "蔡宗林",
+    #         "黃柚蓁",
+    #         "郭雅綾",
+    #     ]
 
-        for username in users_to_create:
-            # 建立使用者
-            user, user_created = User.objects.get_or_create(
-                username=username, defaults={"first_name": username, "is_active": True}
-            )
+    #     for username in users_to_create:
+    #         # 建立使用者
+    #         user, user_created = User.objects.get_or_create(
+    #             username=username, defaults={"first_name": username, "is_active": True}
+    #         )
 
-            # 建立或取得對應的使用者檔案
-            profile, profile_created = UserProfile.objects.get_or_create(
-                user=user,
-                defaults={
-                    "name": username,  # 使用使用者名稱作為姓名
-                    "is_designer": username
-                    in ["翁佩芬", "蔡宗林", "黃柚蓁", "郭雅綾"],  # 假設這些是設計師
-                    "is_project_manager": username
-                    in [
-                        "王美淇",
-                        "陳俊宏",
-                        "王岳穎",
-                        "李明書",
-                        "楊力宇",
-                        "羅茗葳",
-                        "吳聲信",
-                        "陳昱仲",
-                    ],  # 假設這些是專案管理員
-                },
-            )
+    #         # 建立或取得對應的使用者檔案
+    #         profile, profile_created = UserProfile.objects.get_or_create(
+    #             user=user,
+    #             defaults={
+    #                 "name": username,  # 使用使用者名稱作為姓名
+    #                 "is_designer": username
+    #                 in ["翁佩芬", "蔡宗林", "黃柚蓁", "郭雅綾"],  # 假設這些是設計師
+    #                 "is_project_manager": username
+    #                 in [
+    #                     "王美淇",
+    #                     "陳俊宏",
+    #                     "王岳穎",
+    #                     "李明書",
+    #                     "楊力宇",
+    #                     "羅茗葳",
+    #                     "吳聲信",
+    #                     "陳昱仲",
+    #                 ],  # 假設這些是專案管理員
+    #             },
+    #         )
 
-            if user_created:
-                self.debug_log(f"建立使用者: {username}")
-            if profile_created:
-                self.debug_log(f"建立使用者檔案: {profile.name}")
+    #         if user_created:
+    #             self.debug_log(f"建立使用者: {username}")
+    #         if profile_created:
+    #             self.debug_log(f"建立使用者檔案: {profile.name}")
 
-        self.stdout.write(self.style.SUCCESS("已建立預設使用者及其檔案"))
+    #     self.stdout.write(self.style.SUCCESS("已建立預設使用者及其檔案"))
 
-    def setup_default_categories(self):
-        """建立CSV中出現的所有類別"""
-        categories_to_create = [
-            {"code": "A", "description": "建築"},
-            {"code": "D", "description": "其他"},
-        ]
+    # def setup_default_categories(self):
+    #     """建立CSV中出現的所有類別"""
+    #     categories_to_create = [
+    #         {"code": "A", "description": "建築"},
+    #         {"code": "D", "description": "其他"},
+    #     ]
 
-        for category in categories_to_create:
-            cat, created = Category.objects.get_or_create(
-                code=category["code"], defaults={"description": category["description"]}
-            )
-            if created:
-                self.debug_log(f"建立類別: {cat.code} - {cat.description}")
+    #     for category in categories_to_create:
+    #         cat, created = Category.objects.get_or_create(
+    #             code=category["code"], defaults={"description": category["description"]}
+    #         )
+    #         if created:
+    #             self.debug_log(f"建立類別: {cat.code} - {cat.description}")
 
-        self.stdout.write(self.style.SUCCESS("已建立預設類別"))
+    #     self.stdout.write(self.style.SUCCESS("已建立預設類別"))
 
-    def check_categories(self):
-        """檢查資料庫中的類別"""
-        categories = Category.objects.all().order_by("code")
-        self.stdout.write(
-            self.style.SUCCESS(f"資料庫中共有 {categories.count()} 個類別:")
-        )
-        for cat in categories:
-            self.stdout.write(f"  - {cat.code}: {cat.description}")
+    # def setup_default_owners(self):
+    #     """建立CSV中出現的所有業主"""
+    #     owner, created = Owner.objects.get_or_create(
+    #         company_name="蘇寶華建築師事務所",
+    #         defaults={
+    #             "tax_id": "12345678",  # 假設稅碼，實際使用時應更新
+    #             "phone": "04-12345678",
+    #             "email": "info@example.com",
+    #             "address": "彰化縣",
+    #             "contact_person": "蘇寶華",
+    #         },
+    #     )
+    #     if created:
+    #         self.debug_log(f"建立業主: {owner.company_name}")
 
-    def setup_default_owners(self):
-        """建立CSV中出現的所有業主"""
-        owner, created = Owner.objects.get_or_create(
-            company_name="蘇寶華建築師事務所",
-            defaults={
-                "tax_id": "12345678",  # 假設稅碼，實際使用時應更新
-                "phone": "04-12345678",
-                "email": "info@example.com",
-                "address": "彰化縣",
-                "contact_person": "蘇寶華",
-            },
-        )
-        if created:
-            self.debug_log(f"建立業主: {owner.company_name}")
-
-        self.stdout.write(self.style.SUCCESS("已建立預設業主"))
+    #     self.stdout.write(self.style.SUCCESS("已建立預設業主"))
 
     # 在setup_default_data或handle方法中加入以下程式碼：
-    def setup_default_company(self):
-        """建立預設收款公司"""
-        company, created = Company.objects.get_or_create(
-            name="力宇設計有限公司",
-            defaults={
-                "name": "立信工程顧問有限公司",
-                "responsible_person": "林育信",
-                "tax_id": "45127101",
-                "address": "500 彰化市中山路二段356巷1號",
-                "phone": "04-7234988分機138",
-                "fax": "04-7233033",
-                "contact_person": "吳小姐"
-                }
-        )
-        if created:
-            self.debug_log(f"建立預設收款公司: {company.name}")
-        self.default_company = company
-        self.stdout.write(self.style.SUCCESS("已建立預設收款公司"))
+    # def setup_default_company(self):
+    #     """建立預設收款公司"""
+    #     company, created = Company.objects.get_or_create(
+    #         name="力宇設計有限公司",
+    #         defaults={
+    #             "name": "立信工程顧問有限公司",
+    #             "responsible_person": "林育信",
+    #             "tax_id": "45127101",
+    #             "address": "500 彰化市中山路二段356巷1號",
+    #             "phone": "04-7234988分機138",
+    #             "fax": "04-7233033",
+    #             "contact_person": "吳小姐"
+    #             }
+    #     )
+    #     if created:
+    #         self.debug_log(f"建立預設收款公司: {company.name}")
+    #     self.default_company = company
+    #     self.stdout.write(self.style.SUCCESS("已建立預設收款公司"))
     
     def parse_date(self, date_str):
         """解析日期字串"""
@@ -584,7 +575,8 @@ class Command(BaseCommand):
                     # 查找或新增案件負責人
                     managers = []
                     if data.get("manager_name"):
-                        for name in re.split(r'[,\n]', data["manager_name"]):
+                        # 處理多個負責人情況：支援逗號、換行符、空格分隔
+                        for name in re.split(r'[,\n\s]+', data["manager_name"]):
                             name = name.strip()
                             if not name:
                                 continue
