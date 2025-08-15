@@ -344,6 +344,24 @@ class OwnerViewSet(BaseViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ["company_name", "tax_id", "contact_person", "phone", "email"]
+    
+    @action(detail=False, methods=['get'])
+    def batch_info(self, request):
+        """根據ID列表批量獲取業主資訊"""
+        ids = request.query_params.get('ids', '')
+        if not ids:
+            return Response({'error': '請提供 ids 參數'}, status=400)
+        
+        try:
+            id_list = [int(id.strip()) for id in ids.split(',') if id.strip().isdigit()]
+            if not id_list:
+                return Response({'error': '無效的 ID 格式'}, status=400)
+                
+            owners = Owner.objects.filter(id__in=id_list).only('id', 'company_name')
+            result = {owner.id: owner.company_name for owner in owners}
+            return Response(result)
+        except ValueError:
+            return Response({'error': 'ID 必須是數字'}, status=400)
 
 
 class ProjectViewSet(BaseViewSet):

@@ -71,6 +71,9 @@ const projectList = createApp({
       filteredOwners: [],
       filteredManagers: [],
       filteredDesigners: [],
+      
+      // 新增：動態載入相關的狀態
+      loadingOwnerIds: new Set(), // 正在載入的業主ID集合
     };
   },
   computed: {
@@ -305,6 +308,9 @@ const projectList = createApp({
         .then((data) => {
           this.projects = data.results;
           this.totalPages = Math.ceil(data.count / this.pageSize);
+          
+          // 動態載入缺失的業主資訊
+          this.loadMissingOwners();
         })
         .catch((error) => console.error("Error fetching projects:", error))
         .finally(() => {
@@ -312,12 +318,100 @@ const projectList = createApp({
         });
     },
     fetchOwners() {
-      fetch(`/crm/api/owners/?format=json&page_size=1000`)
+      // 只載入基本的業主資料用於搜尋和新增專案
+      fetch(`/crm/api/owners/?format=json&page_size=500`)
         .then((response) => response.json())
         .then((data) => {
           this.owners = data.results;
         })
         .catch((error) => console.error("Error fetching owners:", error));
+    },
+    
+    // 新增方法：動態載入缺失的業主資訊
+    loadMissingOwners() {
+      // 收集當前頁面中缺失的業主ID（考慮 owner_name 為空的情況）
+      const missingOwnerIds = [];
+      this.projects.forEach(project => {
+        // 如果沒有 owner_name 且有 owner ID，並且不在 ownerMap 中
+        if (project.owner && !project.owner_name && !this.ownerMap[project.owner]) {
+          missingOwnerIds.push(project.owner);
+        }
+      });
+      
+      // 去重
+      const uniqueMissingIds = [...new Set(missingOwnerIds)];
+      
+      if (uniqueMissingIds.length > 0) {
+        console.log(`正在載入 ${uniqueMissingIds.length} 個缺失的業主資訊...`);
+        
+        // 批量獲取業主資訊
+        fetch(`/crm/api/owners/batch_info/?ids=${uniqueMissingIds.join(',')}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+          })
+          .then(ownerData => {
+            // 將新獲取的業主資訊添加到 owners 陣列中
+            Object.entries(ownerData).forEach(([ownerId, companyName]) => {
+              // 檢查是否已存在，避免重複
+              const existingOwner = this.owners.find(owner => owner.id == ownerId);
+              if (!existingOwner) {
+                this.owners.push({
+                  id: parseInt(ownerId),
+                  company_name: companyName
+                });
+              }
+            });
+            console.log(`成功載入 ${Object.keys(ownerData).length} 個業主資訊`);
+          })
+          .catch(error => {
+            console.error("Error loading missing owners:", error);
+            // 將失敗的ID添加一個錯誤標記，避免重複嘗試
+            uniqueMissingIds.forEach(ownerId => {
+              if (!this.owners.find(owner => owner.id == ownerId)) {
+                this.owners.push({
+                  id: parseInt(ownerId),
+                  company_name: "載入失敗"
+                });
+              }
+            });
+          });
+      }
+    },
+
+    // 新增方法：載入單一業主資訊
+    loadOwnerById(ownerId) {
+      // 避免重複載入
+      if (this.loadingOwnerIds && this.loadingOwnerIds.has(ownerId)) {
+        return;
+      }
+      
+      // 初始化載入中的ID集合
+      if (!this.loadingOwnerIds) {
+        this.loadingOwnerIds = new Set();
+      }
+      
+      this.loadingOwnerIds.add(ownerId);
+      
+      fetch(`/crm/api/owners/batch_info/?ids=${ownerId}`)
+        .then(response => response.json())
+        .then(ownerData => {
+          Object.entries(ownerData).forEach(([id, companyName]) => {
+            // 檢查是否已存在，避免重複
+            if (!this.owners.find(owner => owner.id == id)) {
+              this.owners.push({
+                id: parseInt(id),
+                company_name: companyName
+              });
+            }
+          });
+        })
+        .catch(error => console.error("Error loading owner:", error))
+        .finally(() => {
+          this.loadingOwnerIds.delete(ownerId);
+        });
     },
     fetchCategories() {
       fetch(`/crm/api/categories/?format=json&page_size=1000`)
@@ -366,7 +460,16 @@ const projectList = createApp({
         });
     },
     getOwnerName(ownerId) {
-      return this.ownerMap[ownerId]?.company_name || "未知業主";
+      // 首先檢查是否已經有這個業主的資訊
+      if (this.ownerMap[ownerId]) {
+        return this.ownerMap[ownerId].company_name;
+      }
+      
+      // 如果沒有，觸發動態載入
+      this.loadOwnerById(ownerId);
+      
+      // 暫時返回載入中的提示
+      return "載入中...";
     },
     getCategoryName(categoryId) {
       const category = this.categoryMap[categoryId];
@@ -459,7 +562,7 @@ const projectList = createApp({
       );
       modal.hide();
     },
-    submitProjectForm(user) {
+    submitProjectForm() {
       // 如果未選擇業主，顯示錯誤訊息
       if (!this.newProject.owner) {
         Swal.fire({
