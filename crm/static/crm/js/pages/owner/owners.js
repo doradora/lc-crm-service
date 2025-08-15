@@ -26,6 +26,9 @@ const ownerList = createApp({
         address: "",
         contact_person: "",
       },
+      
+      // 即時搜尋相關
+      searchDebounceTimer: null, // 防抖計時器
     };
   },
   computed: {
@@ -59,6 +62,21 @@ const ownerList = createApp({
       }
       return result;
     },
+  },
+  watch: {
+    // 監聽搜尋查詢變化，實現即時搜尋
+    searchQuery(_newValue, _oldValue) {
+      // 清除之前的計時器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer);
+      }
+      
+      // 設定新的防抖計時器 (300ms)
+      this.searchDebounceTimer = setTimeout(() => {
+        this.currentPage = 1; // 搜尋時重置為第一頁
+        this.fetchOwners(1);
+      }, 300);
+    }
   },
   methods: {
     deleteOwner(ownerId) {
@@ -334,5 +352,10 @@ const ownerList = createApp({
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
     document.removeEventListener("click", this.handleClickOutside);
+    
+    // 清除防抖計時器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
   },
 }).mount("#app_main");
