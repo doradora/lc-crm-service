@@ -122,16 +122,17 @@ class BaseImporter:
 class OwnerImporter(BaseImporter):
     """業主資料匯入器"""
     
-    def import_from_excel(self, file_path, sheet_name='業主資料'):
+    def import_from_excel(self, file_path):
         """從 Excel 檔案匯入業主資料"""
         try:
             workbook = openpyxl.load_workbook(file_path)
             
-            if sheet_name not in workbook.sheetnames:
-                self.result.add_error(0, f"未找到名為 '{sheet_name}' 的工作表")
+            if not workbook.sheetnames:
+                self.result.add_error(0, "Excel 檔案中沒有工作表")
                 return self.result
             
-            sheet = workbook[sheet_name]
+            # 使用第一張工作表
+            sheet = workbook[workbook.sheetnames[0]]
             
             with transaction.atomic():
                 # 跳過標題列，從第二列開始
@@ -219,16 +220,17 @@ class OwnerImporter(BaseImporter):
 class ProjectImporter(BaseImporter):
     """專案資料匯入器"""
     
-    def import_from_excel(self, file_path, sheet_name='案件清單(欄位不足)'):
+    def import_from_excel(self, file_path):
         """從 Excel 檔案匯入專案資料"""
         try:
             workbook = openpyxl.load_workbook(file_path)
             
-            if sheet_name not in workbook.sheetnames:
-                self.result.add_error(0, f"未找到名為 '{sheet_name}' 的工作表")
+            if not workbook.sheetnames:
+                self.result.add_error(0, "Excel 檔案中沒有工作表")
                 return self.result
             
-            sheet = workbook[sheet_name]
+            # 使用第一張工作表
+            sheet = workbook[workbook.sheetnames[0]]
             column_mapping = self._map_excel_columns(sheet)
             
             if not column_mapping:

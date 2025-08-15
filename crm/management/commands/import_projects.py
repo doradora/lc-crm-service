@@ -498,15 +498,15 @@ class Command(BaseCommand):
             excel_path (str): Excel 檔案的路徑
             force (bool): 是否強制覆寫資料
         """
-        sheet_name = '案件清單(欄位不足)'
 
         try:
             workbook = openpyxl.load_workbook(excel_path)
-            if sheet_name not in workbook.sheetnames:
-                self.stdout.write(self.style.ERROR(f"未找到名為 '{sheet_name}' 的工作表"))
+            if not workbook.sheetnames:
+                self.stdout.write(self.style.ERROR("Excel 檔案中沒有工作表"))
                 return
 
-            sheet = workbook[sheet_name]
+            # 使用第一張工作表
+            sheet = workbook[workbook.sheetnames[0]]
             # 檢查資料庫中是否已有專案資料
             existing_projects = Project.objects.count()
             if existing_projects > 0 and not force:

@@ -72,11 +72,12 @@ class Command(BaseCommand):
         try:
             # 開啟 Excel 檔案
             workbook = openpyxl.load_workbook(excel_path)
-            if '業主資料' not in workbook.sheetnames:
-                self.stdout.write(self.style.ERROR("未找到名為 '業主資料' 的工作表"))
+            if not workbook.sheetnames:
+                self.stdout.write(self.style.ERROR("Excel 檔案中沒有工作表"))
                 return
 
-            sheet = workbook['業主資料']
+            # 使用第一張工作表
+            sheet = workbook[workbook.sheetnames[0]]
 
             # 逐行讀取資料，跳過標題列
             for row in sheet.iter_rows(min_row=2, values_only=True):
