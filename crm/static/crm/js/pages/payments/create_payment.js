@@ -39,6 +39,24 @@ const paymentsList = createApp({
       selectAllChecked: false, // 全選狀態
       paymentItems: [], // 新增：付款項目陣列初始化
       projectNameFilter: '', // 新增：專案名稱前端過濾
+      // 業主選擇模態視窗相關
+      ownerModalSearchTerm: "",
+      modalOwners: [],
+      isLoadingOwners: false,
+      ownerPagination: null,
+      currentOwnerPage: 1,
+      searchTimeout: null,
+      // 新增業主表單
+      newOwner: {
+        company_name: "",
+        tax_id: "",
+        contact_person: "",
+        phone: "",
+        mobile: "",
+        fax: "",
+        address: "",
+        email: "",
+      },
     };
   },
   directives: {
@@ -97,26 +115,28 @@ const paymentsList = createApp({
     },
   },
   methods: {
-    // 搜尋業主 (更新為支援名稱和統一編號)
+    // 搜尋業主（防抖處理，用於模態視窗）
     searchOwners() {
-      if (!this.ownerSearchText.trim()) {
-        this.filteredOwners = this.owners.slice(0, 10); // 顯示前10個
-        return;
+      // 清除之前的計時器
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout);
       }
-
-      const searchText = this.ownerSearchText.toLowerCase().trim();
-      this.filteredOwners = this.owners
-        .filter(
-          (owner) =>
-            owner.company_name.toLowerCase().includes(searchText) ||
-            (owner.tax_id && owner.tax_id.includes(searchText))
-        )
-        .slice(0, 10); // 最多顯示10個結果
-
-      this.showOwnerDropdown = true;
+      
+      // 設置新的計時器，300ms後執行搜尋
+      this.searchTimeout = setTimeout(() => {
+        this.currentOwnerPage = 1;
+        this.loadOwners();
+      }, 300);
     },
 
-    // 選擇業主
+    // 從模態視窗選擇業主
+    selectOwnerFromModal(owner) {
+      this.ownerFilter = owner.id;
+      this.ownerSearchText = owner.company_name;
+      this.hideOwnerSelectionModal();
+    },
+
+    // 選擇業主（保留舊方法作為備用）
     selectOwner(owner) {
       this.ownerFilter = owner.id;
       this.ownerSearchText = owner.company_name;
@@ -129,6 +149,220 @@ const paymentsList = createApp({
       this.ownerSearchText = "";
       this.filteredOwners = [];
       this.showOwnerDropdown = false;
+    },
+
+    // 顯示業主選擇Modal
+    showOwnerSelectionModal() {
+      // 重置搜尋條件
+      this.ownerModalSearchTerm = "";
+      this.currentOwnerPage = 1;
+      
+      // 顯示Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("selectOwnerModal")
+      );
+      modal.show();
+      
+      // 載入初始資料
+      this.loadOwners();
+    },
+
+    // 隱藏業主選擇Modal
+    hideOwnerSelectionModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("selectOwnerModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 載入業主資料（支援分頁和搜尋）
+    loadOwners(url = null) {
+      this.isLoadingOwners = true;
+      
+      // 建構 API URL
+      let apiUrl = url || "/crm/api/owners/";
+      const params = new URLSearchParams();
+      
+      if (!url) {
+        params.append("format", "json");
+        params.append("page_size", "10");
+        params.append("page", this.currentOwnerPage.toString());
+        
+        if (this.ownerModalSearchTerm.trim()) {
+          params.append("search", this.ownerModalSearchTerm.trim());
+        }
+        
+        apiUrl += "?" + params.toString();
+      }
+
+      fetch(apiUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.modalOwners = data.results || [];
+          this.ownerPagination = {
+            count: data.count,
+            next: data.next,
+            previous: data.previous,
+          };
+          
+          // 更新當前頁面
+          if (url) {
+            const urlObj = new URL(url);
+            const pageParam = urlObj.searchParams.get("page");
+            if (pageParam) {
+              this.currentOwnerPage = parseInt(pageParam);
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("載入業主資料時發生錯誤:", error);
+          this.modalOwners = [];
+          this.ownerPagination = null;
+        })
+        .finally(() => {
+          this.isLoadingOwners = false;
+        });
+    },
+
+    // 前往特定頁面
+    goToOwnerPage(page) {
+      this.currentOwnerPage = page;
+      this.loadOwners();
+    },
+
+    // 取得頁碼陣列（用於分頁顯示）
+    getOwnerPageNumbers() {
+      if (!this.ownerPagination || this.ownerPagination.count === 0) {
+        return [];
+      }
+      
+      const totalPages = Math.ceil(this.ownerPagination.count / 10);
+      const currentPage = this.currentOwnerPage;
+      const pages = [];
+      
+      // 如果總頁數 <= 7，顯示所有頁碼
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // 總頁數 > 7，使用省略號邏輯
+        if (currentPage <= 4) {
+          // 當前頁在前面
+          for (let i = 1; i <= 5; i++) {
+            pages.push(i);
+          }
+          pages.push("...");
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 3) {
+          // 當前頁在後面
+          pages.push(1);
+          pages.push("...");
+          for (let i = totalPages - 4; i <= totalPages; i++) {
+            pages.push(i);
+          }
+        } else {
+          // 當前頁在中間
+          pages.push(1);
+          pages.push("...");
+          for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+            pages.push(i);
+          }
+          pages.push("...");
+          pages.push(totalPages);
+        }
+      }
+      
+      return pages;
+    },
+
+    // 顯示新增業主Modal
+    showAddOwnerModal() {
+      // 如果從搜尋業主時點擊新增，則預填公司名稱
+      if (this.ownerModalSearchTerm) {
+        this.newOwner.company_name = this.ownerModalSearchTerm;
+      } else {
+        // 重置新業主表單
+        this.newOwner = {
+          company_name: "",
+          tax_id: "",
+          contact_person: "",
+          phone: "",
+          mobile: "",
+          fax: "",
+          address: "",
+          email: "",
+        };
+      }
+
+      // 顯示新增業主Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("addOwnerModal")
+      );
+      modal.show();
+    },
+
+    // 隱藏新增業主Modal
+    hideAddOwnerModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("addOwnerModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 提交新增業主表單
+    submitOwnerForm() {
+      fetch("/crm/api/owners/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector(
+            'input[name="csrfmiddlewaretoken"]'
+          ).value,
+        },
+        body: JSON.stringify(this.newOwner),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((err) => {
+              throw new Error(JSON.stringify(err));
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // 新增業主成功後，選擇新增的業主
+          this.selectOwnerFromModal(data);
+
+          // 關閉Modal
+          this.hideAddOwnerModal();
+
+          // 顯示成功提示
+          Swal.fire({
+            title: "成功!",
+            text: `業主「${data.company_name}」新增成功`,
+            icon: "success",
+            confirmButtonText: "確定",
+          });
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          Swal.fire({
+            title: "錯誤!",
+            text: `創建業主失敗：${error.message}`,
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+        });
     },
 
     // 關閉業主下拉選單
@@ -514,12 +748,32 @@ const paymentsList = createApp({
       // 表單驗證
       const selectedProjectIds = Array.from(this.selectedProjects.keys());
       if (selectedProjectIds.length === 0) {
-        alert("請選擇至少一個專案");
+        Swal.fire({
+          title: "驗證失敗!",
+          text: "請選擇至少一個專案",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      if (!this.ownerFilter) {
+        Swal.fire({
+          title: "驗證失敗!",
+          text: "請先選擇業主",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
         return;
       }
 
       if (!this.companyFilter) {
-        alert("請選擇收款公司");
+        Swal.fire({
+          title: "驗證失敗!",
+          text: "請選擇收款公司",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
         return;
       }
 
