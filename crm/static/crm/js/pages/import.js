@@ -116,9 +116,10 @@ const importApp = createApp({
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
-          const elapsed = document.getElementById('import-elapsed');
           timerInterval = setInterval(() => {
             seconds++;
+            // 每次都重新獲取元素，避免因為 innerHTML 更新導致的引用失效
+            const elapsed = document.getElementById('import-elapsed');
             if (elapsed) {
               elapsed.innerHTML = `已等待 ${seconds} 秒`;
             }
