@@ -51,7 +51,7 @@ class Category(models.Model):
 
 
 class Project(models.Model):
-    owner = models.ForeignKey(Owner, on_delete=models.CASCADE)  # 所屬業主
+    owner = models.ForeignKey(Owner, on_delete=models.PROTECT)  # 所屬業主
     year = models.IntegerField()  # 年份
     project_number = models.CharField(
         max_length=100, blank=True, null=True

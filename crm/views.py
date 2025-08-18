@@ -338,13 +338,25 @@ class CategoryViewSet(BaseViewSet):
         return Response(category.custom_field_schema)
 
 
+from django.db.models import ProtectedError
 class OwnerViewSet(BaseViewSet):
     queryset = Owner.objects.all().order_by("tax_id")
     serializer_class = OwnerSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ["company_name", "tax_id", "contact_person", "phone", "email"]
-    
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"error": "此業主尚有關聯的專案，無法刪除。"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
     @action(detail=False, methods=['get'])
     def batch_info(self, request):
         """根據ID列表批量獲取業主資訊"""

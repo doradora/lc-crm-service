@@ -80,33 +80,29 @@ const ownerList = createApp({
             },
           })
             .then((response) => {
-              if (!response.ok) {
-                Swal.fire({
-                  title: "錯誤!",
-                  text: "刪除失敗，請稍後再試。",
-                  icon: "error",
-                  confirmButtonText: "確認",
-                });
-                return;
+              if (response.ok) {
+                return; // 成功，繼續 .then鏈
               }
-              // 刪除成功
+              // 失敗，讀取錯誤訊息並拋出
+              return response.json().then((errorData) => {
+                throw new Error(errorData.error || "刪除失敗");
+              });
+            })
+            .then(() => {
               Swal.fire({
                 title: "成功!",
                 text: "業主已成功刪除。",
                 icon: "success",
                 confirmButtonText: "確認",
               }).then(() => {
-                this.fetchOwners(this.currentPage); // 重新獲取當前頁數據
+                this.fetchOwners(this.currentPage);
                 this.activeMenu = null;
               });
             })
-            .catch((error) => {
+            .catch((error) => {              
               Swal.fire({
-                title: "錯誤!",
-                text:
-                  error && error.message
-                    ? error.message
-                    : "刪除時發生未知錯誤。",
+                title: "操作失敗",
+                text: error,
                 icon: "error",
                 confirmButtonText: "確認",
               });
