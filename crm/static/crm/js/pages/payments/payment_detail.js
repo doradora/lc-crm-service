@@ -737,6 +737,15 @@ const paymentDetail = createApp({
         document.getElementById("addProjectModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到搜尋欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.projectSearchInput) {
+            this.$refs.projectSearchInput.focus();
+          }
+        });
+      }, { once: true });
     },
 
     // 過濾Modal中的專案列表
@@ -1330,6 +1339,14 @@ const paymentDetail = createApp({
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
     this.fetchPaymentDocuments(); // 新增：獲取內存請款單檔案列表
+    
+    // 頁面載入後自動focus到搜尋欄位
+    this.$nextTick(() => {
+      if (this.$refs.projectSearchInput) {
+        this.$refs.projectSearchInput.focus();
+      }
+    });
+    
     // 初始化 Bootstrap tabs
     this.$nextTick(() => {
       // 確保元素已經渲染完成

@@ -623,6 +623,15 @@ const projectDetail = createApp({
       );
       modal.show();
       
+      // modal 顯示後自動focus到搜尋欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.ownerModalSearchInput) {
+            this.$refs.ownerModalSearchInput.focus();
+          }
+        });
+      }, { once: true });
+      
       // 載入初始資料
       this.loadOwners();
     },

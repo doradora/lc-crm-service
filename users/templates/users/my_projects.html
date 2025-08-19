@@ -18,7 +18,7 @@
                 <div class="d-flex align-items-center position-relative flex-grow-1">
                   <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
                   <input type="text" v-model="searchQuery" class="form-control form-control-solid ps-12"
-                    placeholder="搜尋專案/業主" />
+                    placeholder="搜尋專案/業主" ref="searchInput" />
                 </div>
                 <!-- 篩選按鈕 -->
                 <div class="d-flex gap-2">
@@ -359,6 +359,13 @@
         // 有權限（是本人或是管理員），載入資料
         this.fetchCategories();
         this.fetchProjects();
+        
+        // 頁面載入後自動focus到搜尋欄位
+        this.$nextTick(() => {
+          if (this.$refs.searchInput) {
+            this.$refs.searchInput.focus();
+          }
+        });
       }
     }
   }).mount("#projects_list");

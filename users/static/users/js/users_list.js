@@ -121,6 +121,15 @@ const userList = createApp({
       );
       modal.show();
 
+      // 新增: Modal 顯示後自動 focus 到第一個輸入欄位
+      document.getElementById("addUserModal").addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.usernameInput) {
+            this.$refs.usernameInput.focus();
+          }
+        });
+      }, { once: true });
+
       // 關閉下拉選單
       this.activeMenu = null;
     },
@@ -197,6 +206,15 @@ const userList = createApp({
         document.getElementById("addUserModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.usernameInput) {
+            this.$refs.usernameInput.focus();
+          }
+        });
+      }, { once: true });
     },
     getMenuStyle(userId) {
       if (this.activeMenu !== userId) {
@@ -434,6 +452,13 @@ const userList = createApp({
     this.fetchUsers();
     document.addEventListener("click", this.handleClickOutside);
     this.currentUser = window.CURRENT_USER_DATA; // 獲取當前用戶信息
+    
+    // 頁面載入後自動focus到搜尋欄位
+    this.$nextTick(() => {
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.focus();
+      }
+    });
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏

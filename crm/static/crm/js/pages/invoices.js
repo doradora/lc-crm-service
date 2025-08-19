@@ -88,6 +88,13 @@ createApp({
     window.addEventListener('resize', () => {
       this.activeMenu = null;
     });
+    
+    // 頁面載入後自動focus到搜尋欄位
+    this.$nextTick(() => {
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.focus();
+      }
+    });
   },
   methods: {
     async fetchInvoices(page = 1) {
@@ -178,6 +185,15 @@ createApp({
       this.invoiceForm.gross_amount = "";
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.invoiceNumberInput) {
+            this.$refs.invoiceNumberInput.focus();
+          }
+        });
+      }, { once: true });
     },
 
     editInvoice(invoice) {
@@ -200,6 +216,16 @@ createApp({
       };
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.invoiceNumberInput) {
+            this.$refs.invoiceNumberInput.focus();
+          }
+        });
+      }, { once: true });
+      
       this.activeMenu = null;
     },
 

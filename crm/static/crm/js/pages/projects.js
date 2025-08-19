@@ -257,6 +257,15 @@ const projectList = createApp({
         document.getElementById("addProjectModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.ownerSearchInput) {
+            this.$refs.ownerSearchInput.focus();
+          }
+        });
+      }, { once: true });
 
       // 關閉下拉選單
       this.activeMenu = null;
@@ -526,6 +535,15 @@ const projectList = createApp({
         document.getElementById("addProjectModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.ownerSearchInput) {
+            this.$refs.ownerSearchInput.focus();
+          }
+        });
+      }, { once: true });
     },
     getMenuStyle(projectId) {
       if (this.activeMenu !== projectId) {
@@ -785,6 +803,15 @@ const projectList = createApp({
         document.getElementById("addOwnerModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.ownerCompanyNameInput) {
+            this.$refs.ownerCompanyNameInput.focus();
+          }
+        });
+      }, { once: true });
     },
 
     // 隱藏新增業主Modal
@@ -867,6 +894,13 @@ const projectList = createApp({
     this.fetchUsers();
     this.fetchYears();
     document.addEventListener("click", this.handleClickOutside);
+    
+    // 頁面載入後自動focus到搜尋欄位
+    this.$nextTick(() => {
+      this.$refs.searchInput.focus();
+      console.log("自動focus到搜尋欄位");
+        
+    });
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏

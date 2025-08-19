@@ -515,7 +515,7 @@
                     <i class="ki-outline ki-magnifier fs-2"></i>
                   </span>
                   <input type="text" class="form-control" v-model="projectSearchTerm" @input="searchProjects"
-                    placeholder="搜尋專案名稱..." />
+                    placeholder="搜尋專案名稱..." ref="projectSearchInput" />
                 </div>
               </div>
               <!-- 業主過濾 -->
@@ -524,7 +524,7 @@
                   <div class="input-group">
                     <span class="input-group-text bg-light">業主</span>
                     <input type="text" class="form-control" v-model="ownerSearchText" @input="searchOwners"
-                      @focus="showOwnerDropdown = true" placeholder="搜尋業主..." />
+                      @focus="showOwnerDropdown = true" placeholder="搜尋業主..." ref="ownerSearchInput" />
                     <button class="btn btn-light" type="button" @click="clearOwnerSelection" v-if="ownerFilter">
                       <i class="ki-outline ki-cross fs-2"></i>
                     </button>

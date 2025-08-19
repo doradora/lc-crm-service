@@ -103,7 +103,7 @@
                   <!-- 密碼修改表單 -->
                   <div class="form-floating mb-7">
                     <input type="password" class="form-control" id="password" v-model="editData.password"
-                      placeholder="密碼" autocomplete="new-password" required minlength="8" title="密碼必須至少包含 8 個字符" />
+                      placeholder="密碼" autocomplete="new-password" required minlength="8" title="密碼必須至少包含 8 個字符" ref="passwordInput" />
                     <label for="password">
                       輸入新密碼<span class="text-danger">*</span>
                     </label>
@@ -123,7 +123,7 @@
                   <!-- 個人資料修改表單 -->
                   <div class="form-floating mb-7">
                     <input type="text" class="form-control" id="firstName" v-model="editData.firstName" placeholder="姓"
-                      required />
+                      required ref="firstNameInput" />
                     <label for="firstName">姓<span class="text-danger">*</span></label>
                   </div>
                   <div class="form-floating mb-7">
@@ -267,6 +267,17 @@
 
         const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
         modal.show();
+        
+        // modal 顯示後自動focus到第一個輸入欄位
+        modal._element.addEventListener('shown.bs.modal', () => {
+          this.$nextTick(() => {
+            if (this.isEditPassword && this.$refs.passwordInput) {
+              this.$refs.passwordInput.focus();
+            } else if (!this.isEditPassword && this.$refs.firstNameInput) {
+              this.$refs.firstNameInput.focus();
+            }
+          });
+        }, { once: true });
       },
       hideEditModal() {
         this.fromUserMenu = false;

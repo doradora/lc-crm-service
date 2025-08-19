@@ -358,6 +358,15 @@ const paymentList = createApp({
       );
       modal.show();
       
+      // modal 顯示後自動focus到搜尋欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.projectModalSearchInput) {
+            this.$refs.projectModalSearchInput.focus();
+          }
+        });
+      }, { once: true });
+      
       // 載入初始資料
       this.loadProjects();
     },
@@ -601,6 +610,13 @@ const paymentList = createApp({
     this.fetchOwners();
     this.fetchCategories();
     this.fetchYears();
+    
+    // 頁面載入後自動focus到搜尋欄位
+    this.$nextTick(() => {
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.focus();
+      }
+    });
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏

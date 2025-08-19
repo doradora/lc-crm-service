@@ -18,7 +18,7 @@
               <div class="d-flex align-items-center position-relative my-1">
                 <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
                 <input type="text" v-model="searchQuery" class="form-control form-control-solid w-250px ps-12"
-                  placeholder="搜尋發票號碼/請款單號" @input="searchInvoices" @keyup.enter="fetchInvoices()" />
+                  placeholder="搜尋發票號碼/請款單號" @input="searchInvoices" @keyup.enter="fetchInvoices()" ref="searchInput" />
               </div>
               <div class="d-flex position-relative my-1 ms-3">
                 <div class="w-200 mw-150px me-2">
@@ -212,7 +212,7 @@
                   <div class="form-group">
                     <label class="form-label required">發票號碼</label>
                     <input type="text" class="form-control" v-model="invoiceForm.invoice_number" required
-                      :class="{ 'is-invalid': validationErrors.invoice_number }" />
+                      :class="{ 'is-invalid': validationErrors.invoice_number }" ref="invoiceNumberInput" />
                     <div v-if="validationErrors.invoice_number" class="invalid-feedback">
                       請輸入發票號碼
                     </div>

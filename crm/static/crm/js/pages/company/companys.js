@@ -109,6 +109,14 @@ const companyList = createApp({
         document.getElementById("addCompanyModal")
       );
       modal.show();
+
+      // 新增: Modal 顯示後自動 focus 到第一個輸入欄位
+      document.getElementById("addCompanyModal").addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          this.$refs.companyNameInput.focus();
+        });
+      }, { once: true });
+
       this.activeMenu = null;
     },
     fetchCompanys(page = 1) {
@@ -162,6 +170,15 @@ const companyList = createApp({
         document.getElementById("addCompanyModal")
       );
       modal.show();
+
+      // 新增: Modal 顯示後自動 focus 到第一個輸入欄位
+      document.getElementById("addCompanyModal").addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.companyNameInput) {
+            this.$refs.companyNameInput.focus();
+          }
+        });
+      }, { once: true });
     },
     getMenuStyle(companyId) {
       if (this.activeMenu !== companyId) {
@@ -286,6 +303,13 @@ const companyList = createApp({
   mounted() {
     this.fetchCompanys();
     document.addEventListener("click", this.handleClickOutside);
+    
+    // 頁面載入完成後自動 focus 到搜尋欄位
+    this.$nextTick(() => {
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.focus();
+      }
+    });
   },
   unmounted() {
     document.removeEventListener("click", this.handleClickOutside);

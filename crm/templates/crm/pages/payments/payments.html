@@ -18,7 +18,7 @@
               <div class="d-flex align-items-center position-relative my-1">
                 <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
                 <input type="text" v-model="searchQuery" class="form-control form-control-solid w-250px ps-12"
-                  placeholder="搜尋請款單號/專案" @keyup.enter="fetchPayments()" />
+                  placeholder="搜尋請款單號/專案" @keyup.enter="fetchPayments()" ref="searchInput" />
               </div>
               <div class="d-flex position-relative my-1 ms-3 col-md-6 ">
                 <div class="w-200 mw-150px me-2">
@@ -183,7 +183,7 @@
                         class="form-control"
                         v-model="projectModalSearchTerm"
                         @input="searchProjects"
-                        placeholder="搜尋專案名稱/案件編號/業主/負責人...">
+                        placeholder="搜尋專案名稱/案件編號/業主/負責人..." ref="projectModalSearchInput">
                 </div>
               </div>
               

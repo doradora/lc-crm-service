@@ -20,7 +20,7 @@
                 <div class="d-flex align-items-center position-relative flex-grow-1">
                   <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
                   <input type="text" v-model="searchQuery" class="form-control form-control-solid ps-12"
-                    placeholder="搜尋專案名稱/案件編號/業主/負責人" @keyup.enter="fetchProjects()" />
+                    placeholder="搜尋專案名稱/案件編號/業主/負責人" @keyup.enter="fetchProjects()" ref="searchInput" />
                 </div>
                 <!-- 篩選按鈕 -->
                 <div class="d-flex gap-2">
@@ -206,7 +206,7 @@
                       <div class="position-relative" v-click-outside="closeOwnerDropdown">
                         <div class="input-group">
                           <input type="text" class="form-control" v-model="ownerSearchTerm"
-                            @focus="showOwnerDropdown = true" @input="filterOwners" placeholder="搜尋業主..." required>
+                            @focus="showOwnerDropdown = true" @input="filterOwners" placeholder="搜尋業主..." required ref="ownerSearchInput">
                         </div>
                         <div class="dropdown-menu w-100" :class="{ 'show': showOwnerDropdown }" style="max-height: 200px;
                                                                 overflow-y: auto">
@@ -284,7 +284,7 @@
                       <label class="form-label">
                         公司名稱<span class="text-danger">*</span>
                       </label>
-                      <input type="text" class="form-control" v-model="newOwner.company_name" required>
+                      <input type="text" class="form-control" v-model="newOwner.company_name" required ref="ownerCompanyNameInput">
                     </div>
                     <div class="mb-5">
                       <label class="form-label">統一編號</label>

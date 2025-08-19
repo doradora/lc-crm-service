@@ -124,6 +124,15 @@ const ownerList = createApp({
         document.getElementById("addOwnerModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.companyNameInput) {
+            this.$refs.companyNameInput.focus();
+          }
+        });
+      }, { once: true });
 
       // 關閉下拉選單
       this.activeMenu = null;
@@ -189,6 +198,15 @@ const ownerList = createApp({
         document.getElementById("addOwnerModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.companyNameInput) {
+            this.$refs.companyNameInput.focus();
+          }
+        });
+      }, { once: true });
     },
     getMenuStyle(ownerId) {
       if (this.activeMenu !== ownerId) {
@@ -326,6 +344,13 @@ const ownerList = createApp({
   mounted() {
     this.fetchOwners();
     document.addEventListener("click", this.handleClickOutside);
+    
+    // 頁面載入後自動focus到搜尋欄位
+    this.$nextTick(() => {
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.focus();
+      }
+    });
   },
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
