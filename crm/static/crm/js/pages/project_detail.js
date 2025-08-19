@@ -322,6 +322,8 @@ const projectDetail = createApp({
         const owner = this.owners.find((o) => o.id === this.project.owner);
         if (owner) {
           this.ownerSearchTerm = owner.company_name;
+          // 確保 project.owner_name 也被更新
+          this.project.owner_name = owner.company_name;
         }
       }
 
@@ -540,6 +542,7 @@ const projectDetail = createApp({
 
     selectOwner(owner) {
       this.project.owner = owner.id;
+      this.project.owner_name = owner.company_name; // 同時更新 owner_name
       this.ownerSearchTerm = owner.company_name;
       this.showOwnerDropdown = false;
     },
@@ -712,6 +715,7 @@ const projectDetail = createApp({
     // 從Modal選擇業主
     selectOwnerFromModal(owner) {
       this.project.owner = owner.id;
+      this.project.owner_name = owner.company_name; // 同時更新 owner_name
       this.ownerSearchTerm = owner.company_name;
       this.hideOwnerSelectionModal();
     },
@@ -835,6 +839,7 @@ const projectDetail = createApp({
 
           // 選擇新增的業主
           this.project.owner = data.id;
+          this.project.owner_name = data.company_name; // 同時更新 owner_name
           this.ownerSearchTerm = data.company_name;
 
           // 關閉Modal

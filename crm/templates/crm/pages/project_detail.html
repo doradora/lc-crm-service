@@ -20,7 +20,7 @@
                                             <span class="badge" :class="getStatusBadgeClass">[[ project.is_completed ? '已完成' : '進行中' ]]</span>
                                         </div>
                                         <div class="d-flex flex-wrap fw-semibold mb-4">
-                                            <span class="badge badge-light me-2">[[ getOwnerName ]]</span>
+                                            <span class="badge badge-light me-2">[[ project.owner_name || getOwnerName ]]</span>
                                             <span v-for="manager in project.selected_managers"
                                                   class="badge badge-light-primary me-2">
                                                 負責人: [[ manager.profile.name || manager.username ]]
@@ -118,7 +118,7 @@
                                                     <div v-if="isEditMode" class="input-group">
                                                         <input type="text"
                                                                class="form-control"
-                                                               :value="getOwnerName"
+                                                               :value="project.owner_name"
                                                                @click="showOwnerSelectionModal"
                                                                readonly
                                                                placeholder="點擊選擇業主...">
@@ -128,7 +128,7 @@
                                                             <i class="ki-outline ki-magnifier fs-5"></i>
                                                         </button>
                                                     </div>
-                                                    <div v-else class="form-control-plaintext">[[ getOwnerName ]]</div>
+                                                    <div v-else class="form-control-plaintext">[[ project.owner_name || getOwnerName ]]</div>
                                                 </div>
                                             </div>
                                             <div class="row mb-5">
