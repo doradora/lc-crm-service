@@ -61,10 +61,10 @@
                 <label class="form-label">發票開立日期範圍</label>
                 <div class="d-flex gap-3 align-items-center">
                   <input type="date" class="form-control form-control-solid" v-model="startDate"
-                    @change="fetchInvoices(1)" />
+                    @change="fetchInvoices(1)" min="1900-01-01" max="2999-12-31" />
                   <span class="text-muted">至</span>
                   <input type="date" class="form-control form-control-solid" v-model="endDate"
-                    @change="fetchInvoices(1)" />
+                    @change="fetchInvoices(1)" min="1900-01-01" max="2999-12-31" />
                 </div>
               </div>
             </div>
@@ -122,7 +122,7 @@
                     </td>
                     <td>
                       <div :class="getPaymentStatusBadgeClass(invoice)">
-                        [[ invoice.payment_received_date ? '已付款' : '未付款' ]]
+                        [[ invoice.is_paid ? '已付款' : '未付款' ]]
                       </div>
                     </td>
 
@@ -139,10 +139,10 @@
                         <div class="menu-item px-3">
                           <a class="menu-link px-3" @click.prevent="editInvoice(invoice)">編輯發票</a>
                         </div>
-                        <div class="menu-item px-3" v-if="!invoice.payment_received_date">
+                        <div class="menu-item px-3" v-if="!invoice.is_paid">
                           <a class="menu-link px-3" @click.prevent="markAsPaid(invoice.id)">標記為已付款</a>
                         </div>
-                        <div class="menu-item px-3" v-if="invoice.payment_received_date">
+                        <div class="menu-item px-3" v-if="invoice.is_paid">
                           <a class="menu-link px-3" @click.prevent="markAsUnpaid(invoice.id)">標記為未付款</a>
                         </div>
                         <hr class="my-1" />
@@ -222,9 +222,14 @@
                   <div class="form-group mb-5">
                     <label class="form-label required">發票開立日期</label>
                     <input type="date" class="form-control" v-model="invoiceForm.issue_date" required
-                      :class="{ 'is-invalid': validationErrors.issue_date }" />
+                      :class="{ 'is-invalid': validationErrors.issue_date || dateErrors.issue_date }"
+                      @change="handleDateValidation('issue_date')"
+                      min="1900-01-01" max="2999-12-31" />
                     <div v-if="validationErrors.issue_date" class="invalid-feedback">
                       請選擇發票開立日期
+                    </div>
+                    <div v-if="dateErrors.issue_date" class="invalid-feedback">
+                      [[ dateErrors.issue_date ]]
                     </div>
                   </div>
                 </div>
@@ -272,6 +277,14 @@
                 </div>
               </div>
               <div class="form-group mb-5">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" v-model="invoiceForm.is_paid" id="isPaidCheckbox">
+                  <label class="form-check-label" for="isPaidCheckbox">
+                    已付款
+                  </label>
+                </div>
+              </div>
+              <div class="form-group mb-5">
                 <label class="form-label">收款方式</label>
                 <select class="form-select" v-model="invoiceForm.payment_method">
                   <option value="">選擇收款方式</option>
@@ -288,11 +301,29 @@
               </div>
               <div class="form-group mb-5">
                 <label class="form-label">收款日</label>
-                <input type="date" class="form-control" v-model="invoiceForm.payment_received_date" />
+                <input type="date" class="form-control" v-model="invoiceForm.payment_received_date" 
+                       :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
+                       @change="handleDateValidation('payment_received_date')"
+                       min="1900-01-01" max="2999-12-31" />
+                <div v-if="validationErrors.payment_received_date" class="invalid-feedback">
+                  [[ validationErrors.payment_received_date ]]
+                </div>
+                <div v-if="dateErrors.payment_received_date" class="invalid-feedback">
+                  [[ dateErrors.payment_received_date ]]
+                </div>
               </div>
               <div class="form-group mb-5">
                 <label class="form-label">入帳日</label>
-                <input type="date" class="form-control" v-model="invoiceForm.account_entry_date" />
+                <input type="date" class="form-control" v-model="invoiceForm.account_entry_date"
+                       :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
+                       @change="handleDateValidation('account_entry_date')"
+                       min="1900-01-01" max="2999-12-31" />
+                <div v-if="validationErrors.account_entry_date" class="invalid-feedback">
+                  [[ validationErrors.account_entry_date ]]
+                </div>
+                <div v-if="dateErrors.account_entry_date" class="invalid-feedback">
+                  [[ dateErrors.account_entry_date ]]
+                </div>
               </div>
               <div class="form-group mb-5">
                 <label class="form-label">備註</label>

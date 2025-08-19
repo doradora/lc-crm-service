@@ -136,6 +136,8 @@ class ProjectSerializer(serializers.ModelSerializer):
     )
     custom_fields = serializers.JSONField(required=False)
     related_payments = serializers.SerializerMethodField()
+    # 新增完整案件編號的計算屬性
+    full_project_number = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Project
@@ -148,6 +150,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             # "category_name",
             "year",
             "project_number",
+            "full_project_number",  # 新增完整案件編號
             "name",
             "managers",
             "managers_info",
@@ -176,6 +179,13 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_owner_name(self, obj):
         return obj.owner.company_name if obj.owner else None
+
+    def get_full_project_number(self, obj):
+        """產生完整案件編號：年份 + 類別代碼 + 專案編號"""
+        if obj.year and obj.category and obj.project_number:
+            category_code = obj.category.code if obj.category.code else 'N'
+            return f"{obj.year}{category_code}{obj.project_number}"
+        return None
 
     def get_category_name(self, obj):
         return (
@@ -306,6 +316,23 @@ class PaymentSerializer(serializers.ModelSerializer):
             'selected_bank_account_details',  # 添加銀行帳號詳細資訊
         ]
         read_only_fields = ["amount", "created_at"]
+    
+    def create(self, validated_data):
+        """創建請款單時自動設置公司的第一個銀行帳戶"""
+        # 取得收款公司
+        company = validated_data.get('company')
+        
+        # 創建請款單實例
+        payment = super().create(validated_data)
+        
+        # 如果有指定收款公司，自動選擇該公司的第一個銀行帳戶
+        if company:
+            first_bank_account = company.bank_accounts.first()
+            if first_bank_account:
+                payment.selected_bank_account = first_bank_account
+                payment.save(update_fields=['selected_bank_account'])
+        
+        return payment
 
     def get_projects(self, obj):
         return [project.id for project in obj.projects.all()]
@@ -354,6 +381,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "amount",
             "issue_date",
             "tax_amount",
+            "is_paid",               # 新增付款狀態欄位
             "payment_received_date", # 新增
             "account_entry_date",    # 新增
             "payment_method",        # 新增
@@ -388,6 +416,7 @@ class BankAccountSerializer(serializers.ModelSerializer):
         
 class CompanySerializer(serializers.ModelSerializer):
     bank_accounts = BankAccountSerializer(many=True, read_only=True)
+    first_bank_account = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Company
@@ -401,7 +430,15 @@ class CompanySerializer(serializers.ModelSerializer):
             "address",
             "contact_person",
             "bank_accounts",
+            "first_bank_account",
         ]
+    
+    def get_first_bank_account(self, obj):
+        """獲取公司的第一個銀行帳戶"""
+        first_account = obj.bank_accounts.first()
+        if first_account:
+            return BankAccountSerializer(first_account).data
+        return None
 
 
 class PaymentDocumentSerializer(serializers.ModelSerializer):

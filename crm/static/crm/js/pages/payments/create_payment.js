@@ -57,6 +57,13 @@ const paymentsList = createApp({
         address: "",
         email: "",
       },
+      // 選中的銀行帳戶
+      selectedBankAccount: null,
+      // 防止重複調用API的標誌
+      isLoadingBankAccounts: false,
+      lastSelectedCompanyId: null,
+      // 公司搜尋防抖計時器
+      companySearchTimeout: null,
     };
   },
   directives: {
@@ -393,21 +400,29 @@ const paymentsList = createApp({
 
     // 搜尋收款公司
     searchCompanys() {
-      if (!this.companySearchText.trim()) {
-        this.filteredCompanys = this.companys.slice(0, 10); // 顯示前10個
-        return;
+      // 清除之前的計時器
+      if (this.companySearchTimeout) {
+        clearTimeout(this.companySearchTimeout);
       }
+      
+      // 設置新的計時器，300ms後執行搜尋
+      this.companySearchTimeout = setTimeout(() => {
+        if (!this.companySearchText.trim()) {
+          this.filteredCompanys = this.companys.slice(0, 10); // 顯示前10個
+          return;
+        }
 
-      const searchText = this.companySearchText.toLowerCase().trim();
-      this.filteredCompanys = this.companys
-        .filter(
-          (company) =>
-            company.name.toLowerCase().includes(searchText) ||
-            (company.tax_id && company.tax_id.includes(searchText))
-        )
-        .slice(0, 10); // 最多顯示10個結果
+        const searchText = this.companySearchText.toLowerCase().trim();
+        this.filteredCompanys = this.companys
+          .filter(
+            (company) =>
+              company.name.toLowerCase().includes(searchText) ||
+              (company.tax_id && company.tax_id.includes(searchText))
+          )
+          .slice(0, 10); // 最多顯示10個結果
 
-      this.showCompanyDropdown = true;
+        this.showCompanyDropdown = true;
+      }, 300);
     },
 
     // 選擇收款公司
@@ -415,6 +430,41 @@ const paymentsList = createApp({
       this.companyFilter = company.id;
       this.companySearchText = company.name;
       this.showCompanyDropdown = false;
+      
+      // 只有當選擇的公司不同時才獲取銀行帳戶資訊
+      if (this.lastSelectedCompanyId !== company.id) {
+        this.fetchCompanyBankAccounts(company.id);
+        this.lastSelectedCompanyId = company.id;
+      }
+    },
+    
+    // 獲取公司的銀行帳戶資訊
+    fetchCompanyBankAccounts(companyId) {
+      // 防止重複調用
+      if (this.isLoadingBankAccounts) {
+        return;
+      }
+      
+      this.isLoadingBankAccounts = true;
+      
+      fetch(`/crm/api/companys/${companyId}/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.first_bank_account) {
+            this.selectedBankAccount = data.first_bank_account;
+            console.log('自動選擇第一個銀行帳戶:', this.selectedBankAccount);
+          } else {
+            this.selectedBankAccount = null;
+            console.log('該公司沒有銀行帳戶');
+          }
+        })
+        .catch(error => {
+          console.error('獲取銀行帳戶失敗:', error);
+          this.selectedBankAccount = null;
+        })
+        .finally(() => {
+          this.isLoadingBankAccounts = false;
+        });
     },
 
     // 清除收款公司選擇
@@ -423,6 +473,8 @@ const paymentsList = createApp({
       this.companySearchText = "";
       this.filteredCompanys = [];
       this.showCompanyDropdown = false;
+      this.selectedBankAccount = null; // 清除選中的銀行帳戶
+      this.lastSelectedCompanyId = null; // 重置最後選擇的公司ID
     },
 
     // 關閉收款公司下拉選單
@@ -441,13 +493,22 @@ const paymentsList = createApp({
           // 如果找到匹配的公司，直接選擇它
           this.companyFilter = matchingCompany.id;
           this.companySearchText = matchingCompany.name; // 確保名稱大小寫與資料庫一致
+          // 只有當選擇的公司不同時才獲取銀行帳戶資訊
+          if (this.lastSelectedCompanyId !== matchingCompany.id) {
+            this.fetchCompanyBankAccounts(matchingCompany.id);
+            this.lastSelectedCompanyId = matchingCompany.id;
+          }
         } else {
           // 如果沒有匹配的公司，保留搜索詞但清除公司ID
           this.companyFilter = "";
+          this.selectedBankAccount = null;
+          this.lastSelectedCompanyId = null;
         }
       } else {
         // 如果輸入框被清空，則重設公司ID
         this.companyFilter = "";
+        this.selectedBankAccount = null;
+        this.lastSelectedCompanyId = null;
       }
     },
 
@@ -848,5 +909,13 @@ const paymentsList = createApp({
         document.removeEventListener("click", el._clickOutside);
       }
     });
+    
+    // 清理計時器
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    if (this.companySearchTimeout) {
+      clearTimeout(this.companySearchTimeout);
+    }
   },
 }).mount("#app_main");

@@ -269,8 +269,7 @@
                       <tfoot v-if="payment.payment_projects && payment.payment_projects.length > 0">
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th>總計</th>
-                          <th v-if="!isEditing"></th>
-                          <th class="text-end">[[ formatCurrency(getTotalAmount()) ]]</th>
+                          <th colspan="2" class="text-end">[[ formatCurrency(getTotalAmount()) ]]</th>
                           <th colspan="2"></th>
                         </tr>
                       </tfoot>

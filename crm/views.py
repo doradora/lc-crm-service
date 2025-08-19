@@ -382,13 +382,15 @@ class ProjectViewSet(BaseViewSet):
     )
     serializer_class = ProjectSerializer
     pagination_class = StandardResultsSetPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = [
-        "name",
-        "owner__company_name",
-        "managers__username",
-        "managers__profile__name",
-    ]
+    # 移除 SearchFilter，因為我們在 get_queryset() 中自訂搜尋邏輯
+    # filter_backends = [filters.SearchFilter]
+    # search_fields = [
+    #     "name",
+    #     "project_number",
+    #     "owner__company_name",
+    #     "managers__username",
+    #     "managers__profile__name",
+    # ]
 
     def get_queryset(self):
         queryset = Project.objects.select_related("owner", "category").prefetch_related(
@@ -398,12 +400,32 @@ class ProjectViewSet(BaseViewSet):
         # 搜尋
         search_query = self.request.query_params.get("search", None)
         if search_query:
-            queryset = queryset.filter(
+            # 基本搜尋條件
+            search_conditions = (
                 Q(name__icontains=search_query)
+                | Q(project_number__icontains=search_query)
                 | Q(owner__company_name__icontains=search_query)
                 | Q(managers__username__icontains=search_query)
                 | Q(managers__profile__name__icontains=search_query)
-            ).distinct()
+            )
+            
+            # 檢查是否是完整案件編號格式搜尋 (如: 2025A025)
+            # 如果搜尋查詢符合年份+字母+數字的格式，嘗試拆解並搜尋
+            import re
+            full_number_match = re.match(r'^(\d{4})([a-zA-Z]+)(\d{3,})$', search_query)
+            if full_number_match:
+                year = int(full_number_match.group(1))
+                category_code = full_number_match.group(2).upper()  # 統一轉為大寫比對
+                project_num = full_number_match.group(3).zfill(3)  # 補齊為3位數
+                
+                # 添加組合搜尋條件 - 使用 |= 來添加而不是替換
+                search_conditions |= Q(
+                    year=year,
+                    category__code=category_code,
+                    project_number__icontains=project_num
+                )
+
+            queryset = queryset.filter(search_conditions).distinct()
 
         # 專案負責人過濾
         manager_id = self.request.query_params.get("manager", None)
@@ -452,8 +474,8 @@ class ProjectViewSet(BaseViewSet):
         year_end = self.request.query_params.get("year_end", None)
         if year_end:
             queryset = queryset.filter(year__lte=year_end)
-
-        return queryset.order_by("-year", "-project_number")
+        
+        return queryset.order_by("-year", "project_number")
 
     @action(detail=False, methods=["get"])
     def years(self, request):

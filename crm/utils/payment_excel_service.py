@@ -162,7 +162,7 @@ def generate_payment_excel(payment):
                     for c in range(1, max_column + 2):
                         cell = ws.cell(row=r, column=c)
                         cell.value = None
-            ws.print_area = "A1:C35"
+            ws.print_area = "A1:C34"
             ws.page_margins.left = 0.72
             ws.page_margins.right = 0.72
             ws.page_margins.top = 0.36

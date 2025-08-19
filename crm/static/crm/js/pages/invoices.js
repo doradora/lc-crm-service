@@ -23,6 +23,7 @@ createApp({
       // Modal 相關
       isEdit: false,
       validationErrors: {},
+      dateErrors: {}, // 新增日期錯誤狀態
       invoiceForm: {
         id: null,
         invoice_number: "",
@@ -36,6 +37,7 @@ createApp({
         actual_received_amount: "",
         notes: "",
         gross_amount: "", // 含稅金額
+        is_paid: false, // 付款狀態
       },
       menuPosition: {
         x: 0,
@@ -105,9 +107,9 @@ createApp({
 
         if (this.paymentStatusFilter) {
           if (this.paymentStatusFilter === 'paid') {
-            params.append('payment_received_date__isnull', 'false');
+            params.append('is_paid', 'true');
           } else if (this.paymentStatusFilter === 'unpaid') {
-            params.append('payment_received_date__isnull', 'true');
+            params.append('is_paid', 'false');
           }
         }
 
@@ -194,6 +196,7 @@ createApp({
         actual_received_amount: invoice.actual_received_amount || "",
         notes: invoice.notes || "",
         gross_amount: (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0)),
+        is_paid: invoice.is_paid || false, // 使用後端的 is_paid 欄位
       };
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
@@ -223,18 +226,28 @@ createApp({
         this.validationErrors.issue_date = true;
       }
 
-      return Object.keys(this.validationErrors).length === 0;
+      // 重新驗證所有日期
+      this.handleDateValidation('issue_date');
+      this.handleDateValidation('payment_received_date');
+      this.handleDateValidation('account_entry_date');
+
+      return Object.keys(this.validationErrors).length === 0 && Object.keys(this.dateErrors).length === 0;
     },
 
     async saveInvoice() {
       if (!this.validateForm()) {
-        this.showNotification('請填寫必填欄位', 'error');
+        let errorMessage = '請填寫必填欄位';
+        if (Object.keys(this.dateErrors).length > 0) {
+          errorMessage += '並檢查日期格式';
+        }
+        this.showNotification(errorMessage, 'error');
         return;
       }
       this.isSaving = true;
       try {
         const formData = { ...this.invoiceForm };
-        delete formData.gross_amount;
+        delete formData.gross_amount; // gross_amount 只是前端計算用，不需要傳送到後端
+        
         Object.keys(formData).forEach(key => {
           if (formData[key] === '') {
             formData[key] = null;
@@ -286,7 +299,7 @@ createApp({
             'X-CSRFToken': this.getCsrfToken()
           },
           body: JSON.stringify({
-            payment_received_date: new Date().toISOString().split('T')[0]
+            is_paid: true
           })
         });
 
@@ -316,7 +329,7 @@ createApp({
             'X-CSRFToken': this.getCsrfToken()
           },
           body: JSON.stringify({
-            payment_received_date: null
+            is_paid: false
           })
         });
 
@@ -367,7 +380,10 @@ createApp({
       if (modal) {
         modal.hide();
       }
-      this.resetInvoiceForm();
+      // 延遲重置表單，確保Modal完全關閉後再清空
+      setTimeout(() => {
+        this.resetInvoiceForm();
+      }, 300);
     },
 
     resetInvoiceForm() {
@@ -382,9 +398,12 @@ createApp({
         account_entry_date: "",
         payment_method: "",
         actual_received_amount: "",
-        notes: ""
+        notes: "",
+        gross_amount: "",
+        is_paid: false,
       };
       this.validationErrors = {};
+      this.dateErrors = {}; // 清空日期錯誤
       this.isEdit = false;
     },
 
@@ -422,7 +441,8 @@ createApp({
     },
 
     getPaymentStatusBadgeClass(invoice) {
-      return invoice.payment_received_date
+      // 使用後端的 is_paid 欄位判斷付款狀態
+      return invoice.is_paid
         ? 'badge badge-success'
         : 'badge badge-warning';
     },
@@ -511,6 +531,74 @@ createApp({
     round(value, digits = 0) {
       const factor = Math.pow(10, digits);
       return Math.round(value * factor) / factor;
+    },
+
+    // 驗證日期格式和有效性
+    validateDateInput(dateString, fieldName) {
+      if (!dateString) {
+        delete this.dateErrors[fieldName];
+        return true;
+      }
+
+      // 檢查基本格式 YYYY-MM-DD
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(dateString)) {
+        this.dateErrors[fieldName] = '請輸入正確的日期格式 (YYYY-MM-DD)';
+        return false;
+      }
+
+      // 檢查年份範圍 (1900-2999)
+      const year = parseInt(dateString.substr(0, 4));
+      if (year < 1900 || year > 2999) {
+        this.dateErrors[fieldName] = '年份必須在 1900-2999 之間';
+        return false;
+      }
+
+      // 檢查是否為有效日期
+      const date = new Date(dateString + 'T00:00:00');
+      const inputDateStr = dateString;
+      const validDateStr = date.getFullYear() + '-' + 
+                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(date.getDate()).padStart(2, '0');
+
+      if (inputDateStr !== validDateStr || isNaN(date.getTime())) {
+        this.dateErrors[fieldName] = '請輸入有效的日期 (例如: 2025-02-31 不是有效日期)';
+        return false;
+      }
+
+      delete this.dateErrors[fieldName];
+      return true;
+    },
+
+    // 驗證日期輸入並檢查邏輯關係
+    handleDateValidation(fieldName) {
+      const value = this.invoiceForm[fieldName];
+      
+      // 先驗證單個日期格式
+      if (!this.validateDateInput(value, fieldName)) {
+        return;
+      }
+
+      // 如果格式正確，再檢查邏輯關係
+      if (fieldName === 'payment_received_date' && value) {
+        const paymentDate = new Date(value + 'T00:00:00');
+        const issueDate = new Date(this.invoiceForm.issue_date + 'T00:00:00');
+        
+        if (this.invoiceForm.issue_date && paymentDate < issueDate) {
+          this.dateErrors[fieldName] = '收款日期不能早於發票開立日期';
+        }
+      }
+
+      if (fieldName === 'account_entry_date' && value) {
+        const entryDate = new Date(value + 'T00:00:00');
+        
+        if (this.invoiceForm.payment_received_date) {
+          const paymentDate = new Date(this.invoiceForm.payment_received_date + 'T00:00:00');
+          if (entryDate < paymentDate) {
+            this.dateErrors[fieldName] = '入帳日期不能早於收款日期';
+          }
+        }
+      }
     },    
     
     // 當含稅金額變動時自動計算未稅與稅額

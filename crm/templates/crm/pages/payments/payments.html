@@ -171,66 +171,75 @@
       <div class="modal-body">
         <!-- 搜尋框和篩選條件 -->
         <div class="row mb-5">
-          <div class="col-md-12 d-flex justify-content-between align-items-center gap-3">
-            <div class="input-group w-50">
-              <span class="input-group-text">
-                <i class="ki-outline ki-magnifier fs-5"></i>
-              </span>
-              <input type="text"
-                     class="form-control"
-                     v-model="projectModalSearchTerm"
-                     @input="searchProjects"
-                     placeholder="搜尋專案/業主/負責人...">
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <!-- 篩選條件下拉選單 -->
-              <div class="m-0">
-                <!-- 篩選條件按鈕 -->
-                <button type="button" class="btn btn-light" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end" data-kt-menu-offset="0,5">
-                  <i class="ki-outline ki-filter fs-5 me-2"></i>篩選條件
-                  <i class="ki-duotone ki-down fs-3 rotate-180 pe-0"></i>
-                </button>
-                <!-- 篩選條件下拉內容 -->
-                <div class="menu menu-sub menu-sub-dropdown w-400px" data-kt-menu="true">
-                  <div class="px-7 py-5">
-                    <div class="fs-5 text-gray-900 fw-bold">篩選條件</div>
-                  </div>
-                  <div class="separator border-gray-200"></div>
-                  <div class="px-7 py-5">
-                    <div class="mb-5">
-                      <label class="form-label fw-semibold">專案類別:</label>
-                      <select class="form-select form-select-sm" v-model="modalCategoryFilter" @change="loadProjects()">
-                        <option value="">全部類別</option>
-                        <option v-for="category in categories" :key="category.id" :value="category.id">
-                          [[ category.code ]]: [[ category.description ]]
-                        </option>
-                      </select>
-                    </div>
-                    <div class="mb-5">
-                      <label class="form-label fw-semibold">專案狀態:</label>
-                      <select class="form-select form-select-sm" v-model="modalCompletedFilter" @change="loadProjects()">
-                        <option value="">全部狀態</option>
-                        <option value="incomplete">進行中</option>
-                        <option value="completed">已完成</option>
-                      </select>
-                    </div>
-                    <div class="mb-5">
-                      <label class="form-label fw-semibold">開始年份:</label>
-                      <select class="form-select form-select-sm" v-model="modalStartYearFilter" @change="loadProjects()">
-                        <option value="">全部</option>
-                        <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                      </select>
-                    </div>
-                    <div class="mb-5">
-                      <label class="form-label fw-semibold">結束年份:</label>
-                      <select class="form-select form-select-sm" v-model="modalEndYearFilter" @change="loadProjects()">
-                        <option value="">全部</option>
-                        <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                      </select>
-                    </div>
-                    <div class="d-flex justify-content-end">
-                      <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2" data-kt-menu-dismiss="true" @click="resetModalFilters()">重設</button>
-                      <button type="button" class="btn btn-sm btn-primary" data-kt-menu-dismiss="true" @click="loadProjects()">套用</button>
+          <div class="col-12">
+            <!-- 搜尋框和類別篩選 -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="ki-outline ki-magnifier fs-5"></i>
+                  </span>
+                  <input type="text"
+                        class="form-control"
+                        v-model="projectModalSearchTerm"
+                        @input="searchProjects"
+                        placeholder="搜尋專案名稱/案件編號/業主/負責人...">
+                </div>
+              </div>
+              
+              <div class="col-md-3">
+                <select class="form-select" v-model="modalCategoryFilter" @change="loadProjects()">
+                  <option value="">全部類別</option>
+                  <option v-for="category in categories" :key="category.id" :value="category.id">
+                    [[ category.code ]]: [[ category.description ]]
+                  </option>
+                </select>
+              </div>
+              
+
+              <div class="col-md-3">
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                  <!-- 篩選條件下拉選單 -->
+                  <div>
+                    <!-- 篩選條件按鈕 -->
+                    <button type="button" class="btn btn-light" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-end" data-kt-menu-offset="0,5">
+                      <i class="ki-outline ki-filter fs-5 me-2"></i>篩選條件
+                      <i class="ki-duotone ki-down fs-3 rotate-180 pe-0"></i>
+                    </button>
+                    <!-- 篩選條件下拉內容 -->
+                    <div class="menu menu-sub menu-sub-dropdown w-400px" data-kt-menu="true">
+                      <div class="px-7 py-5">
+                        <div class="fs-5 text-gray-900 fw-bold">篩選條件</div>
+                      </div>
+                      <div class="separator border-gray-200"></div>
+                      <div class="px-7 py-5">
+                        <div class="mb-5">
+                          <label class="form-label fw-semibold">專案狀態:</label>
+                          <select class="form-select form-select-sm" v-model="modalCompletedFilter" @change="loadProjects()">
+                            <option value="">全部狀態</option>
+                            <option value="incomplete">進行中</option>
+                            <option value="completed">已完成</option>
+                          </select>
+                        </div>
+                        <div class="mb-5">
+                          <label class="form-label fw-semibold">開始年份:</label>
+                          <select class="form-select form-select-sm" v-model="modalStartYearFilter" @change="loadProjects()">
+                            <option value="">全部</option>
+                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                          </select>
+                        </div>
+                        <div class="mb-5">
+                          <label class="form-label fw-semibold">結束年份:</label>
+                          <select class="form-select form-select-sm" v-model="modalEndYearFilter" @change="loadProjects()">
+                            <option value="">全部</option>
+                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                          </select>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                          <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2" data-kt-menu-dismiss="true" @click="resetModalFilters()">重設</button>
+                          <button type="button" class="btn btn-sm btn-primary" data-kt-menu-dismiss="true" @click="loadProjects()">套用</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

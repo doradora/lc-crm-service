@@ -341,6 +341,7 @@ class Invoice(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=0)  # 發票金額(未稅)
     issue_date = models.DateField()  # 發票開立日期
     tax_amount = models.DecimalField(max_digits=10, decimal_places=0, default=0)  # 稅額
+    is_paid = models.BooleanField(default=False)  # 付款狀態
     payment_received_date = models.DateField(null=True, blank=True)  # 收款日
     account_entry_date = models.DateField(null=True, blank=True)  # 入帳日
     payment_method = models.CharField(
