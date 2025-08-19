@@ -745,11 +745,12 @@ class InvoiceViewSet(CanPaymentViewSet):
         if payment_id:
             queryset = queryset.filter(payment_id=payment_id)
             
-        # 付款狀態過濾（已付款/未付款）
-        payment_received_date_isnull = self.request.query_params.get("payment_received_date__isnull", None)
-        if payment_received_date_isnull is not None:
-            is_null = payment_received_date_isnull.lower() == 'true'
-            queryset = queryset.filter(payment_received_date__isnull=is_null)
+        # 付款狀態過濾（is_paid）
+        is_paid = self.request.query_params.get("is_paid", None)
+        if is_paid is not None:
+            is_paid_bool = is_paid.lower() == 'true'
+            queryset = queryset.filter(is_paid=is_paid_bool)
+            
             
         # 付款方式過濾
         payment_method = self.request.query_params.get("payment_method", None)
