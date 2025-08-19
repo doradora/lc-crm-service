@@ -57,8 +57,8 @@ def generate_payment_excel(payment):
         if payment.selected_bank_account:
             bank_account = payment.selected_bank_account
             original_ws["B28"] = f"戶名：{bank_account.account_name}"
-            original_ws["B29"] = f"匯款帳號：{bank_account.bank_code}-{bank_account.account_number}"
-            original_ws["B30"] = f"銀行名稱：{bank_account.bank_name}"
+            original_ws["B29"] = f"匯款帳號：{bank_account.account_number}"
+            original_ws["B30"] = f"銀行名稱：{bank_account.bank_name}(機構代碼:{bank_account.bank_code})"
 
         # 獲取請款單關聯的專案明細
         payment_projects = payment.paymentproject_set.select_related("project", "project__category")
@@ -197,7 +197,9 @@ def generate_payment_excel(payment):
                 empty_row = 7 + len(page_details)
                 ws.cell(row=empty_row, column=2).value = "以下空白"
                 ws.cell(row=empty_row, column=2).font = Font(size=12, name="Microsoft JhengHei")
-                ws.cell(row=empty_row, column=2).alignment = Alignment(wrap_text=True, vertical="top")
+                ws.cell(row=empty_row, column=2).alignment = Alignment(wrap_text=True, vertical="center")
+                # 金額欄位留空白，不顯示"-"
+                ws.cell(row=empty_row, column=3).value = ""
             # --- 7~16列列高45，字體12，微軟正黑體 ---
             for row_idx in range(7, 17):
                 for col_idx in range(1, ws.max_column + 1):
@@ -250,8 +252,8 @@ def generate_payment_excel(payment):
             original_ws.cell(row=row, column=4).value = dict(invoice.PAYMENT_METHOD_CHOICES).get(invoice.payment_method, invoice.payment_method) if invoice.payment_method else ""
             # 入帳日
             original_ws.cell(row=row, column=5).value = invoice.account_entry_date.strftime('%Y-%m-%d') if invoice.account_entry_date else ""
-            # 金額
-            original_ws.cell(row=row, column=6).value = invoice.amount
+            # 金額 - 使用含稅金額
+            original_ws.cell(row=row, column=6).value = invoice.actual_received_amount
             # 金額格式
             original_ws.cell(row=row, column=6).number_format = "#,##0"
             # 存放行庫
@@ -284,7 +286,7 @@ def _fill_project_details(ws, project_details, start_row, custom_field_columns):
         item_cell.value = detail["項次"]
         detail_cell = ws.cell(row=row, column=2)
         detail_cell.value = detail["工程明細"]
-        detail_cell.alignment = Alignment(wrap_text=True, vertical="top")
+        detail_cell.alignment = Alignment(wrap_text=True, vertical="center")
         amount_cell = ws.cell(row=row, column=3)
         amount_cell.value = detail["金額"]
         amount_cell.number_format = "#,##0"
@@ -340,7 +342,9 @@ def _fill_project_details(ws, project_details, start_row, custom_field_columns):
             # 最右邊自訂欄位的右一格填入金額
             if last_custom_col:
                 right_cell = ws.cell(row=row, column=last_custom_col + 1)
-                right_cell.value = detail["金額"]
+                # E7、E8欄為面積計算後得出金額，與C7、C8欄不同，應留空白
+                # right_cell.value = detail["金額"]
+                right_cell.value = ""
                 right_cell.number_format = "#,##0"
 
 
