@@ -334,14 +334,36 @@ class Invoice(models.Model):
         ('other', '其他'),
     ]
 
-    invoice_number = models.CharField(max_length=50, unique=True)  # 發票號碼
+    INVOICE_TYPE_CHOICES = [
+        ('normal', '正常開立'),
+        ('no_invoice', '不開發票'),
+        ('pending', '發票待開'),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ('paid', '已付款'),
+        ('unpaid', '未付款'),
+        ('partially_paid', '付款未完成'),
+    ]
+
+    invoice_type = models.CharField(
+        max_length=20,
+        choices=INVOICE_TYPE_CHOICES,
+        default='normal'
+    )  # 發票類型
+    invoice_number = models.CharField(max_length=50, blank=True, null=True)  # 發票號碼，改為可空白
     payment = models.ForeignKey(
         Payment, related_name="invoices", on_delete=models.CASCADE, null=True
     )  # 關聯的請款單
-    amount = models.DecimalField(max_digits=10, decimal_places=0)  # 發票金額(未稅)
-    issue_date = models.DateField()  # 發票開立日期
-    tax_amount = models.DecimalField(max_digits=10, decimal_places=0, default=0)  # 稅額
-    is_paid = models.BooleanField(default=False)  # 付款狀態
+    amount = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True)  # 發票金額(未稅)，改為可空白
+    issue_date = models.DateField(null=True, blank=True)  # 發票開立日期，改為可空白
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=0, default=0, null=True, blank=True)  # 稅額，改為可空白
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default='unpaid'
+    )  # 付款狀態，使用新的三種狀態
+    is_paid = models.BooleanField(default=False)  # 保留舊欄位以保持向後相容
     payment_received_date = models.DateField(null=True, blank=True)  # 收款日
     account_entry_date = models.DateField(null=True, blank=True)  # 入帳日
     payment_method = models.CharField(
@@ -360,7 +382,21 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # 建立時間
 
     def __str__(self):
-        return f"Invoice #{self.invoice_number}"
+        if self.invoice_type == 'no_invoice':
+            return f"不開發票 - {self.payment.payment_number if self.payment else 'N/A'}"
+        elif self.invoice_type == 'pending':
+            return f"發票待開 - {self.payment.payment_number if self.payment else 'N/A'}"
+        else:
+            return f"Invoice #{self.invoice_number}"
+
+    def save(self, *args, **kwargs):
+        # 同步 payment_status 到 is_paid 欄位以保持向後相容
+        self.is_paid = (self.payment_status == 'paid')
+        super().save(*args, **kwargs)
+
+    class Meta:
+        # 移除 unique=True 限制，因為不開發票和發票待開可能沒有發票號碼
+        pass
 
 
 class BankAccount(models.Model):

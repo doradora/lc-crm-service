@@ -286,10 +286,12 @@
                     </div>
                   </div>
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-200" style="min-width:750px;">
+                    <table class="table table-row-bordered table-row-gray-200" :style="isEditing ? 'min-width:990px;' : 'min-width:830px;'">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
+                          <th>發票類型</th>
                           <th>發票號碼</th>
+                          <th>付款狀態</th>
                           <th class="text-end">發票金額</th>
                           <th class="text-end">稅額</th>
                           <th>開立日期</th>
@@ -302,7 +304,17 @@
                       </thead>
                       <tbody>
                         <tr v-for="invoice in payment.invoices || []" :key="invoice.id">
+                          <td>
+                            <span class="badge" :class="getInvoiceTypeBadgeClass(invoice.invoice_type)">
+                              [[ getInvoiceTypeText(invoice.invoice_type) ]]
+                            </span>
+                          </td>
                           <td>[[ invoice.invoice_number ]]</td>
+                          <td>
+                            <span :class="getPaymentStatusBadgeClass(invoice)">
+                              [[ getPaymentStatusText(invoice) ]]
+                            </span>
+                          </td>
                           <td class="text-end">[[ formatCurrency(invoice.amount) ]]</td>
                           <td class="text-end">[[ formatCurrency(invoice.tax_amount) ]]</td>
                           <td>[[ formatDate(invoice.issue_date) ]]</td>
@@ -310,17 +322,13 @@
                             [[ getPaymentMethodDisplay(invoice.payment_method)
                             ]]
                           </td>
-                          <!-- 新增 -->
                           <td class="text-end">
                             [[ formatCurrency(invoice.actual_received_amount) ]]
                           </td>
-                          <!-- 新增 -->
                           <td>
                             [[ formatDate(invoice.payment_received_date) ]]
                           </td>
-                          <!-- 新增 -->
                           <td>[[ formatDate(invoice.account_entry_date) ]]</td>
-                          <!-- 新增 -->
                           <td v-if="isEditing">
                             <button class="btn btn-sm btn-icon btn-light-primary me-2" @click="editInvoice(invoice.id)">
                               <i class="ki-outline ki-pencil fs-2"></i>
@@ -331,20 +339,24 @@
                           </td>
                         </tr>
                         <tr v-if="!payment.invoices || payment.invoices.length === 0">
-                          <td colspan="9" class="text-center py-5">
+                          <td :colspan="isEditing ? 11 : 10" class="text-center py-5">
                             尚無關聯發票
                           </td>
                         </tr>
                       </tbody>
                       <tfoot v-if="payment.invoices && payment.invoices.length > 0">
                         <tr class="fw-bold fs-6 text-gray-800">
-                          <td>總計</td>
+                          <td colspan="3">總計</td>
                           <td class="text-end">[[ formatCurrency(totalInvoiceAmount) ]]</td>
                           <td class="text-end">[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
-                          <td class="text-end" :colspan="3">[[ formatCurrency(totalActualReceivedAmount) ]]</td>
-                          <td class="text-end" :colspan="isEditing ? 3 : 2">
+                          <td></td>
+                          <td></td>
+                          <td class="text-end">[[ formatCurrency(totalActualReceivedAmount) ]]</td>
+                          <td></td>
+                          <td class="text-end">
                             發票總額:[[ formatCurrency(totalInvoiceAmount + totalInvoiceTaxAmount) ]]
                           </td>
+                          <td v-if="isEditing"></td>
                         </tr>
                       </tfoot>
                     </table>
@@ -418,38 +430,115 @@
             <i class="ki-outline ki-cross fs-2"></i>
           </div>
         </div>
-        <div class="modal-body scroll-y mx-2 my-2">
+        <div class="modal-body scroll-y mx-2 my-2 ">
+          <!-- 發票類型 -->
           <div class="row mb-5">
             <div class="col-md-6">
               <div class="form-group">
-                <label class="form-label required">發票號碼</label>
-                <input type="text" class="form-control" v-model="newInvoice.invoice_number" required />
+                <label class="form-label required">發票類型</label>
+                <select class="form-select" v-model="newInvoice.invoice_type" @change="handleInvoiceTypeChange" 
+                        :class="{ 'is-invalid': validationErrors.invoice_type }">
+                  <option value="normal">正常開立</option>
+                  <option value="no_invoice">不開發票</option>
+                  <option value="pending">發票待開</option>
+                </select>
+                <div v-if="validationErrors.invoice_type" class="invalid-feedback">
+                  請選擇發票類型
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label">付款狀態</label>
+                <div class="d-flex gap-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="payment_status" value="unpaid" 
+                      v-model="newInvoice.payment_status" id="unpaidRadio">
+                    <label class="form-check-label" for="unpaidRadio">
+                      未付款
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="payment_status" value="partially_paid" 
+                      v-model="newInvoice.payment_status" id="partiallyPaidRadio">
+                    <label class="form-check-label" for="partiallyPaidRadio">
+                      付款未完成
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="payment_status" value="paid" 
+                      v-model="newInvoice.payment_status" id="paidRadio">
+                    <label class="form-check-label" for="paidRadio">
+                      已付款
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            
+          </div>
+          
+          <!-- 發票號碼和開立日期 -->
+          <div class="row mb-5">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">發票號碼</label>
+                <input type="text" class="form-control" v-model="newInvoice.invoice_number" 
+                       :class="{ 'is-invalid': validationErrors.invoice_number }"
+                       :disabled="newInvoice.invoice_type !== 'normal'" />
+                <div v-if="validationErrors.invoice_number" class="invalid-feedback">
+                  請輸入發票號碼
+                </div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label class="form-label required">開立日期</label>
-                <input type="date" class="form-control" v-model="newInvoice.issue_date" required />
+                <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">開立日期</label>
+                <input type="date" class="form-control" v-model="newInvoice.issue_date" 
+                       :class="{ 'is-invalid': validationErrors.issue_date || dateErrors.issue_date }"
+                       @input="handleInvoiceDateValidation('issue_date')"
+                       :disabled="newInvoice.invoice_type !== 'normal'" />
+                <div v-if="validationErrors.issue_date" class="invalid-feedback">
+                  請選擇開立日期
+                </div>
+                <div v-if="dateErrors.issue_date" class="invalid-feedback">
+                  [[ dateErrors.issue_date ]]
+                </div>
               </div>
             </div>
           </div>
+          
+          <!-- 金額相關欄位 -->
           <div class="row mb-8">
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label required text-end">發票金額(含稅)</label>
-                <input type="number" class="form-control" v-model="newInvoice.gross_amount" @input="handleGrossAmountChange" required />
+                <input type="number" class="form-control" v-model="newInvoice.gross_amount" @input="handleGrossAmountChange" required 
+                       :disabled="newInvoice.invoice_type !== 'normal'"/>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label required text-end">發票金額(未稅)</label>
-                <input type="number" class="form-control" v-model="newInvoice.amount" @input="handleAmountChange" required />
+                <input type="number" class="form-control" v-model="newInvoice.amount" @input="handleAmountChange" 
+                       :class="{ 'is-invalid': validationErrors.amount }" required 
+                       :disabled="newInvoice.invoice_type !== 'normal'"/>
+                <div v-if="validationErrors.amount" class="invalid-feedback">
+                  請輸入發票金額
+                </div>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label">稅額</label>
-                <input type="number" class="form-control text-end" v-model="newInvoice.tax_amount" @input="handleTaxAmountChange" />
+                <input type="number" class="form-control text-end" v-model="newInvoice.tax_amount" @input="handleTaxAmountChange" 
+                       :class="{ 'is-invalid': validationErrors.tax_amount }" 
+                       :disabled="newInvoice.invoice_type !== 'normal'"/>
+                <div v-if="validationErrors.tax_amount" class="invalid-feedback">
+                  請輸入稅額
+                </div>
               </div>
             </div>
             <div class="col">
@@ -457,6 +546,8 @@
               <span class="text-gray-500 fs-7">若不需自動計算稅額，亦可自行輸入未稅金額或稅額。</span>
             </div>
           </div>
+          
+          <!-- 收款相關欄位 -->
           <div class="form-group mb-5">
             <label class="form-label">收款方式</label>
             <select class="form-select" v-model="newInvoice.payment_method">
@@ -470,18 +561,46 @@
             <label class="form-label">實收金額</label>
             <input type="number" class="form-control" v-model="newInvoice.actual_received_amount" />
           </div>
-          <div class="form-group mb-5">
-            <label class="form-label">收款日</label>
-            <input type="date" class="form-control" v-model="newInvoice.payment_received_date" />
+          <div class="row mb-5">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">收款日</label>
+                <input type="date" class="form-control" v-model="newInvoice.payment_received_date" 
+                       :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
+                       @input="handleInvoiceDateValidation('payment_received_date')" />
+                <div v-if="validationErrors.payment_received_date" class="invalid-feedback">
+                  [[ validationErrors.payment_received_date ]]
+                </div>
+                <div v-if="dateErrors.payment_received_date" class="invalid-feedback" 
+                     style="color: #e74c3c; font-weight: bold;">
+                  [[ dateErrors.payment_received_date ]]
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">入帳日</label>
+                <input type="date" class="form-control" v-model="newInvoice.account_entry_date" 
+                       :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
+                       @input="handleInvoiceDateValidation('account_entry_date')" />
+                <div v-if="validationErrors.account_entry_date" class="invalid-feedback">
+                  [[ validationErrors.account_entry_date ]]
+                </div>
+                <div v-if="dateErrors.account_entry_date" class="invalid-feedback" 
+                     style="color: #e74c3c; font-weight: bold;">
+                  [[ dateErrors.account_entry_date ]]
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="form-group mb-5">
-            <label class="form-label">入帳日</label>
-            <input type="date" class="form-control" v-model="newInvoice.account_entry_date" />
-          </div>
+          
+          <!-- 備註 -->
           <div class="form-group mb-5">
             <label class="form-label">備註</label>
             <textarea class="form-control" rows="3" v-model="newInvoice.notes"></textarea>
           </div>
+          
+          <!-- 按鈕 -->
           <div class="text-center">
             <button type="button" class="btn btn-light me-3" @click="hideAddInvoiceModal">
               取消

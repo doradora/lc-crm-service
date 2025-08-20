@@ -745,17 +745,30 @@ class InvoiceViewSet(CanPaymentViewSet):
         if payment_id:
             queryset = queryset.filter(payment_id=payment_id)
             
-        # 付款狀態過濾（is_paid）
+        # 付款狀態過濾（新版使用 payment_status，舊版使用 is_paid）
+        payment_status = self.request.query_params.get("payment_status", None)
         is_paid = self.request.query_params.get("is_paid", None)
-        if is_paid is not None:
+        
+        if payment_status:
+            # 使用新的 payment_status 欄位進行篩選
+            queryset = queryset.filter(payment_status=payment_status)
+        elif is_paid is not None:
+            # 向後相容：支援舊的 is_paid 參數
             is_paid_bool = is_paid.lower() == 'true'
-            queryset = queryset.filter(is_paid=is_paid_bool)
-            
+            if is_paid_bool:
+                queryset = queryset.filter(payment_status='paid')
+            else:
+                queryset = queryset.exclude(payment_status='paid')
             
         # 付款方式過濾
         payment_method = self.request.query_params.get("payment_method", None)
         if payment_method:
             queryset = queryset.filter(payment_method=payment_method)
+            
+        # 發票類型過濾
+        invoice_type = self.request.query_params.get("invoice_type", None)
+        if invoice_type:
+            queryset = queryset.filter(invoice_type=invoice_type)
             
         # 日期範圍過濾
         issue_date_gte = self.request.query_params.get("issue_date__gte", None)

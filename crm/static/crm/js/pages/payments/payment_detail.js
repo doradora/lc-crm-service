@@ -25,6 +25,8 @@ const paymentDetail = createApp({
       originalPayment: null,
       // 新增發票相關資料
       newInvoice: {
+        id: null,
+        invoice_type: "normal", // 新增發票類型
         invoice_number: "",
         amount: 0, // 未稅金額
         tax_amount: 0,
@@ -35,9 +37,14 @@ const paymentDetail = createApp({
         payment_method: "", // 新增
         actual_received_amount: null, // 新增
         gross_amount: 0, // 含稅金額
+        payment_status: "unpaid", // 新的付款狀態
+        is_paid: false, // 保留舊欄位以保持相容性
       },
       editingInvoice: false,
       editingInvoiceId: null,
+      // 新增表單驗證相關
+      validationErrors: {},
+      dateErrors: {}, // 新增日期錯誤狀態
       // 新增專案搜索相關資料
       newProjectItem: {
         project: null,
@@ -942,7 +949,11 @@ const paymentDetail = createApp({
     createInvoice() {
       this.editingInvoice = false;
       this.editingInvoiceId = null;
+      this.validationErrors = {};
+      this.dateErrors = {};
       this.newInvoice = {
+        id: null,
+        invoice_type: "normal",
         invoice_number: "",
         amount: 0,
         tax_amount: 0,
@@ -953,27 +964,66 @@ const paymentDetail = createApp({
         payment_method: "",
         actual_received_amount: null,
         gross_amount: 0,
+        payment_status: "unpaid",
+        is_paid: false,
       };
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          const firstInput = modal._element.querySelector('input, select');
+          if (firstInput) {
+            firstInput.focus();
+          }
+        });
+      }, { once: true });
     },
 
     // 顯示編輯發票 Modal
     editInvoice(invoiceId) {
       this.editingInvoice = true;
       this.editingInvoiceId = invoiceId;
+      this.validationErrors = {};
+      this.dateErrors = {};
       const invoice = this.payment.invoices.find((inv) => inv.id === invoiceId);
       if (invoice) {
         // 若有 gross_amount 則帶入，否則自動計算
         const gross = invoice.gross_amount !== undefined ? invoice.gross_amount : (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0));
-        this.newInvoice = { ...invoice, gross_amount: gross };
+        this.newInvoice = {
+          id: invoice.id,
+          invoice_type: invoice.invoice_type || "normal",
+          invoice_number: invoice.invoice_number,
+          amount: invoice.amount,
+          tax_amount: invoice.tax_amount,
+          issue_date: invoice.issue_date,
+          payment_received_date: invoice.payment_received_date || "",
+          account_entry_date: invoice.account_entry_date || "",
+          payment_method: invoice.payment_method || "",
+          actual_received_amount: invoice.actual_received_amount || "",
+          notes: invoice.notes || "",
+          gross_amount: gross,
+          payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"),
+          is_paid: invoice.is_paid || false,
+        };
       }
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
       );
       modal.show();
+      
+      // modal 顯示後自動focus到第一個輸入欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          const firstInput = modal._element.querySelector('input, select');
+          if (firstInput) {
+            firstInput.focus();
+          }
+        });
+      }, { once: true });
     },
 
     // 隱藏發票 Modal
@@ -984,50 +1034,73 @@ const paymentDetail = createApp({
       if (modal) {
         modal.hide();
       }
+      // 延遲重置表單，確保Modal完全關閉後再清空
+      setTimeout(() => {
+        this.resetInvoiceForm();
+      }, 300);
+    },
+
+    // 重置發票表單
+    resetInvoiceForm() {
+      this.newInvoice = {
+        id: null,
+        invoice_type: "normal",
+        invoice_number: "",
+        amount: 0,
+        tax_amount: 0,
+        issue_date: "",
+        notes: "",
+        payment_received_date: null,
+        account_entry_date: null,
+        payment_method: "",
+        actual_received_amount: null,
+        gross_amount: 0,
+        payment_status: "unpaid",
+        is_paid: false,
+      };
+      this.validationErrors = {};
+      this.dateErrors = {};
+      this.editingInvoice = false;
+      this.editingInvoiceId = null;
     },
 
     // 提交發票表單
     submitInvoiceForm() {
-      // 驗證必填欄位
-      if (!this.newInvoice.invoice_number) {
+      if (!this.validateInvoiceForm()) {
+        let errorMessage = '請填寫必填欄位';
+        if (Object.keys(this.dateErrors).length > 0) {
+          errorMessage += '並檢查日期格式';
+        }
         Swal.fire({
           icon: "warning",
           title: "提示",
-          text: "請輸入發票號碼",
-        });
-        return;
-      }
-
-      if (!this.newInvoice.amount || this.newInvoice.amount <= 0) {
-        Swal.fire({
-          icon: "warning",
-          title: "提示",
-          text: "請輸入有效的發票金額",
-        });
-        return;
-      }
-
-      if (!this.newInvoice.issue_date) {
-        Swal.fire({
-          icon: "warning",
-          title: "提示",
-          text: "請選擇開立日期",
+          text: errorMessage,
         });
         return;
       }
 
       const invoiceData = {
+        invoice_type: this.newInvoice.invoice_type,
         invoice_number: this.newInvoice.invoice_number,
         amount: this.newInvoice.amount,
         tax_amount: this.newInvoice.tax_amount || 0,
         issue_date: this.newInvoice.issue_date,
         notes: this.newInvoice.notes || "",
         payment: this.paymentId,
-        payment_received_date: this.newInvoice.payment_received_date || null, // 新增
-        account_entry_date: this.newInvoice.account_entry_date || null, // 新增
-        payment_method: this.newInvoice.payment_method || null, // 新增
-        actual_received_amount: this.newInvoice.actual_received_amount || null, // 新增
+        payment_received_date: this.newInvoice.payment_received_date || null,
+        account_entry_date: this.newInvoice.account_entry_date || null,
+        payment_method: this.newInvoice.payment_method || null,
+        actual_received_amount: this.newInvoice.actual_received_amount || null,
+        payment_status: this.newInvoice.payment_status,
+        is_paid: this.newInvoice.payment_status === 'paid',
       };
+
+      // 清空空字串值
+      Object.keys(invoiceData).forEach(key => {
+        if (invoiceData[key] === '') {
+          invoiceData[key] = null;
+        }
+      });
 
       let url = "/crm/api/invoices/";
       let method = "POST";
@@ -1049,11 +1122,19 @@ const paymentDetail = createApp({
       })
         .then((response) => {
           if (!response.ok) {
-            throw new Error("發票操作失敗");
+            return response.json().then(errorData => {
+              throw new Error(errorData.detail || "發票操作失敗");
+            });
           }
           return response.json();
         })
         .then(() => {
+          Swal.fire({
+            icon: "success",
+            title: "成功",
+            text: this.editingInvoice ? '發票更新成功！' : '發票新增成功！',
+            timer: 1500,
+          });
           this.hideAddInvoiceModal();
           this.fetchInvoicesForCurrentPayment(); // 只重新獲取發票
         })
@@ -1062,7 +1143,7 @@ const paymentDetail = createApp({
           Swal.fire({
             icon: "error",
             title: "錯誤",
-            text: "發票操作失敗：" + error.message,
+            text: error.message,
           });
         });
     },
@@ -1070,13 +1151,19 @@ const paymentDetail = createApp({
     // 刪除發票
     deleteInvoice(invoiceId) {
       Swal.fire({
-        title: "確定要刪除此發票嗎？",
+        title: "確定要刪除這張發票嗎？",
+        text: "此操作無法復原。",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "是的，刪除它！",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "確定刪除",
         cancelButtonText: "取消",
+        buttonsStyling: true,
+        customClass: {
+          confirmButton: 'btn btn-danger',
+          cancelButton: 'btn btn-secondary'
+        }
       }).then((result) => {
         if (result.isConfirmed) {
           fetch(`/crm/api/invoices/${invoiceId}/`, {
@@ -1089,15 +1176,20 @@ const paymentDetail = createApp({
               if (!response.ok) {
                 throw new Error("刪除失敗");
               }
+              Swal.fire({
+                icon: "success",
+                title: "成功",
+                text: "發票刪除成功！",
+                timer: 1500,
+              });
               this.fetchInvoicesForCurrentPayment(); // 只重新獲取發票
-              Swal.fire("已刪除!", "發票已被刪除。", "success");
             })
             .catch((error) => {
               console.error("Error:", error);
               Swal.fire({
                 icon: "error",
                 title: "錯誤",
-                text: "刪除發票失敗：" + error.message,
+                text: "刪除失敗",
               });
             });
         }
@@ -1321,6 +1413,315 @@ const paymentDetail = createApp({
             text: "獲取發票資料失敗：" + error.message,
           });
         });
+    },
+
+    // 發票表單驗證
+    validateInvoiceForm() {
+      this.validationErrors = {};
+
+      // 發票類型必填
+      if (!this.newInvoice.invoice_type) {
+        this.validationErrors.invoice_type = true;
+      }
+
+      // 正常開立發票時的必填欄位
+      if (this.newInvoice.invoice_type === 'normal') {
+        if (!this.newInvoice.invoice_number) {
+          this.validationErrors.invoice_number = true;
+        }
+
+        if (!this.newInvoice.amount) {
+          this.validationErrors.amount = true;
+        }
+
+        if (!this.newInvoice.tax_amount) {
+          this.validationErrors.tax_amount = true;
+        }
+
+        if (!this.newInvoice.issue_date) {
+          this.validationErrors.issue_date = true;
+        }
+      }
+
+      // 收款日和入帳日必填驗證（除了不開發票的情況）
+      if (this.newInvoice.invoice_type === 'normal') {
+        if (!this.newInvoice.payment_received_date) {
+          this.validationErrors.payment_received_date = '請填寫正確收款日期';
+        }
+
+        if (!this.newInvoice.account_entry_date) {
+          this.validationErrors.account_entry_date = '請填寫正確入帳日期';
+        }
+      }
+
+      // 重新驗證所有日期
+      this.handleInvoiceDateValidation('issue_date');
+      this.handleInvoiceDateValidation('payment_received_date');
+      this.handleInvoiceDateValidation('account_entry_date');
+
+      return Object.keys(this.validationErrors).length === 0 && Object.keys(this.dateErrors).length === 0;
+    },
+
+    // 驗證日期格式和有效性
+    validateDateInput(dateString, fieldName) {
+      if (!dateString) {
+        delete this.dateErrors[fieldName];
+        return true;
+      }
+
+      // 檢查基本格式 YYYY-MM-DD
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(dateString)) {
+        this.dateErrors[fieldName] = '請輸入正確的日期格式 (YYYY-MM-DD)';
+        return false;
+      }
+
+      // 檢查年份範圍 (1900-2999)
+      const year = parseInt(dateString.substr(0, 4));
+      if (year < 1900 || year > 2999) {
+        this.dateErrors[fieldName] = '年份必須在 1900-2999 之間';
+        return false;
+      }
+
+      // 檢查是否為有效日期
+      const date = new Date(dateString + 'T00:00:00');
+      const inputDateStr = dateString;
+      const validDateStr = date.getFullYear() + '-' + 
+                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(date.getDate()).padStart(2, '0');
+
+      if (inputDateStr !== validDateStr || isNaN(date.getTime())) {
+        this.dateErrors[fieldName] = '請輸入有效的日期 (例如: 2025-02-31 不是有效日期)';
+        return false;
+      }
+
+      delete this.dateErrors[fieldName];
+      return true;
+    },
+
+    // 驗證日期輸入並檢查邏輯關係
+    handleInvoiceDateValidation(fieldName) {
+      const value = this.newInvoice[fieldName];
+      
+      // 先驗證單個日期格式
+      if (!this.validateDateInput(value, fieldName)) {
+        return;
+      }
+
+      // 如果格式正確，再檢查邏輯關係
+      if (fieldName === 'payment_received_date' && value) {
+        const paymentDate = new Date(value + 'T00:00:00');
+        const issueDate = new Date(this.newInvoice.issue_date + 'T00:00:00');
+        
+        if (this.newInvoice.issue_date && paymentDate < issueDate) {
+          this.dateErrors[fieldName] = '收款日期不能早於發票開立日期';
+        }
+      }
+
+      if (fieldName === 'account_entry_date' && value) {
+        const entryDate = new Date(value + 'T00:00:00');
+        
+        if (this.newInvoice.payment_received_date) {
+          const paymentDate = new Date(this.newInvoice.payment_received_date + 'T00:00:00');
+          if (entryDate < paymentDate) {
+            this.dateErrors[fieldName] = '入帳日期不能早於收款日期';
+          }
+        }
+      }
+    },
+
+    // 處理發票類型變更
+    handleInvoiceTypeChange() {
+      // 當選擇不開發票或發票待開時，設定對應的發票號碼並清空相關欄位
+      if (this.newInvoice.invoice_type === 'no_invoice') {
+        this.newInvoice.invoice_number = "不開發票";
+        this.newInvoice.amount = "";
+        this.newInvoice.tax_amount = "";
+        this.newInvoice.issue_date = "";
+        this.newInvoice.gross_amount = "";
+      } else if (this.newInvoice.invoice_type === 'pending') {
+        this.newInvoice.invoice_number = "發票待開";
+        this.newInvoice.amount = "";
+        this.newInvoice.tax_amount = "";
+        this.newInvoice.issue_date = "";
+        this.newInvoice.gross_amount = "";
+      } else if (this.newInvoice.invoice_type === 'normal') {
+        // 如果切換回正常開立，清空發票號碼讓用戶自行輸入
+        if (this.newInvoice.invoice_number === "不開發票" || this.newInvoice.invoice_number === "發票待開") {
+          this.newInvoice.invoice_number = "";
+        }
+      }
+      
+      // 清空驗證錯誤
+      this.validationErrors = {};
+      this.dateErrors = {};
+    },
+
+    // 取得發票類型文字
+    getInvoiceTypeText(type) {
+      switch (type) {
+        case 'normal':
+          return '正常開立';
+        case 'no_invoice':
+          return '不開發票';
+        case 'pending':
+          return '發票待開';
+        default:
+          return '正常開立';
+      }
+    },
+
+    // 取得發票類型徽章樣式
+    getInvoiceTypeBadgeClass(type) {
+      switch (type) {
+        case 'normal':
+          return 'badge-primary';
+        case 'no_invoice':
+          return 'badge-secondary';
+        case 'pending':
+          return 'badge-warning';
+        default:
+          return 'badge-primary';
+      }
+    },
+
+    // 取得付款狀態徽章樣式
+    getPaymentStatusBadgeClass(invoice) {
+      // 使用新的 payment_status 欄位，若沒有則使用 is_paid 作為備用
+      const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
+      
+      switch (status) {
+        case 'paid':
+          return 'badge badge-success';
+        case 'partially_paid':
+          return 'badge badge-warning';
+        case 'unpaid':
+        default:
+          return 'badge badge-secondary';
+      }
+    },
+
+    // 取得付款狀態文字
+    getPaymentStatusText(invoice) {
+      const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
+      
+      switch (status) {
+        case 'paid':
+          return '已付款';
+        case 'partially_paid':
+          return '付款未完成';
+        case 'unpaid':
+        default:
+          return '未付款';
+      }
+    },
+
+    // 標記發票為已付款
+    async markInvoiceAsPaid(invoiceId) {
+      try {
+        const response = await fetch(`/crm/api/invoices/${invoiceId}/`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+          },
+          body: JSON.stringify({
+            payment_status: 'paid',
+            is_paid: true
+          })
+        });
+
+        if (!response.ok) throw new Error('操作失敗');
+
+        Swal.fire({
+          icon: "success",
+          title: "成功",
+          text: "已標記為已付款",
+          timer: 1500,
+        });
+        
+        this.fetchInvoicesForCurrentPayment();
+
+      } catch (error) {
+        console.error('Error marking as paid:', error);
+        Swal.fire({
+          icon: "error",
+          title: "錯誤",
+          text: "操作失敗",
+        });
+      }
+    },
+
+    // 標記發票為未付款
+    async markInvoiceAsUnpaid(invoiceId) {
+      try {
+        const response = await fetch(`/crm/api/invoices/${invoiceId}/`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+          },
+          body: JSON.stringify({
+            payment_status: 'unpaid',
+            is_paid: false
+          })
+        });
+
+        if (!response.ok) throw new Error('操作失敗');
+
+        Swal.fire({
+          icon: "success",
+          title: "成功",
+          text: "已標記為未付款",
+          timer: 1500,
+        });
+        
+        this.fetchInvoicesForCurrentPayment();
+
+      } catch (error) {
+        console.error('Error marking as unpaid:', error);
+        Swal.fire({
+          icon: "error",
+          title: "錯誤",
+          text: "操作失敗",
+        });
+      }
+    },
+
+    // 標記發票為付款未完成
+    async markInvoiceAsPartiallyPaid(invoiceId) {
+      try {
+        const response = await fetch(`/crm/api/invoices/${invoiceId}/`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+          },
+          body: JSON.stringify({
+            payment_status: 'partially_paid',
+            is_paid: false
+          })
+        });
+
+        if (!response.ok) throw new Error('操作失敗');
+
+        Swal.fire({
+          icon: "success",
+          title: "成功",
+          text: "已標記為付款未完成",
+          timer: 1500,
+        });
+        
+        this.fetchInvoicesForCurrentPayment();
+
+      } catch (error) {
+        console.error('Error marking as partially paid:', error);
+        Swal.fire({
+          icon: "error",
+          title: "錯誤",
+          text: "操作失敗",
+        });
+      }
     },
   },
   mounted() {    // 從URL獲取payment ID

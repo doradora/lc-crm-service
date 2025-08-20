@@ -375,13 +375,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = [
             "id",
+            "invoice_type",          # 新增發票類型欄位
             "invoice_number",
             "payment",
             "payment_number",
             "amount",
             "issue_date",
             "tax_amount",
-            "is_paid",               # 新增付款狀態欄位
+            "payment_status",        # 新增付款狀態欄位
+            "is_paid",               # 保留舊欄位以保持相容性
             "payment_received_date", # 新增
             "account_entry_date",    # 新增
             "payment_method",        # 新增

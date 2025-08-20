@@ -10,6 +10,7 @@ createApp({
       searchQuery: "",
       paymentStatusFilter: "",
       paymentMethodFilter: "",
+      invoiceTypeFilter: "", // 新增發票類型篩選
       startDate: "",
       endDate: "",
       pageSize: 10,
@@ -26,6 +27,7 @@ createApp({
       dateErrors: {}, // 新增日期錯誤狀態
       invoiceForm: {
         id: null,
+        invoice_type: "normal", // 新增發票類型
         invoice_number: "",
         payment: "",
         amount: "",
@@ -37,7 +39,8 @@ createApp({
         actual_received_amount: "",
         notes: "",
         gross_amount: "", // 含稅金額
-        is_paid: false, // 付款狀態
+        payment_status: "unpaid", // 新的付款狀態
+        is_paid: false, // 保留舊欄位以保持相容性
       },
       menuPosition: {
         x: 0,
@@ -113,15 +116,15 @@ createApp({
         }
 
         if (this.paymentStatusFilter) {
-          if (this.paymentStatusFilter === 'paid') {
-            params.append('is_paid', 'true');
-          } else if (this.paymentStatusFilter === 'unpaid') {
-            params.append('is_paid', 'false');
-          }
+          params.append('payment_status', this.paymentStatusFilter);
         }
 
         if (this.paymentMethodFilter) {
           params.append('payment_method', this.paymentMethodFilter);
+        }
+
+        if (this.invoiceTypeFilter) {
+          params.append('invoice_type', this.invoiceTypeFilter);
         }
 
         if (this.startDate) {
@@ -201,6 +204,7 @@ createApp({
       this.validationErrors = {};
       this.invoiceForm = {
         id: invoice.id,
+        invoice_type: invoice.invoice_type || "normal", // 新增發票類型
         invoice_number: invoice.invoice_number,
         payment: invoice.payment || "",
         amount: invoice.amount,
@@ -212,7 +216,8 @@ createApp({
         actual_received_amount: invoice.actual_received_amount || "",
         notes: invoice.notes || "",
         gross_amount: (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0)),
-        is_paid: invoice.is_paid || false, // 使用後端的 is_paid 欄位
+        payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"), // 新的付款狀態
+        is_paid: invoice.is_paid || false, // 保留舊欄位以保持相容性
       };
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
@@ -232,24 +237,44 @@ createApp({
     validateForm() {
       this.validationErrors = {};
 
-      if (!this.invoiceForm.invoice_number) {
-        this.validationErrors.invoice_number = true;
+      // 發票類型必填
+      if (!this.invoiceForm.invoice_type) {
+        this.validationErrors.invoice_type = true;
       }
 
+      // 正常開立發票時的必填欄位
+      if (this.invoiceForm.invoice_type === 'normal') {
+        if (!this.invoiceForm.invoice_number) {
+          this.validationErrors.invoice_number = true;
+        }
+
+        if (!this.invoiceForm.amount) {
+          this.validationErrors.amount = true;
+        }
+
+        if (!this.invoiceForm.tax_amount) {
+          this.validationErrors.tax_amount = true;
+        }
+
+        if (!this.invoiceForm.issue_date) {
+          this.validationErrors.issue_date = true;
+        }
+      }
+
+      // 請款單必填
       if (!this.invoiceForm.payment) {
         this.validationErrors.payment = true;
       }
 
-      if (!this.invoiceForm.amount) {
-        this.validationErrors.amount = true;
-      }
+      // 收款日和入帳日必填驗證（除了不開發票的情況）
+      if (this.invoiceForm.invoice_type === 'no_invoice') {
+        if (!this.invoiceForm.payment_received_date) {
+          this.validationErrors.payment_received_date = '請填寫正確收款日期';
+        }
 
-      if (!this.invoiceForm.tax_amount) {
-        this.validationErrors.tax_amount = true;
-      }
-
-      if (!this.invoiceForm.issue_date) {
-        this.validationErrors.issue_date = true;
+        if (!this.invoiceForm.account_entry_date) {
+          this.validationErrors.account_entry_date = '請填寫正確入帳日期';
+        }
       }
 
       // 重新驗證所有日期
@@ -273,6 +298,9 @@ createApp({
       try {
         const formData = { ...this.invoiceForm };
         delete formData.gross_amount; // gross_amount 只是前端計算用，不需要傳送到後端
+        
+        // 同步 payment_status 到 is_paid 欄位以保持向後相容
+        formData.is_paid = (formData.payment_status === 'paid');
         
         Object.keys(formData).forEach(key => {
           if (formData[key] === '') {
@@ -325,6 +353,7 @@ createApp({
             'X-CSRFToken': this.getCsrfToken()
           },
           body: JSON.stringify({
+            payment_status: 'paid',
             is_paid: true
           })
         });
@@ -355,6 +384,7 @@ createApp({
             'X-CSRFToken': this.getCsrfToken()
           },
           body: JSON.stringify({
+            payment_status: 'unpaid',
             is_paid: false
           })
         });
@@ -366,6 +396,37 @@ createApp({
 
       } catch (error) {
         console.error('Error marking as unpaid:', error);
+        this.showNotification('操作失敗', 'error');
+      }
+
+      this.activeMenu = null;
+    },
+    
+    async markAsPartiallyPaid(invoiceId) {
+      // 使用 showConfirmDialog 顯示確認對話框
+      const confirmed = await this.showConfirmDialog('確定要標記為付款未完成嗎？');
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`/crm/api/invoices/${invoiceId}/`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCsrfToken()
+          },
+          body: JSON.stringify({
+            payment_status: 'partially_paid',
+            is_paid: false
+          })
+        });
+
+        if (!response.ok) throw new Error('操作失敗');
+
+        this.showNotification('已標記為付款未完成', 'success');
+        this.fetchInvoices(this.currentPage);
+
+      } catch (error) {
+        console.error('Error marking as partially paid:', error);
         this.showNotification('操作失敗', 'error');
       }
 
@@ -415,6 +476,7 @@ createApp({
     resetInvoiceForm() {
       this.invoiceForm = {
         id: null,
+        invoice_type: "normal",
         invoice_number: "",
         payment: "",
         amount: "",
@@ -426,6 +488,7 @@ createApp({
         actual_received_amount: "",
         notes: "",
         gross_amount: "",
+        payment_status: "unpaid",
         is_paid: false,
       };
       this.validationErrors = {};
@@ -467,10 +530,61 @@ createApp({
     },
 
     getPaymentStatusBadgeClass(invoice) {
-      // 使用後端的 is_paid 欄位判斷付款狀態
-      return invoice.is_paid
-        ? 'badge badge-success'
-        : 'badge badge-warning';
+      // 使用新的 payment_status 欄位，若沒有則使用 is_paid 作為備用
+      const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
+      
+      switch (status) {
+        case 'paid':
+          return 'badge badge-success';
+        case 'partially_paid':
+          return 'badge badge-warning';
+        case 'unpaid':
+        default:
+          return 'badge badge-secondary';
+      }
+    },
+
+    // 取得付款狀態文字
+    getPaymentStatusText(invoice) {
+      const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
+      
+      switch (status) {
+        case 'paid':
+          return '已付款';
+        case 'partially_paid':
+          return '付款未完成';
+        case 'unpaid':
+        default:
+          return '未付款';
+      }
+    },
+
+    // 取得發票類型文字
+    getInvoiceTypeText(type) {
+      switch (type) {
+        case 'normal':
+          return '正常開立';
+        case 'no_invoice':
+          return '不開發票';
+        case 'pending':
+          return '發票待開';
+        default:
+          return '正常開立';
+      }
+    },
+
+    // 取得發票類型徽章樣式
+    getInvoiceTypeBadgeClass(type) {
+      switch (type) {
+        case 'normal':
+          return 'badge-primary';
+        case 'no_invoice':
+          return 'badge-secondary';
+        case 'pending':
+          return 'badge-warning';
+        default:
+          return 'badge-primary';
+      }
     },
 
     getPaymentMethodText(method) {
@@ -648,6 +762,33 @@ createApp({
       const tax = Number(this.invoiceForm.tax_amount) || 0;
       const amount = gross - tax;
       this.invoiceForm.amount = amount;
+    },
+    
+    // 處理發票類型變更
+    handleInvoiceTypeChange() {
+      // 當選擇不開發票或發票待開時，設定對應的發票號碼並清空相關欄位
+      if (this.invoiceForm.invoice_type === 'no_invoice') {
+        this.invoiceForm.invoice_number = "不開發票";
+        this.invoiceForm.amount = "";
+        this.invoiceForm.tax_amount = "";
+        this.invoiceForm.issue_date = "";
+        this.invoiceForm.gross_amount = "";
+      } else if (this.invoiceForm.invoice_type === 'pending') {
+        this.invoiceForm.invoice_number = "發票待開";
+        this.invoiceForm.amount = "";
+        this.invoiceForm.tax_amount = "";
+        this.invoiceForm.issue_date = "";
+        this.invoiceForm.gross_amount = "";
+      } else if (this.invoiceForm.invoice_type === 'normal') {
+        // 如果切換回正常開立，清空發票號碼讓用戶自行輸入
+        if (this.invoiceForm.invoice_number === "不開發票" || this.invoiceForm.invoice_number === "發票待開") {
+          this.invoiceForm.invoice_number = "";
+        }
+      }
+      
+      // 清空驗證錯誤
+      this.validationErrors = {};
+      this.dateErrors = {};
     },
   }
 }).mount('#app_main');
