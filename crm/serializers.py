@@ -255,6 +255,7 @@ class PaymentProjectSerializer(serializers.ModelSerializer):
     """請款單專案關聯序列化器"""
 
     project_name = serializers.SerializerMethodField(read_only=True)
+    report_name = serializers.SerializerMethodField(read_only=True)  # 新增報告書名稱欄位
     change_count = serializers.SerializerMethodField(read_only=True)  # 新增變更次數欄位
 
     class Meta:
@@ -264,6 +265,7 @@ class PaymentProjectSerializer(serializers.ModelSerializer):
             "payment",
             "project",
             "project_name",
+            "report_name",  # 新增報告書名稱欄位
             "quotation",
             "amount",
             "description",
@@ -272,6 +274,10 @@ class PaymentProjectSerializer(serializers.ModelSerializer):
 
     def get_project_name(self, obj):
         return obj.project.name if obj.project else None
+
+    def get_report_name(self, obj):
+        """獲取專案的報告書名稱"""
+        return obj.project.report_name if obj.project else ''
 
     def get_change_count(self, obj):
         """

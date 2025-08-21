@@ -19,7 +19,7 @@ const paymentDetail = createApp({
         selected_bank_account_details: null, // 新增選定銀行帳號的詳細資訊
       },
       paymentId: null,
-      projects: [],
+      projects: [], // 保留用於新增專案的搜尋功能
       isLoading: true,
       isEditing: false,
       originalPayment: null,
@@ -90,8 +90,8 @@ const paymentDetail = createApp({
         bank_code: "",
         company: null, // 將與當前選中的公司關聯
       },
-      // 專案報告書名稱映射表 - 用於編輯時暫存
-      projectReportNames: {}, // 專案ID -> 報告書名稱的映射
+      // 專案報告書名稱映射表 - 移除，改用 payment_projects 中的 report_name
+      // projectReportNames: {}, // 專案ID -> 報告書名稱的映射
       // 內存請款單相關資料
       paymentDocuments: [], // 內存請款單文件列表
       isUploadingDocument: false, // 上傳狀態
@@ -195,57 +195,58 @@ const paymentDetail = createApp({
         });
     },
 
-    // 獲取所有專案，用於編輯時選擇
-    fetchProjects() {
-      fetch("/crm/api/projects/?format=json&page_size=1000")
+    // 獲取專案列表，僅用於新增專案時選擇
+    fetchProjectsForSelection() {
+      // 只有在需要新增專案時才載入專案列表
+      if (this.projects.length > 0) return Promise.resolve();
+      
+      return fetch("/crm/api/projects/?format=json&page_size=1000")
         .then((response) => response.json())
         .then((data) => {
           this.projects = data.results;
-          // 初始化專案報告書名稱映射
-          this.initializeProjectReportNames();
         })
         .catch((error) => console.error("Error fetching projects:", error));
     },
 
-    // 初始化專案報告書名稱映射
-    initializeProjectReportNames() {
-      this.projects.forEach(project => {
-        this.projectReportNames[project.id] = project.report_name || '';
-      });
-    },
+    // 移除不再需要的方法
+    // initializeProjectReportNames() - 已移除
+    // fetchProjects() - 重命名為 fetchProjectsForSelection
 
-    // 獲取專案的報告書名稱
-    getProjectReportName(projectId) {
-      if (!projectId) return '';
-      return this.projectReportNames[projectId] || '';
-    },    // 更新專案的報告書名稱
+    // 獲取專案的報告書名稱 - 直接從 payment_projects 中取得
+    getProjectReportName(projectItem) {
+      return projectItem.report_name || '';
+    },    
+    
+    // 更新專案的報告書名稱 - 僅更新本地數據，保存時再傳送到後端
     updateProjectReportName(projectId, reportName) {
-      if (projectId) {
-        this.projectReportNames[projectId] = reportName;
+      // 更新本地 payment_projects 中的 report_name
+      const projectItem = this.payment.payment_projects.find(item => item.project === projectId);
+      if (projectItem) {
+        projectItem.report_name = reportName;
       }
+      
+      // 移除即時更新到後端的邏輯，改為在保存時統一處理
     },
 
-    // 批量更新所有已修改專案的報告書名稱
+    // 批量更新所有已修改專案的報告書名稱 - 在保存時調用
     updateProjectReportNames() {
       const updatePromises = [];
 
-      // 僅針對報告書名稱有變更的專案進行處理
-      this.projects.forEach((project) => {
-        const updatedReportName = this.projectReportNames[project.id];
-        if (updatedReportName && project.report_name !== updatedReportName) {
-          // 如果報告書名稱有變更，發送PATCH請求更新
+      // 更新所有 payment_projects 中專案的報告書名稱
+      this.payment.payment_projects.forEach((projectItem) => {
+        if (projectItem.project && projectItem.report_name !== undefined) {
           updatePromises.push(
-            fetch(`/crm/api/projects/${project.id}/`, {
+            fetch(`/crm/api/projects/${projectItem.project}/`, {
               method: "PATCH",
               headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": document.querySelector(
-                  '[name="csrfmiddlewaretoken"]'
-                ).value,
+                "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value,
               },
               body: JSON.stringify({
-                report_name: updatedReportName,
+                report_name: projectItem.report_name || '',
               }),
+            }).catch(error => {
+              console.error(`Error updating project ${projectItem.project} report name:`, error);
             })
           );
         }
@@ -736,23 +737,26 @@ const paymentDetail = createApp({
       this.projectDescriptions = {};
       this.selectAllChecked = false;
 
-      // 過濾可選專案 (排除已經在請款單中的專案)
-      this.filterProjectsForModal();
+      // 確保已載入專案列表
+      this.fetchProjectsForSelection().then(() => {
+        // 過濾可選專案 (排除已經在請款單中的專案)
+        this.filterProjectsForModal();
 
-      // 顯示模態對話框
-      const modal = new bootstrap.Modal(
-        document.getElementById("addProjectModal")
-      );
-      modal.show();
-      
-      // modal 顯示後自動focus到搜尋欄位
-      modal._element.addEventListener('shown.bs.modal', () => {
-        this.$nextTick(() => {
-          if (this.$refs.projectSearchInput) {
-            this.$refs.projectSearchInput.focus();
-          }
-        });
-      }, { once: true });
+        // 顯示模態對話框
+        const modal = new bootstrap.Modal(
+          document.getElementById("addProjectModal")
+        );
+        modal.show();
+        
+        // modal 顯示後自動focus到搜尋欄位
+        modal._element.addEventListener('shown.bs.modal', () => {
+          this.$nextTick(() => {
+            if (this.$refs.projectSearchInput) {
+              this.$refs.projectSearchInput.focus();
+            }
+          });
+        }, { once: true });
+      });
     },
 
     // 過濾Modal中的專案列表
@@ -831,8 +835,10 @@ const paymentDetail = createApp({
           this.payment.payment_projects.push({
             project: projectId,
             project_name: project.name,
+            report_name: project.report_name || '', // 加入報告書名稱
             amount: 0, // 預設金額為0
             description: "", // 預設描述為空白
+            change_count: 0, // 預設變更次數為0
           });
         }
       });
@@ -1736,15 +1742,9 @@ const paymentDetail = createApp({
     const pathParts = window.location.pathname.split("/");
     this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; 
     
-    // 獲取資料
-    Promise.all([
-      this.fetchPaymentDetails(),
-      this.fetchProjects(),
-    ])
-      .then(() => {
-        // 當付款詳情和專案列表都載入完成後，初始化報告書名稱映射
-        this.initializeProjectReportNames();
-      });
+    // 獲取基本資料 - 移除專案列表的載入
+    this.fetchPaymentDetails();
+    
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
     this.fetchPaymentDocuments(); // 新增：獲取內存請款單檔案列表

@@ -225,12 +225,13 @@
                           <td>
                             <div v-if="isEditing">
                               <div class="form-control-plaintext">[[ projectItem.project_name ]]</div>
-                              <input type="text" class="form-control" :value="getProjectReportName(projectItem.project)"
-                                @input="updateProjectReportName(projectItem.project, $event.target.value)" />
+                              <input type="text" class="form-control" :value="getProjectReportName(projectItem)"
+                                @input="updateProjectReportName(projectItem.project, $event.target.value)" 
+                                placeholder="請輸入報告書名稱" />
                             </div>
                             <div v-else>
                               <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
-                              [[ getProjectReportName(projectItem.project) || '-' ]]
+                              <div class="text-muted small">[[ getProjectReportName(projectItem) || '尚未設定報告書名稱' ]]</div>
                             </div>
                           </td>
                           <td class="align-bottom">
