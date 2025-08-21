@@ -206,6 +206,15 @@ def generate_payment_excel(payment):
                     cell = ws.cell(row=row_idx, column=col_idx)
                     cell.font = Font(size=12, name="Microsoft JhengHei")
                 ws.row_dimensions[row_idx].height = 45
+            
+            # 移除多餘框線 (原金額)
+            for row_idx in range(6, 17):
+                last_custom_col = max(custom_field_columns.values())
+                right_cell = ws.cell(row=row_idx, column=last_custom_col + 1)
+                right_cell.border = Border(
+                    left=Side(style="mediumDashDot"),
+                ) 
+                
             for col_idx in range(3, ws.max_column + 1):
                 auto_adjust_column_width(ws, col_idx)
 
@@ -340,12 +349,12 @@ def _fill_project_details(ws, project_details, start_row, custom_field_columns):
                     elif field_type == "date":
                         cell.number_format = "yyyy-mm-dd"
             # 最右邊自訂欄位的右一格填入金額
-            if last_custom_col:
-                right_cell = ws.cell(row=row, column=last_custom_col + 1)
-                # E7、E8欄為面積計算後得出金額，與C7、C8欄不同，應留空白
-                # right_cell.value = detail["金額"]
-                right_cell.value = ""
-                right_cell.number_format = "#,##0"
+            # if last_custom_col:
+            #     right_cell = ws.cell(row=row, column=last_custom_col + 1)
+            #     # E7、E8欄為面積計算後得出金額，與C7、C8欄不同，應留空白
+            #     # right_cell.value = detail["金額"] 
+            #     right_cell.value = ""
+            #     right_cell.number_format = "#,##0"
 
 
 def auto_adjust_column_width(ws, column_index=None):
