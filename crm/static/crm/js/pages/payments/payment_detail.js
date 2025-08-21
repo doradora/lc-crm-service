@@ -1203,6 +1203,14 @@ const paymentDetail = createApp({
 
     // 匯出Excel功能
     exportToExcel() {
+      if (!this.payment.selected_bank_account) {
+        Swal.fire({
+          icon: "warning",
+          title: "未設定匯款帳號",
+          html: `請先設定匯款帳號後再匯出Excel。<br><a href="/crm/company/${this.payment.company}/details/" target="_blank" style="color:#3085d6;text-decoration:underline;">前往收款公司設定頁面</a>`,
+        });
+        return;
+      }
       window.location.href = `/crm/payment/${this.paymentId}/export_excel/`;
     },
 

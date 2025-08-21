@@ -881,9 +881,9 @@ const paymentsList = createApp({
           this.updateSelectAllState();
 
           // 顯示成功提示
-          alert(
-            `請款單 ${data.payment_number} 已成功建立，請在詳情頁完善其他資訊`
-          );
+          // alert(
+          //   `請款單 ${data.payment_number} 已成功建立，請在詳情頁完善其他資訊`
+          // );
 
           // 導航到請款單詳情頁面
           window.location.href = `/crm/payment/${data.id}/details/`;
