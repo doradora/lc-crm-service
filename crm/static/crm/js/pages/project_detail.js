@@ -363,6 +363,18 @@ const projectDetail = createApp({
         }
       }
 
+      // 驗證自定義欄位
+      const validationErrors = this.validateCustomFields();
+      if (validationErrors.length > 0) {
+        Swal.fire({
+          title: "欄位驗證錯誤",
+          html: "以下必填欄位不能為空：<br>" + validationErrors.join("<br>"),
+          icon: "error",
+          confirmButtonText: "確定",
+        });
+        return; // 中斷儲存流程
+      }
+
       // 準備要提交的資料
       const formData = { ...this.project };
       console.log("formData", [...formData["managers"]]);
@@ -1184,6 +1196,36 @@ const projectDetail = createApp({
     switchTab(tabId) {
       this.activeTab = tabId;
       // Bootstrap 已經處理了標籤切換的顯示邏輯，此方法僅用於記錄當前活動標籤
+    },
+
+    // 驗證自定義欄位
+    validateCustomFields() {
+      const errors = [];
+
+      // 檢查每個自定義欄位
+      Object.entries(this.categoryFields).forEach(([fieldName, field]) => {
+        if (field.required) {
+          const value = this.customFieldValues[fieldName];
+          
+          // 根據欄位類型進行驗證
+          if (field.type === 'boolean') {
+            // boolean 類型不需要驗證，因為總是有值（true 或 false）
+            return;
+          } else if (field.type === 'number') {
+            // 數字類型：檢查是否為 null、undefined 或空字串
+            if (value === null || value === undefined || value === '') {
+              errors.push(`• ${field.display_name}`);
+            }
+          } else {
+            // 其他類型（text, textarea, date）：檢查是否為空字串或只包含空白字元
+            if (!value || (typeof value === 'string' && value.trim() === '')) {
+              errors.push(`• ${field.display_name}`);
+            }
+          }
+        }
+      });
+
+      return errors;
     },
 
     // 格式化金額顯示

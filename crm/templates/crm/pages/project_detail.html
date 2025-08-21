@@ -192,11 +192,13 @@
                                                                 <input v-if="field.type === 'text'"
                                                                        type="text"
                                                                        class="form-control"
+                                                                       :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                                                        v-model="customFieldValues[fieldName]"
                                                                        :required="field.required">
                                                                 <!-- 多行文字欄位 -->
                                                                 <textarea v-else-if="field.type === 'textarea'"
                                                                           class="form-control"
+                                                                          :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                                                           v-model="customFieldValues[fieldName]"
                                                                           rows="3"
                                                                           :required="field.required"></textarea>
@@ -204,12 +206,14 @@
                                                                 <input v-else-if="field.type === 'number'"
                                                                        type="number"
                                                                        class="form-control"
+                                                                       :class="{ 'is-invalid': field.required && (customFieldValues[fieldName] === null || customFieldValues[fieldName] === undefined || customFieldValues[fieldName] === '') }"
                                                                        v-model="customFieldValues[fieldName]"
                                                                        :required="field.required">
                                                                 <!-- 日期欄位 -->
                                                                 <input v-else-if="field.type === 'date'"
                                                                        type="date"
                                                                        class="form-control"
+                                                                       :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                                                        v-model="customFieldValues[fieldName]"
                                                                        :required="field.required">
                                                                 <!-- 是/否欄位 -->
