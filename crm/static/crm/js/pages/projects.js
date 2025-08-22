@@ -74,6 +74,14 @@ const projectList = createApp({
       
       // 新增：動態載入相關的狀態
       loadingOwnerIds: new Set(), // 正在載入的業主ID集合
+      
+      // 業主選擇modal相關資料
+      selectedOwner: null, // 選中的業主
+      modalOwners: [], // modal中的業主列表
+      ownerModalSearchTerm: "", // 搜尋關鍵字
+      isLoadingOwners: false, // 載入狀態
+      ownerPagination: null, // 分頁資訊
+      currentOwnerPage: 1, // 當前頁面
     };
   },
   computed: {
@@ -244,11 +252,11 @@ const projectList = createApp({
         owner: project.owner,
       };
 
-      // 設置業主搜尋框的顯示內容
+      // 設置選中的業主
       if (project.owner && this.ownerMap[project.owner]) {
-        this.ownerSearchTerm = this.ownerMap[project.owner].company_name;
+        this.selectedOwner = this.ownerMap[project.owner];
       } else {
-        this.ownerSearchTerm = "";
+        this.selectedOwner = null;
       }
 
       // 顯示模態框
@@ -261,8 +269,8 @@ const projectList = createApp({
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
-          if (this.$refs.ownerSearchInput) {
-            this.$refs.ownerSearchInput.focus();
+          if (this.$refs.ownerInput) {
+            this.$refs.ownerInput.focus();
           }
         });
       }, { once: true });
@@ -527,8 +535,8 @@ const projectList = createApp({
         name: "",
       };
 
-      // 清空業主搜尋框
-      this.ownerSearchTerm = "";
+      // 清空業主選擇
+      this.selectedOwner = null;
 
       // 使用 Bootstrap 的 Modal API 顯示
       const modal = new bootstrap.Modal(
@@ -539,8 +547,8 @@ const projectList = createApp({
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
-          if (this.$refs.ownerSearchInput) {
-            this.$refs.ownerSearchInput.focus();
+          if (this.$refs.ownerInput) {
+            this.$refs.ownerInput.focus();
           }
         });
       }, { once: true });
@@ -582,7 +590,7 @@ const projectList = createApp({
     },
     submitProjectForm() {
       // 如果未選擇業主，顯示錯誤訊息
-      if (!this.newProject.owner) {
+      if (!this.selectedOwner) {
         Swal.fire({
           title: "表單驗證失敗!",
           text: "請選擇或新增業主",
@@ -594,7 +602,7 @@ const projectList = createApp({
 
       // 簡化的表單提交，只包含基本欄位
       const formData = {
-        owner: this.newProject.owner,
+        owner: this.selectedOwner.id,
         category: this.newProject.category,
         year: parseInt(this.newProject.year) || new Date().getFullYear(),
         name: this.newProject.name,
@@ -657,7 +665,8 @@ const projectList = createApp({
           });
         });
     },
-    // 業主搜尋和選擇
+    // 業主搜尋和選擇 (已廢棄，保留作為參考)
+    /*
     filterOwners() {
       if (!this.ownerSearchTerm) {
         this.filteredOwners = this.owners.slice(0, 10); // 顯示前10個
@@ -694,6 +703,7 @@ const projectList = createApp({
           this.ownerMap[this.newProject.owner].company_name;
       }
     },
+    */
 
     // 專案負責人搜尋和選擇
     filterManagers() {
@@ -849,10 +859,13 @@ const projectList = createApp({
           this.owners.push(data);
 
           // 選擇新增的業主
-          this.selectOwner(data);
+          this.selectedOwner = data;
+          this.newProject.owner = data.id;
 
-          // 更新業主搜尋結果
-          this.filterOwners();
+          // 如果modal已開啟，更新modal中的業主列表
+          if (this.modalOwners.length > 0) {
+            this.loadOwners();
+          }
 
           // 關閉Modal
           this.hideAddOwnerModal();
@@ -877,6 +890,128 @@ const projectList = createApp({
       this.startYearFilter = "";
       this.endYearFilter = "";
       this.fetchProjects(1);
+    },
+
+    // 業主選擇modal相關方法
+    showOwnerSelectionModal() {
+      // 顯示業主選擇modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("selectOwnerModal")
+      );
+      modal.show();
+      
+      // 載入業主列表
+      this.loadOwners();
+      
+      // modal 顯示後自動focus到搜尋欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.ownerModalSearchInput) {
+            this.$refs.ownerModalSearchInput.focus();
+          }
+        });
+      }, { once: true });
+    },
+
+    hideOwnerSelectionModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("selectOwnerModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    loadOwners(url = null) {
+      this.isLoadingOwners = true;
+      
+      // 如果沒有提供URL，則構建預設的API URL
+      if (!url) {
+        url = `/crm/api/owners/?format=json&page=${this.currentOwnerPage}&page_size=10`;
+        
+        // 添加搜尋條件
+        if (this.ownerModalSearchTerm) {
+          url += `&search=${encodeURIComponent(this.ownerModalSearchTerm)}`;
+        }
+      }
+      
+      fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+          this.modalOwners = data.results;
+          this.ownerPagination = {
+            count: data.count,
+            next: data.next,
+            previous: data.previous
+          };
+          
+          // 從URL中解析當前頁碼
+          if (url.includes('page=')) {
+            const pageMatch = url.match(/page=(\d+)/);
+            if (pageMatch) {
+              this.currentOwnerPage = parseInt(pageMatch[1]);
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading owners:", error);
+          this.modalOwners = [];
+        })
+        .finally(() => {
+          this.isLoadingOwners = false;
+        });
+    },
+
+    searchOwners() {
+      // 重置頁碼並搜尋
+      this.currentOwnerPage = 1;
+      this.loadOwners();
+    },
+
+    selectOwnerFromModal(owner) {
+      // 選擇業主並設定到selectedOwner
+      this.selectedOwner = owner;
+      this.newProject.owner = owner.id;
+      
+      // 關閉modal
+      this.hideOwnerSelectionModal();
+    },
+
+    getOwnerPageNumbers() {
+      if (!this.ownerPagination) return [];
+      
+      const totalPages = Math.ceil(this.ownerPagination.count / 10);
+      const current = this.currentOwnerPage;
+      const delta = 2;
+      let pages = [];
+
+      for (let i = 1; i <= totalPages; i++) {
+        if (
+          i === 1 ||
+          i === totalPages ||
+          (i >= current - delta && i <= current + delta)
+        ) {
+          pages.push(i);
+        }
+      }
+
+      let result = [];
+      let prev = 0;
+      for (let page of pages) {
+        if (prev && page > prev + 1) {
+          result.push("...");
+        }
+        result.push(page);
+        prev = page;
+      }
+      return result;
+    },
+
+    goToOwnerPage(page) {
+      if (page === '...' || page === this.currentOwnerPage) return;
+      
+      this.currentOwnerPage = page;
+      this.loadOwners();
     },
   },
   mounted() {
