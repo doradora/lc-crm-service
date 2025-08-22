@@ -84,6 +84,7 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data.pop("password_confirm", None)  # 移除 password_confirm
 
         # 更新 User 基本字段
+        instance.username = validated_data.get("username", instance.username)  # 新增 username 更新
         instance.email = validated_data.get("email", instance.email)
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)

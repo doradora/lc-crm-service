@@ -21,6 +21,8 @@ const userList = createApp({
       isEditMode: false,
       isEditPassword: true,
       editUserId: null,
+      showPassword: false,
+      showConfirmPassword: false,
       newUser: {
         username: "",
         email: "",
@@ -114,6 +116,10 @@ const userList = createApp({
         },
       };
 
+      // 重置密碼顯示狀態
+      this.showPassword = false;
+      this.showConfirmPassword = false;
+
       // 顯示模態框
       this.showModal = true;
       const modal = new bootstrap.Modal(
@@ -201,6 +207,10 @@ const userList = createApp({
           can_request_payment: false,
         },
       };
+      
+      // 重置密碼顯示狀態
+      this.showPassword = false;
+      this.showConfirmPassword = false;
       // 使用 Bootstrap 的 Modal API 顯示
       const modal = new bootstrap.Modal(
         document.getElementById("addUserModal")
@@ -284,6 +294,11 @@ const userList = createApp({
           can_request_payment: false,
         },
       };
+      
+      // 重置密碼顯示狀態
+      this.showPassword = false;
+      this.showConfirmPassword = false;
+      
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("addUserModal")
       );
@@ -312,17 +327,21 @@ const userList = createApp({
       const isPasswordLengthValid = this.newUser.password.length >= 8;
       const isPasswordConfirmed = this.newUser.password === this.newUser.passwordConfirm;
 
-      if (!isPasswordLengthValid && this.isEditPassword) {
-        alert("請至少輸入 8 位數的密碼");
-        return;
+      // 在新增使用者或修改密碼模式時，需要驗證密碼
+      if (!this.isEditMode || this.isEditPassword) {
+        if (!isPasswordLengthValid) {
+          alert("請至少輸入 8 位數的密碼");
+          return;
+        }
+
+        if (!isPasswordConfirmed) {
+          alert("兩次輸入的密碼不一致，請重新確認");
+          return;
+        }
       }
 
-      if (!isPasswordConfirmed && this.isEditPassword) {
-        alert("兩次輸入的密碼不一致，請重新確認");
-        return;
-      }
-
-      if (!this.isEditMode || !this.isEditPassword) {
+      // 如果是新增使用者或是修改密碼模式，則加入密碼資料
+      if (!this.isEditMode || this.isEditPassword) {
         formData.password = this.newUser.password;
         formData.password_confirm = this.newUser.passwordConfirm;
       }

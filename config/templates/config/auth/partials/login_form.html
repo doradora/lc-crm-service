@@ -29,13 +29,24 @@
         <!--結束::輸入群組-->
         <div class="fv-row mb-3">
             <!--開始::密碼-->
-            <input type="password"
-                   v-model="form.password"
-                   placeholder="Password"
-                   name="password"
-                   autocomplete="off"
-                   class="form-control bg-transparent text-gray-100 "
-                   :class="{ 'is-invalid': errors.password }" />
+            <div class="position-relative">
+                <input :type="showPassword ? 'text' : 'password'"
+                       v-model="form.password"
+                       placeholder="Password"
+                       name="password"
+                       autocomplete="current-password"
+                       spellcheck="false"
+                       data-1p-ignore
+                       data-lpignore="true"
+                       class="form-control bg-transparent text-gray-100 "
+                       :class="{ 'is-invalid': errors.password }" />
+                <button type="button" 
+                        @click="showPassword = !showPassword"
+                        class="btn btn-icon position-absolute top-50 end-0 translate-middle-y me-3"
+                        style="border: none; background: none; color: #9ca3af;">
+                    <i :class="showPassword ? 'ki-outline ki-eye-slash fs-6' : 'ki-outline ki-eye fs-6'"></i>
+                </button>
+            </div>
             <!--結束::密碼-->
             <div v-if="errors.password" class="invalid-feedback">[[ errors.password ]]</div>
         </div>
@@ -71,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setup() {
             // 表單數據
             const form = ref({
-                email: '',
+                username: '',
                 password: ''
             });
 
@@ -79,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const isLoading = ref(false);
             const errorMessage = ref('');
             const errors = ref({});
+            const showPassword = ref(false);
 
             // 提交處理
             const handleSubmit = async () => {
@@ -137,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 isLoading,
                 errorMessage,
                 errors,
+                showPassword,
                 handleSubmit
             };
         }

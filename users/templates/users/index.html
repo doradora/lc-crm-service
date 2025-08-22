@@ -166,37 +166,59 @@
                                id="username"
                                v-model="newUser.username"
                                placeholder="使用者名稱"
-                               :disabled="isEditMode"
+                               :disabled="isEditPassword && isEditMode"
                                required ref="usernameInput" />
                         <label for="username">
                           使用者名稱<span class="text-danger">*</span>
                         </label>
                       </div>
                       <div v-if="!isEditMode || isEditPassword" class="form-floating mb-7">
-                        <input type="password"
-                               class="form-control"
-                               id="password"
-                               v-model="newUser.password"
-                               placeholder="密碼"
-                               autocomplete="new-password"
-                               required
-                               minlength="8"
-                               title="密碼必須至少包含 8 個字符" />
-                        <label for="password">
-                          輸入密碼<span class="text-danger">*</span>
-                        </label>
+                        <div class="position-relative">
+                          <input :type="showPassword ? 'text' : 'password'"
+                                 class="form-control"
+                                 id="password"
+                                 v-model="newUser.password"
+                                 placeholder="密碼"
+                                 autocomplete="new-password"
+                                 spellcheck="false"
+                                 data-1p-ignore
+                                 data-lpignore="true"
+                                 required
+                                 minlength="8"
+                                 title="密碼必須至少包含 8 個字符" />
+                          <button type="button" 
+                                  @click="showPassword = !showPassword"
+                                  class="btn btn-icon position-absolute top-50 end-0 translate-middle-y me-3"
+                                  style="border: none; background: none;">
+                              <i :class="showPassword ? 'ki-outline ki-eye-slash fs-6' : 'ki-outline ki-eye fs-6'"></i>
+                          </button>
+                          <label for="password">
+                            輸入密碼<span class="text-danger">*</span>
+                          </label>
+                        </div>
                       </div>
                       <div v-if="!isEditMode || isEditPassword" class="form-floating mb-7">
-                        <input type="password"
-                               class="form-control"
-                               id="passwordConfirm"
-                               v-model="newUser.passwordConfirm"
-                               autocomplete="new-password"
-                               placeholder="確認密碼"
-                               required />
-                        <label for="passwordConfirm">
-                          確認密碼<span class="text-danger">*</span>
-                        </label>
+                        <div class="position-relative">
+                          <input :type="showConfirmPassword ? 'text' : 'password'"
+                                 class="form-control"
+                                 id="passwordConfirm"
+                                 v-model="newUser.passwordConfirm"
+                                 autocomplete="new-password"
+                                 spellcheck="false"
+                                 data-1p-ignore
+                                 data-lpignore="true"
+                                 placeholder="確認密碼"
+                                 required />
+                          <button type="button" 
+                                  @click="showConfirmPassword = !showConfirmPassword"
+                                  class="btn btn-icon position-absolute top-50 end-0 translate-middle-y me-3"
+                                  style="border: none; background: none;">
+                              <i :class="showConfirmPassword ? 'ki-outline ki-eye-slash fs-6' : 'ki-outline ki-eye fs-6'"></i>
+                          </button>
+                          <label for="passwordConfirm">
+                            確認密碼<span class="text-danger">*</span>
+                          </label>
+                        </div>
                         <div v-if="newUser.password && newUser.passwordConfirm && newUser.password !== newUser.passwordConfirm"
                              class="text-danger mt-2">密碼不一致</div>
                       </div>

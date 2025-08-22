@@ -101,19 +101,54 @@
               <form @submit.prevent="submitUserForm" ref="userForm">
                 <div v-if="isEditPassword">
                   <!-- 密碼修改表單 -->
-                  <div class="form-floating mb-7">
-                    <input type="password" class="form-control" id="password" v-model="editData.password"
-                      placeholder="密碼" autocomplete="new-password" required minlength="8" title="密碼必須至少包含 8 個字符" ref="passwordInput" />
+                  <div class="form-floating mb-7 position-relative">
+                    <input 
+                      :type="showPassword ? 'text' : 'password'" 
+                      class="form-control" 
+                      id="password" 
+                      v-model="editData.password"
+                      placeholder="密碼" 
+                      autocomplete="new-password"
+                      spellcheck="false"
+                      data-1p-ignore
+                      data-lpignore="true"
+                      required 
+                      minlength="8" 
+                      title="密碼必須至少包含 8 個字符" 
+                      ref="passwordInput" />
                     <label for="password">
                       輸入新密碼<span class="text-danger">*</span>
                     </label>
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-icon position-absolute top-50 end-0 translate-middle-y me-3" 
+                      style="z-index: 10;" 
+                      @click="showPassword = !showPassword">
+                      <i :class="showPassword ? 'ki-outline ki-eye-slash' : 'ki-outline ki-eye'" class="fs-1"></i>
+                    </button>
                   </div>
-                  <div class="form-floating mb-7">
-                    <input type="password" class="form-control" id="passwordConfirm" v-model="editData.passwordConfirm"
-                      placeholder="確認密碼" autocomplete="new-password" required />
+                  <div class="form-floating mb-7 position-relative">
+                    <input 
+                      :type="showConfirmPassword ? 'text' : 'password'" 
+                      class="form-control" 
+                      id="passwordConfirm" 
+                      v-model="editData.passwordConfirm"
+                      placeholder="確認密碼" 
+                      autocomplete="new-password"
+                      spellcheck="false"
+                      data-1p-ignore
+                      data-lpignore="true"
+                      required />
                     <label for="passwordConfirm">
                       確認新密碼<span class="text-danger">*</span>
                     </label>
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-icon position-absolute top-50 end-0 translate-middle-y me-3" 
+                      style="z-index: 10;" 
+                      @click="showConfirmPassword = !showConfirmPassword">
+                      <i :class="showConfirmPassword ? 'ki-outline ki-eye-slash' : 'ki-outline ki-eye'" class="fs-1"></i>
+                    </button>
                   </div>
                   <div
                     v-if="editData.password && editData.passwordConfirm && editData.password !== editData.passwordConfirm"
@@ -208,6 +243,8 @@
         showModal: false,
         isEditMode: false,
         fromUserMenu: false,
+        showPassword: false,
+        showConfirmPassword: false,
         editData: {
           username: "",
           email: "",
