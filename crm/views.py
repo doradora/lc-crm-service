@@ -572,7 +572,34 @@ class ProjectViewSet(BaseViewSet):
             }
         )
 
+    def perform_create(self, serializer):
+        """執行創建操作，處理 Model 層的 ValidationError"""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        
+        try:
+            serializer.save()
+        except DjangoValidationError as e:
+            # 重新拋出為 DRF 的 ValidationError
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": str(e)})
+
+    def perform_update(self, serializer):
+        """執行更新操作，處理 Model 層的 ValidationError"""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        
+        try:
+            serializer.save()
+        except DjangoValidationError as e:
+            # 重新拋出為 DRF 的 ValidationError
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": str(e)})
+
+    def create(self, request, *args, **kwargs):
+        """創建專案，包含案件編號重複檢查"""
+        return super().create(request, *args, **kwargs)
+
     def update(self, request, *args, **kwargs):
+        """更新專案，包含案件編號重複檢查"""
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)

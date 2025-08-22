@@ -2,6 +2,7 @@ import os
 from django.contrib.auth.models import User  # 改用 Django 內建的 User 模型
 from django.db import models
 from django.utils import timezone
+from django.db import transaction
 
 
 class Owner(models.Model):
@@ -99,27 +100,68 @@ class Project(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        # 只有在沒有專案編號的情況下才自動生成
+        from django.core.exceptions import ValidationError
+        
+        # 檢查手動輸入的案件編號是否重複
+        if self.project_number:
+            # 如果是更新現有專案，排除自己
+            exclude_self = {'id': self.id} if self.id else {}
+            duplicate_check = Project.objects.filter(
+                year=self.year,
+                category=self.category,
+                project_number=self.project_number
+            ).exclude(**exclude_self)
+            
+            if duplicate_check.exists():
+                existing_project = duplicate_check.first()
+                raise ValidationError(
+                    f"案件編號 '{self.project_number}' 在 {self.year} 年的 "
+                    f"'{self.category.code if self.category else '未分類'}' 類別中已存在。"
+                    f"（現有專案：{existing_project.name}）請輸入其他編號。"
+                )
+        
+        # 如果沒有輸入案件編號，則自動生成
         if not self.project_number:
             try:
-                # 查找同年度同類別的最後一個專案
-                if self.category:  # 確保類別已設定
-                    last_project = (
-                        Project.objects.filter(year=self.year, category=self.category)
-                        .order_by("-project_number")
-                        .first()
-                    )
-                    if (
-                        last_project
-                        and last_project.project_number
-                        and last_project.project_number.isdigit()
-                    ):
-                        # 如果有同年度同類別的專案，則編號加1
-                        self.project_number = (
-                            f"{int(last_project.project_number) + 1:03d}"
+                # 使用資料庫交易確保原子性操作
+                with transaction.atomic():
+                    if self.category:  # 確保類別已設定
+                        # 取得所有同年度同類別且為純數字的專案編號
+                        existing_numbers = (
+                            Project.objects.filter(
+                                year=self.year, 
+                                category=self.category,
+                                project_number__isnull=False
+                            )
+                            .values_list('project_number', flat=True)
                         )
+                        
+                        # 過濾出純數字的編號並轉換為整數
+                        numeric_numbers = []
+                        for num in existing_numbers:
+                            if num and num.isdigit():
+                                numeric_numbers.append(int(num))
+                        
+                        # 找出最大的編號
+                        if numeric_numbers:
+                            max_number = max(numeric_numbers)
+                            next_number = max_number + 1
+                        else:
+                            next_number = 1
+                        
+                        # 格式化為三位數字串
+                        self.project_number = f"{next_number:03d}"
+                        
+                        # 檢查是否會產生重複，如果會就繼續找下一個可用編號
+                        while Project.objects.filter(
+                            year=self.year,
+                            category=self.category,
+                            project_number=self.project_number
+                        ).exists():
+                            next_number += 1
+                            self.project_number = f"{next_number:03d}"
                     else:
-                        # 如果是該年度該類別的第一個專案，編號從001開始
+                        # 如果沒有類別，預設從001開始
                         self.project_number = "001"
             except (ValueError, AttributeError) as e:
                 # 處理例外情況，確保程式不會因編號產生錯誤而中斷

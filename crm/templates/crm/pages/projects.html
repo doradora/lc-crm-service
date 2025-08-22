@@ -235,11 +235,21 @@
                         <input type="number" class="form-control" v-model="newProject.year" min="2000" max="2099"
                           required>
                       </div>
-                      <div class="col-md-6" v-if="isEditMode">
+                      <div class="col-md-6">
                         <label class="form-label">
-                          編號<span class="text-danger">*</span>
+                          案件編號<span class="text-danger">*</span>
                         </label>
-                        <input type="text" class="form-control" v-model="newProject.project_number" readonly>
+                        <!-- TODO: 第2階段加上 placeholder="留空則自動生成"  -->
+                        <input type="text" class="form-control" v-model="newProject.project_number" 
+                          maxlength="10"
+                          :class="{'is-invalid': projectNumberError}"
+                          @input="clearProjectNumberError">
+                        <div v-if="projectNumberError" class="invalid-feedback">
+                          [[ projectNumberError ]]
+                        </div>
+                        <!-- <div class="form-text">
+                          可手動輸入案件編號，留空則系統自動生成
+                        </div> -->
                       </div>
                     </div>
                     <div class="mb-5">

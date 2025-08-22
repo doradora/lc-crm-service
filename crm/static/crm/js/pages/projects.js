@@ -17,7 +17,7 @@ const projectList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
-      pageSize: 10, // 修改為10，與payments頁面一致
+      pageSize: 10, // 修改為10,與payments頁面一致
       menuPosition: {
         x: 0,
         y: 0,
@@ -81,7 +81,13 @@ const projectList = createApp({
       ownerModalSearchTerm: "", // 搜尋關鍵字
       isLoadingOwners: false, // 載入狀態
       ownerPagination: null, // 分頁資訊
-      currentOwnerPage: 1, // 當前頁面
+      currentOwnerPage: 1, // 目前頁數
+      
+      // 錯誤處理
+      projectNumberError: '', // 案件編號錯誤訊息
+      formErrors: {}, // 表單其他錯誤訊息
+      
+      // 移除重複的宣告
     };
   },
   computed: {
@@ -532,11 +538,15 @@ const projectList = createApp({
         owner: "",
         category: "",
         year: new Date().getFullYear(),
+        project_number: "", // 加入案件編號欄位
         name: "",
       };
 
       // 清空業主選擇
       this.selectedOwner = null;
+      
+      // 清除錯誤訊息
+      this.clearErrors();
 
       // 使用 Bootstrap 的 Modal API 顯示
       const modal = new bootstrap.Modal(
@@ -582,6 +592,9 @@ const projectList = createApp({
     },
     hideAddProjectModal() {
       this.showModal = false;
+      
+      // 清除錯誤訊息
+      this.clearErrors();
 
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("addProjectModal")
@@ -589,6 +602,10 @@ const projectList = createApp({
       modal.hide();
     },
     submitProjectForm() {
+      // 清除之前的錯誤訊息
+      this.projectNumberError = '';
+      this.formErrors = {};
+      
       // 如果未選擇業主，顯示錯誤訊息
       if (!this.selectedOwner) {
         Swal.fire({
@@ -607,6 +624,11 @@ const projectList = createApp({
         year: parseInt(this.newProject.year) || new Date().getFullYear(),
         name: this.newProject.name,
       };
+
+      // 加入案件編號（如果有手動輸入）
+      if (this.newProject.project_number && this.newProject.project_number.trim()) {
+        formData.project_number = this.newProject.project_number.trim();
+      }
 
       // 如果是編輯模式且已有專案編號，則保留它
       if (this.isEditMode && this.newProject.project_number) {
@@ -637,12 +659,12 @@ const projectList = createApp({
         .then((response) => {
           if (!response.ok) {
             return response.json().then((err) => {
-              throw new Error(JSON.stringify(err));
+              throw err; // 直接拋出錯誤物件而不是字串化
             });
           }
           return response.json();
         })
-        .then((data) => {
+        .then((_data) => {
           this.hideAddProjectModal(); // 提交成功後關閉 Modal
 
           if (this.isEditMode) {
@@ -650,21 +672,144 @@ const projectList = createApp({
             this.fetchProjects(this.currentPage);
           } else {
             // 如果是新增模式，導航到專案詳情頁進行完整編輯
-            window.location.href = `/crm/project/${data.id}/details/`;
+            window.location.href = `/crm/project/${_data.id}/details/`;
           }
         })
         .catch((error) => {
           console.error("Error:", error);
+          
+          // 處理唯一性約束錯誤 (年份、分類、案件編號的組合必須唯一)
+          if (error.non_field_errors) {
+            const nonFieldError = Array.isArray(error.non_field_errors) 
+              ? error.non_field_errors[0] 
+              : error.non_field_errors;
+            
+            if (nonFieldError.includes("The fields year, category, project_number must make a unique set")) {
+              this.projectNumberError = "此案件編號在相同年份和分類下已存在，請使用不同的案件編號";
+              return;
+            }
+            
+            // 其他 non_field_errors
+            this.projectNumberError = this.translateErrorMessage(nonFieldError);
+            return;
+          }
+          
+          // 處理案件編號重複錯誤
+          if (error.project_number) {
+            const projectNumberError = Array.isArray(error.project_number) 
+              ? error.project_number[0] 
+              : error.project_number;
+            this.projectNumberError = this.translateErrorMessage(projectNumberError);
+            return; // 不顯示 SweetAlert，只顯示表單內的錯誤訊息
+          }
+          
+          // 處理一般錯誤訊息
+          if (error.error) {
+            this.projectNumberError = this.translateErrorMessage(error.error);
+            return;
+          }
+          
+          // 處理其他錯誤
+          let errorMessage = "未知錯誤";
+          if (error.message) {
+            errorMessage = this.translateErrorMessage(error.message);
+          } else if (typeof error === 'string') {
+            errorMessage = this.translateErrorMessage(error);
+          } else if (error.detail) {
+            errorMessage = this.translateErrorMessage(error.detail);
+          }
+          
           Swal.fire({
             title: "錯誤!",
             text: this.isEditMode
-              ? `更新專案失敗：${error.message}`
-              : `創建專案失敗：${error.message}`,
+              ? `更新專案失敗：${errorMessage}`
+              : `創建專案失敗：${errorMessage}`,
             icon: "error",
             confirmButtonText: "確定",
           });
         });
     },
+    
+    // 清除錯誤訊息
+    clearErrors() {
+      this.projectNumberError = '';
+      this.formErrors = {};
+    },
+    
+    // 清除案件編號錯誤訊息
+    clearProjectNumberError() {
+      this.projectNumberError = '';
+    },
+
+    // 翻譯錯誤訊息為中文
+    translateErrorMessage(message) {
+      if (!message) return "未知錯誤";
+      
+      const errorTranslations = {
+        // 唯一性約束錯誤
+        "The fields year, category, project_number must make a unique set.": "此案件編號在相同年份和分類下已存在，請使用不同的案件編號",
+        "Project with this Year, Category and Project number already exists.": "此案件編號在相同年份和分類下已存在，請使用不同的案件編號",
+        
+        // 案件編號相關錯誤
+        "Project number already exists for this year and category.": "此案件編號在相同年份和分類下已存在",
+        "This field must be unique.": "此欄位必須是唯一的",
+        "Duplicate entry": "重複項目",
+        
+        // 表單驗證錯誤
+        "This field is required.": "此欄位為必填",
+        "This field may not be blank.": "此欄位不能為空",
+        "Ensure this field has no more than": "請確保此欄位不超過",
+        "characters.": "個字元",
+        
+        // 權限錯誤
+        "You do not have permission to perform this action.": "您沒有權限執行此操作",
+        "Authentication credentials were not provided.": "未提供身份驗證憑證",
+        
+        // 網路錯誤
+        "Network error": "網路錯誤",
+        "Server error": "伺服器錯誤",
+        "Connection failed": "連線失敗",
+        
+        // 一般錯誤
+        "Invalid input": "輸入無效",
+        "Bad request": "請求錯誤",
+        "Not found": "找不到資源",
+        "Internal server error": "內部伺服器錯誤"
+      };
+      
+      // 完全匹配
+      if (errorTranslations[message]) {
+        return errorTranslations[message];
+      }
+      
+      // 部分匹配檢查
+      for (const [englishText, chineseText] of Object.entries(errorTranslations)) {
+        if (message.toLowerCase().includes(englishText.toLowerCase())) {
+          return chineseText;
+        }
+      }
+      
+      // 檢查是否包含特定關鍵字
+      if (message.toLowerCase().includes("unique") && message.toLowerCase().includes("already exists")) {
+        return "此項目已存在，請使用不同的值";
+      }
+      
+      if (message.toLowerCase().includes("duplicate")) {
+        return "重複的項目，請檢查輸入的值";
+      }
+      
+      if (message.toLowerCase().includes("required")) {
+        return "必填欄位不能為空";
+      }
+      
+      if (message.toLowerCase().includes("invalid")) {
+        return "輸入的資料格式不正確";
+      }
+      
+      // 如果沒有找到匹配的翻譯，返回原始訊息
+      return message;
+    },
+
     // 業主搜尋和選擇 (已廢棄，保留作為參考)
     /*
     filterOwners() {

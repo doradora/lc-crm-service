@@ -138,6 +138,13 @@ class ProjectSerializer(serializers.ModelSerializer):
     related_payments = serializers.SerializerMethodField()
     # 新增完整案件編號的計算屬性
     full_project_number = serializers.SerializerMethodField(read_only=True)
+    # 新增案件編號欄位，允許手動輸入
+    project_number = serializers.CharField(
+        max_length=100, 
+        required=False, 
+        allow_blank=True,
+        help_text="案件編號，可手動輸入或由系統自動生成"
+    )
 
     class Meta:
         model = Project
@@ -173,9 +180,36 @@ class ProjectSerializer(serializers.ModelSerializer):
             "related_payments",
         ]
         read_only_fields = [
-            "project_number",
             "total_expenditure",
         ]
+
+    def validate(self, data):
+        """驗證案件編號的唯一性"""
+        project_number = data.get('project_number')
+        year = data.get('year')
+        category = data.get('category')
+        
+        # 如果有提供案件編號，檢查是否重複
+        if project_number and year and category:
+            # 如果是更新現有專案，排除自己
+            queryset = Project.objects.filter(
+                year=year,
+                category=category,
+                project_number=project_number
+            )
+            
+            if self.instance:  # 更新模式
+                queryset = queryset.exclude(id=self.instance.id)
+            
+            if queryset.exists():
+                existing_project = queryset.first()
+                raise serializers.ValidationError({
+                    'project_number': f"案件編號 '{project_number}' 在 {year} 年的 "
+                                    f"'{category.code if category else '未分類'}' 類別中已存在。"
+                                    f"（現有專案：{existing_project.name}）請輸入其他編號。"
+                })
+        
+        return data
 
     def get_owner_name(self, obj):
         return obj.owner.company_name if obj.owner else None
