@@ -70,26 +70,47 @@
               <table class="table align-middle table-row-dashed table-hover table-striped fs-6 gy-5 gs-7">
                 <thead>
                   <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
-                    <th class="min-w-100px">請款單號</th>
-                    <th class="min-w-200px w-300px">關聯專案</th>
+                    <th class="min-w-150px">請款單號/業主</th>
+                    <th class="min-w-200px w-300px cursor-pointer" @click="toggleProjectDisplayMode">
+                      關聯專案 [[ showProjectCode ? '編號' : '名稱' ]]
+                      <!-- <i class="ki-outline" :class="showProjectCode ? 'ki-subtitle' : 'ki-code'"></i> -->
+                      <i class="ki-outline ki-information-2 fs-7 text-muted ms-1" 
+                         data-bs-toggle="popover"
+                         data-bs-placement="top"
+                         data-bs-trigger="hover"
+                         data-bs-content="點擊此欄位可以切換顯示專案名稱或專案編號"
+                         title="切換顯示模式"></i>
+                    </th>
                     <th class="min-w-100px text-end">請款金額</th>
                     <th class="min-w-100px text-end">實收金額</th>
-                    <th class="min-w-100px">請款日期</th>
-                    <th class="min-w-100px">到期日</th>
+                    <th class="min-w-150px">請款日期</th>
+                    <th class="min-w-150px">到期日</th>
                     <th class="min-w-100px">付款狀態</th>
-                    <th class="min-w-100px">付款日期</th>
+                    <th class="min-w-150px">付款日期</th>
                     <th class="text-end min-w-70px">操作</th>
                   </tr>
                 </thead>
-                <tbody class="fw-semibold text-gray-600">
+                <tbody class="fw-semibold text-gray-800">
                   <tr v-for="payment in payments" :key="payment.id">
                     <td>
-                      <a class="menu-link text-gray-700 text-hover-primary hover-underline" :href="`/crm/payment/${payment.id}/details/`">[[
-                        payment.payment_number ]]</a>
+                      <div>
+                        <a class="menu-link text-gray-900 text-hover-primary hover-underline fw-bold" 
+                           :href="`/crm/payment/${payment.id}/details/`">[[ payment.payment_number ]]</a>
+                        <div class="text-muted fs-7 mt-1">[[ payment.owner_name ]]</div>
+                      </div>
                     </td>
                     <td>
                       <div class="d-flex align-items-center">
-                        <div>[[ getProjectNames(payment) ]]</div>
+                        <div 
+                          class="project-display-text"
+                          :class="{ 'text-truncate-multiline': shouldTruncateProject(payment) }"
+                          :data-bs-toggle="shouldTruncateProject(payment) ? 'popover' : ''"
+                          :data-bs-placement="'top'"
+                          :data-bs-content="getProjectDisplay(payment)"
+                          :data-bs-trigger="'hover'"
+                          :title="'完整專案資訊'">
+                          [[ getProjectDisplayTruncated(payment) ]]
+                        </div>
                       </div>
                     </td>
                     <td class="text-end">[[ formatCurrency(payment.amount) ]]</td>
@@ -407,6 +428,38 @@
 .swal2-popup .form-check-label {
   font-size: 16px !important;
   font-weight: 500 !important;
+}
+
+/* 專案顯示文字樣式 */
+.project-display-text {
+  max-width: 300px;
+}
+
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2 lines * 1.4 line-height */
+  /* cursor: help; */
+}
+
+.text-truncate-multiline:hover {
+  color: #007bff;
+}
+
+/* 資訊圖示樣式 */
+.ki-information-2 {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.ki-information-2:hover {
+  opacity: 1;
+  color: #007bff !important;
 }
 </style>
 <script src="{% static 'crm/js/pages/payments/payments.js' %}"></script>

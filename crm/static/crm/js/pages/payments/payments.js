@@ -38,6 +38,7 @@ const paymentList = createApp({
         y: 0,
       },
       projectMap: {}, // 專案 ID 到專案名稱的映射
+      showProjectCode: false, // 控制顯示專案編號或名稱
     };
   },  
   directives: {
@@ -149,6 +150,10 @@ const paymentList = createApp({
         .then((data) => {
           this.payments = data.results;
           this.totalPages = Math.ceil(data.count / this.pageSize);
+          // 初始化 popovers
+          this.$nextTick(() => {
+            this.initializePopovers();
+          });
         })
         .catch((error) => console.error("Error fetching payments:", error))
         .finally(() => {
@@ -169,6 +174,77 @@ const paymentList = createApp({
         .filter(Boolean);
 
       return projectNames.join(", ");
+    },
+
+    // 獲取付款單的專案編號
+    getProjectCodes(payment) {
+      if (!payment.payment_projects || payment.payment_projects.length === 0) {
+        return "無關聯專案";
+      }
+
+      const projectCodes = payment.payment_projects
+        .map((pp) => {
+          if (pp.project_info) {
+            const categoryCode = pp.project_info.category_code || 'N';
+            return `${pp.project_info.year}${categoryCode}${pp.project_info.project_number}`;
+          }
+          return "未知專案";
+        })
+        .filter(Boolean);
+
+      return projectCodes.join(", ");
+    },
+
+    // 根據顯示模式獲取專案顯示內容
+    getProjectDisplay(payment) {
+      return this.showProjectCode ? this.getProjectCodes(payment) : this.getProjectNames(payment);
+    },
+
+    // 切換專案顯示模式
+    toggleProjectDisplayMode() {
+      this.showProjectCode = !this.showProjectCode;
+      // 重新初始化 popover
+      this.$nextTick(() => {
+        this.initializePopovers();
+      });
+    },
+
+    // 檢查是否需要截斷專案顯示
+    shouldTruncateProject(payment) {
+      const projectText = this.getProjectDisplay(payment);
+      // 簡單判斷：如果包含逗號且長度超過40字符，則需要截斷
+      return projectText.includes(',') || projectText.length > 40;
+    },
+
+    // 獲取截斷後的專案顯示內容
+    getProjectDisplayTruncated(payment) {
+      const fullText = this.getProjectDisplay(payment);
+      if (this.shouldTruncateProject(payment)) {
+        return fullText; // CSS 會處理截斷顯示
+      }
+      return fullText;
+    },
+
+    // 初始化 Bootstrap Popovers
+    initializePopovers() {
+      this.$nextTick(() => {
+        // 銷毀現有的 popovers
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+          const existingPopover = bootstrap.Popover.getInstance(el);
+          if (existingPopover) {
+            existingPopover.dispose();
+          }
+        });
+        
+        // 初始化新的 popovers
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+          new bootstrap.Popover(el, {
+            html: true,
+            sanitize: false,
+            container: 'body' // 確保 popover 正確顯示
+          });
+        });
+      });
     },
 
     // 計算請款單的關聯發票實收金額總和
@@ -896,11 +972,12 @@ const paymentList = createApp({
     this.fetchCategories();
     this.fetchYears();
     
-    // 頁面載入後自動focus到搜尋欄位
+    // 頁面載入後自動focus到搜尋欄位並初始化 popovers
     this.$nextTick(() => {
       if (this.$refs.searchInput) {
         this.$refs.searchInput.focus();
       }
+      this.initializePopovers();
     });
   },
   unmounted() {
