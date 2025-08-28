@@ -113,7 +113,7 @@
                 <tbody class="fw-semibold text-gray-600">
                   <tr v-for="invoice in invoices" :key="invoice.id">
                     <td>
-                      <a href="#" class="text-gray-800 text-hover-primary" @click.prevent="editInvoice(invoice)">[[ invoice.invoice_number ]]</a>
+                      <a href="#" class="text-gray-800 text-hover-primary hover-underline" @click.prevent="editInvoice(invoice)">[[ invoice.invoice_number ]]</a>
                     </td>
                     <td class="d-none d-md-table-cell">
                       <span class="badge" :class="getInvoiceTypeBadgeClass(invoice.invoice_type)">

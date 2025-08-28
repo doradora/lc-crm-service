@@ -19,7 +19,7 @@
           <div class="card-header align-items-center pt-7 gap-2 gap-md-5">
             <div class="mb-5">
               <h4 class="fw-bold text-gray-800">資料匯入管理</h4>
-              <div class="text-gray-500 fw-semibold fs-6">選擇要匯入的資料類型</div>
+              <div class="text-gray-700 fw-semibold fs-6">選擇要匯入的資料類型</div>
             </div>
           </div>
           <!--begin::Card body-->
@@ -42,9 +42,9 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">專案資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯入專案基本資訊及相關資料</div>
-                      <div class="text-gray-400 fw-semibold fs-7">相關使用者與業主會自動建立</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">專案資料</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯入專案基本資訊及相關資料</div>
+                      <div class="text-gray-600 fw-semibold fs-7">相關使用者與業主會自動建立</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-primary" @click="importProjects" :disabled="isLoading">
                       <i class="ki-outline ki-file-up fs-3"></i>
@@ -64,8 +64,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">業主資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯入業主聯絡資訊、統編等基本資料</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">業主資料</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯入業主聯絡資訊、統編等基本資料</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-success" @click="importOwners" :disabled="isLoading">
                       <i class="ki-outline ki-file-up fs-3"></i>
@@ -128,5 +128,18 @@
 {% endblock content %}
 
 {% block extra_js %}
+<style>
+/* 卡片 hover 效果 */
+.card-bordered {
+  transition: all 0.3s ease-in-out;
+  border: 1px solid #e5e7eb;
+}
+
+.card-bordered:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-color: #035974;
+}
+</style>
 <script src="{% static 'crm/js/pages/import.js' %}"></script>
 {% endblock extra_js %}

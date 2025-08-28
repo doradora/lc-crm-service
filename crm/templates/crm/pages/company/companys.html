@@ -55,7 +55,7 @@
                 <tbody class="fw-semibold text-gray-600">
                   <tr v-for="company in companys" :key="company.id">
                     <td>
-                      <a :href="'/crm/company/' + company.id + '/details/'" class="text-gray-800 text-hover-primary">[[ company.name ]]</a>
+                      <a :href="'/crm/company/' + company.id + '/details/'" class="text-gray-800 text-hover-primary hover-underline">[[ company.name ]]</a>
                     </td>
                     <td class="text-center">
                       <span class="fw-bold">[[ company.tax_id ]]</span>

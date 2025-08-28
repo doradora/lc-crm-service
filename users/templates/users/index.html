@@ -70,7 +70,7 @@
                     <tr v-for="user in users" :key="user.id">
                       <td>
                         <a @click.prevent="editUser(user)"
-                           class="text-gray-800 text-hover-primary fs-5 fw-bold">[[ user.profile.name || user.username ]]</a>
+                           class="text-gray-800 text-hover-primary fs-5 fw-bold hover-underline cursor-pointer">[[ user.profile.name || user.username ]]</a>
                         <div class="text-muted">[[ user.email ]]</div>
                       </td>
                       <td>

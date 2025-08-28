@@ -56,7 +56,7 @@
                   <tr v-for="owner in owners" :key="owner.id">
                     <td>
                       <a @click.prevent="viewProjects(owner.id)" href="#"
-                        class="text-gray-800 text-hover-primary fs-5 fw-bold pe-auto">[[ owner.company_name ]]</a>
+                        class="text-gray-800 text-hover-primary fs-5 fw-bold hover-underline pe-auto">[[ owner.company_name ]]</a>
                       <div class="text-muted">[[ owner.address ]]</div>
                     </td>
                     <td>

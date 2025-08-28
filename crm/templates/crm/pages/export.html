@@ -19,7 +19,7 @@
           <div class="card-header align-items-center pt-7 gap-2 gap-md-5">
             <div class="mb-5">
               <h4 class="fw-bold text-gray-800">資料匯出管理</h4>
-              <div class="text-gray-500 fw-semibold fs-6">選擇要匯出的資料類型</div>
+              <div class="text-gray-700 fw-semibold fs-6">選擇要匯出的資料類型</div>
             </div>
           </div>
           <!--begin::Card body-->
@@ -42,8 +42,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">專案資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出所有專案的基本資訊、進度和相關資料</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">專案資料</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯出所有專案的基本資訊、進度和相關資料</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-primary" @click="exportProjects" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -63,8 +63,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">業主資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出業主聯絡資訊、統編等基本資料</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">業主資料</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯出業主聯絡資訊、統編等基本資料</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-success" @click="exportOwners" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -84,8 +84,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">請款資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出請款單、金額、日期等財務資料</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">請款資料</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯出請款單、金額、日期等財務資料</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-warning" @click="exportPayments" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -105,8 +105,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">發票資料</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出發票記錄、開立日期、金額等資訊</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">發票資料</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯出發票記錄、開立日期、金額等資訊</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-info" @click="exportInvoices" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -126,8 +126,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">案件類別</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出案件類別代碼、說明、自定義欄位等資訊</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">案件類別</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯出案件類別代碼、說明、自定義欄位等資訊</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-secondary" @click="exportCategories" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -147,8 +147,8 @@
                       </div>
                     </div>
                     <div class="mb-3">
-                      <div class="text-gray-900 text-hover-primary fs-4 fw-bold mb-1">綜合報表</div>
-                      <div class="text-gray-500 fw-semibold fs-6">匯出所有資料類型的CSV檔案</div>
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">綜合報表</div>
+                      <div class="text-gray-700 fw-semibold fs-6">匯出所有資料類型的CSV檔案</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-dark" @click="exportAll" :disabled="isLoading">
                       <i class="ki-outline ki-cloud-download fs-3"></i>
@@ -170,6 +170,18 @@
 
 {% block extra_js %}
 <style>
+/* 卡片 hover 效果 */
+.card-bordered {
+  transition: all 0.3s ease-in-out;
+  border: 1px solid #e5e7eb;
+}
+
+.card-bordered:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-color: #035974;
+}
+
 /* SweetAlert 自定義樣式 */
 .swal-wide-popup {
   min-height: 450px !important;
