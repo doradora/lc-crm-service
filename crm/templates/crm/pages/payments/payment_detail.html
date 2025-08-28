@@ -284,19 +284,18 @@
                       <button class="btn btn-sm btn-light-primary" @click="createInvoice">
                         <i class="ki-outline ki-plus fs-2"></i>建立發票
                       </button>
+                      <div class="text-gray-700">右滑到底可進行刪除/編輯 -></div>
                     </div>
                   </div>
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-200" :style="isEditing ? 'min-width:990px;' : 'min-width:830px;'">
+                    <table class="table table-row-bordered table-row-gray-200" :style="isEditing ? 'min-width:940px;' : 'min-width:790px;'">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
-                          <th>發票類型</th>
-                          <th>發票號碼</th>
-                          <th>付款狀態</th>
+                          <th>發票類型 & 號碼</th>
+                          <th>付款狀態 & 收款方式</th>
                           <th class="text-end">發票金額</th>
                           <th class="text-end">稅額</th>
                           <th>開立日期</th>
-                          <th>收款方式</th>
                           <th class="text-end">實收金額</th>
                           <th>收款日</th>
                           <th>入帳日</th>
@@ -306,23 +305,28 @@
                       <tbody>
                         <tr v-for="invoice in payment.invoices || []" :key="invoice.id">
                           <td>
-                            <span class="badge" :class="getInvoiceTypeBadgeClass(invoice.invoice_type)">
-                              [[ getInvoiceTypeText(invoice.invoice_type) ]]
-                            </span>
+                            <div>
+                              <span class="badge" :class="getInvoiceTypeBadgeClass(invoice.invoice_type)">
+                                [[ getInvoiceTypeText(invoice.invoice_type) ]]
+                              </span>
+                            </div>
+                            <div class="mt-1">
+                              [[ invoice.invoice_number ]]
+                            </div>
                           </td>
-                          <td>[[ invoice.invoice_number ]]</td>
                           <td>
-                            <span :class="getPaymentStatusBadgeClass(invoice)">
-                              [[ getPaymentStatusText(invoice) ]]
-                            </span>
+                            <div>
+                              <span :class="getPaymentStatusBadgeClass(invoice)">
+                                [[ getPaymentStatusText(invoice) ]]
+                              </span>
+                            </div>
+                            <div class="text-muted mt-1">
+                              [[ getPaymentMethodDisplay(invoice.payment_method) ]]
+                            </div>
                           </td>
                           <td class="text-end">[[ formatCurrency(invoice.amount) ]]</td>
                           <td class="text-end">[[ formatCurrency(invoice.tax_amount) ]]</td>
                           <td>[[ formatDate(invoice.issue_date) ]]</td>
-                          <td>
-                            [[ getPaymentMethodDisplay(invoice.payment_method)
-                            ]]
-                          </td>
                           <td class="text-end">
                             [[ formatCurrency(invoice.actual_received_amount) ]]
                           </td>
@@ -340,17 +344,16 @@
                           </td>
                         </tr>
                         <tr v-if="!payment.invoices || payment.invoices.length === 0">
-                          <td :colspan="isEditing ? 11 : 10" class="text-center py-5">
+                          <td :colspan="isEditing ? 9 : 8" class="text-center py-5">
                             尚無關聯發票
                           </td>
                         </tr>
                       </tbody>
                       <tfoot v-if="payment.invoices && payment.invoices.length > 0">
                         <tr class="fw-bold fs-6 text-gray-800">
-                          <td colspan="3">總計</td>
+                          <td colspan="2">總計</td>
                           <td class="text-end">[[ formatCurrency(totalInvoiceAmount) ]]</td>
                           <td class="text-end">[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
-                          <td></td>
                           <td></td>
                           <td class="text-end">[[ formatCurrency(totalActualReceivedAmount) ]]</td>
                           <td></td>
