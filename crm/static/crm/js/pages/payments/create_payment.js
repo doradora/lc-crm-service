@@ -169,6 +169,15 @@ const paymentsList = createApp({
         document.getElementById("selectOwnerModal")
       );
       modal.show();
+
+      // modal 顯示後自動focus到搜尋欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.projectSearchInput) {
+            this.$refs.projectSearchInput.focus();
+          }
+        });
+      }, { once: true });
       
       // 載入初始資料
       this.loadOwners();
