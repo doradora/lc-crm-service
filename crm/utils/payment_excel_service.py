@@ -279,6 +279,35 @@ def generate_payment_excel(payment):
                 cell.border = Border(bottom=Side(style="thin"))
             original_ws.row_dimensions[row].height = 30
 
+        # 在上面"案號(空白)"的地方，使用for迴圈，填上這個請款單中，所有的"案號"資料
+        # 收集所有案號
+        all_pcodes = []
+        for detail in project_details:
+            project = detail["project"]
+            if project:
+                year = getattr(project, "year", None)
+                category = getattr(project, "category", None)
+                code = getattr(category, "code", "") if category else ""
+                number = getattr(project, "project_number", "")
+                if year and code and number is not None:
+                    pcode = f"{year}{code}{str(number).zfill(3)}"
+                    all_pcodes.append(pcode)
+
+        # 回填案號到收款註記區塊
+        for idx, invoice in enumerate(all_pcodes, 1):
+            row = receipt_note_start_row + idx
+            # 案號 - 如果有對應的案號就填入，否則留空
+            if idx <= len(all_pcodes):
+                original_ws.cell(row=row, column=3).value = all_pcodes[idx - 1]
+                cell = original_ws.cell(row=row, column=3)
+                cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
+                cell.alignment = Alignment(vertical="center")
+                if col in [2, 3, 4, 5]:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = Border(bottom=Side(style="thin"))
+            else:
+                original_ws.cell(row=row, column=3).value = ""
+        
         output = BytesIO()
         wb.save(output)
         output.seek(0)
