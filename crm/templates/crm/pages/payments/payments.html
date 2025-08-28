@@ -5,6 +5,11 @@
   <div id="app_toolbar" class="app-toolbar">
     <div id="app_toolbar_container" class="d-flex align-items-stretch w-100">
       <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap justify-content-end gap-4 w-100">
+        <button class="btn btn-primary" @click="exportInvoices" :disabled="isExporting">
+          <span v-if="isExporting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <i v-else class="ki-outline ki-cloud-download fs-5 me-2"></i>
+          匯出發票 EXCEL
+        </button>
         <button class="btn btn-primary" @click.prevent="createNewPayment">建立請款單</button>
       </div>
     </div>
@@ -357,5 +362,52 @@
 
 {% endblock content %}
 {% block extra_js %}
+<style>
+/* SweetAlert 自定義樣式 */
+.swal-wide-popup {
+  min-height: 450px !important;
+  padding: 20px !important;
+}
+
+.swal-html-container {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.swal2-popup .form-select {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+}
+
+.swal2-popup .form-label {
+  font-weight: 500 !important;
+  color: #374151 !important;
+  margin-bottom: 5px !important;
+  display: block !important;
+}
+
+.swal2-popup .row {
+  margin-left: -5px !important;
+  margin-right: -5px !important;
+}
+
+.swal2-popup .col-6 {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+}
+
+.swal2-popup .form-check-input {
+  margin-right: 8px !important;
+}
+
+.swal2-popup .form-check-label {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+</style>
 <script src="{% static 'crm/js/pages/payments/payments.js' %}"></script>
 {% endblock extra_js %}

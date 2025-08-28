@@ -1054,6 +1054,7 @@ def export_projects_csv(request):
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     import csv
+    from datetime import datetime
     now = timezone.now()
     filename = f"專案資料_{now.strftime('%Y%m%d-%H%M%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -1063,10 +1064,14 @@ def export_projects_csv(request):
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
     response.write('\ufeff')
     writer = csv.writer(response)
-    # 取得查詢參數
+    
+    # 取得查詢參數（只保留年份篩選）
     year_start = request.GET.get('year_start')
     year_end = request.GET.get('year_end')
+    
     projects = Project.objects.all().select_related('owner', 'category').prefetch_related('managers', 'quotations')
+    
+    # 年份篩選
     if year_start:
         projects = projects.filter(year__gte=year_start)
     if year_end:
@@ -1185,10 +1190,11 @@ def export_quotations_csv(request):
 
 @login_required(login_url="signin")
 def export_payments_csv(request):
-    """匯出所有請款資料為 CSV 格式，支援年份篩選（依專案年份）"""
+    """匯出所有請款資料為 CSV 格式，支援年份篩選（依專案年份）和年月篩選（依請款日期）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     import csv
+    from datetime import datetime
     now = timezone.now()
     filename = f"請款資料_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -1198,13 +1204,44 @@ def export_payments_csv(request):
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
     response.write('\ufeff')
     writer = csv.writer(response)
+    
+    # 取得查詢參數
     year_start = request.GET.get('year_start')
     year_end = request.GET.get('year_end')
+    year_month_start = request.GET.get('year_month_start')
+    year_month_end = request.GET.get('year_month_end')
+    
     payments = Payment.objects.all().prefetch_related('projects', 'paymentproject_set', 'paymentproject_set__project').select_related('owner', 'company', 'selected_bank_account', 'created_by')
+    
+    # 年份篩選（原有邏輯，依專案年份）
     if year_start:
         payments = payments.filter(projects__year__gte=year_start)
     if year_end:
         payments = payments.filter(projects__year__lte=year_end)
+    
+    # 年月篩選（基於請款發行日期 date_issued）
+    if year_month_start:
+        try:
+            year, month = year_month_start.split('-')
+            start_date = datetime(int(year), int(month), 1).date()
+            payments = payments.filter(date_issued__gte=start_date)
+        except (ValueError, TypeError):
+            pass  # 忽略無效的日期格式
+    
+    if year_month_end:
+        try:
+            year, month = year_month_end.split('-')
+            # 計算該月的最後一天
+            if int(month) == 12:
+                end_date = datetime(int(year) + 1, 1, 1).date()
+            else:
+                end_date = datetime(int(year), int(month) + 1, 1).date()
+            from datetime import timedelta
+            end_date = end_date - timedelta(days=1)
+            payments = payments.filter(date_issued__lte=end_date)
+        except (ValueError, TypeError):
+            pass  # 忽略無效的日期格式
+            
     payments = payments.distinct()
     headers = [
         '請款單號', '業主', '收款公司', '請款金額', '請款日期', 
@@ -1230,10 +1267,11 @@ def export_payments_csv(request):
 
 @login_required(login_url="signin")
 def export_invoices_csv(request):
-    """匯出所有發票資料為 CSV 格式，支援年份篩選（依請款單關聯專案年份）"""
+    """匯出所有發票資料為 CSV 格式，支援年份篩選（依請款單關聯專案年份）和年月篩選（依發票開立日期）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     import csv
+    from datetime import datetime, timedelta
     now = timezone.now()
     filename = f"發票資料_{now.strftime('%Y%m%d-%H%H%S')}.csv"
     response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -1243,9 +1281,38 @@ def export_invoices_csv(request):
     response['Content-Disposition'] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
     response.write('\ufeff')
     writer = csv.writer(response)
+    
+    # 取得查詢參數
     year_start = request.GET.get('year_start')
     year_end = request.GET.get('year_end')
+    year_month_start = request.GET.get('year_month_start')
+    year_month_end = request.GET.get('year_month_end')
+    
     invoices = Invoice.objects.all().select_related('payment', 'payment__owner', 'payment__company', 'created_by')
+    
+    # 年月篩選（基於發票開立日期 issue_date）
+    if year_month_start:
+        try:
+            year, month = year_month_start.split('-')
+            start_date = datetime(int(year), int(month), 1).date()
+            invoices = invoices.filter(issue_date__gte=start_date)
+        except (ValueError, TypeError):
+            pass  # 忽略無效的日期格式
+    
+    if year_month_end:
+        try:
+            year, month = year_month_end.split('-')
+            # 計算該月的最後一天
+            if int(month) == 12:
+                end_date = datetime(int(year) + 1, 1, 1).date()
+            else:
+                end_date = datetime(int(year), int(month) + 1, 1).date()
+            end_date = end_date - timedelta(days=1)
+            invoices = invoices.filter(issue_date__lte=end_date)
+        except (ValueError, TypeError):
+            pass  # 忽略無效的日期格式
+    
+    # 年份篩選（原有邏輯，依請款單關聯專案年份）
     if year_start or year_end:
         # 只篩選有 payment 且 payment 有 projects
         filtered_invoices = []
@@ -1265,10 +1332,13 @@ def export_invoices_csv(request):
                 continue
             filtered_invoices.append(invoice)
         invoices = filtered_invoices
+    else:
+        # 如果沒有年份篩選，則轉換為 QuerySet 列表以保持一致性
+        invoices = list(invoices)
     headers = [
-        '發票號碼', '請款單號', '業主', '收款公司', '發票金額(未稅)', 
-        '稅額', '發票開立日期', '收款日', '入帳日', '收款方式', 
-        '實收金額', '備註', '建立者', '建立時間'
+        '發票號碼', '請款單號', '業主', '收款公司', '請款金額', 
+        '收款日', '入帳日', '收款方式', 
+        '實收金額', '付款狀態', '備註', '建立者', '建立時間'
     ]
     writer.writerow(headers)
     for invoice in invoices:
@@ -1282,12 +1352,11 @@ def export_invoices_csv(request):
             invoice.payment.owner.company_name if invoice.payment and invoice.payment.owner else '',
             invoice.payment.company.name if invoice.payment and invoice.payment.company else '',
             invoice.amount,
-            invoice.tax_amount,
-            invoice.issue_date.strftime('%Y-%m-%d') if invoice.issue_date else '',
             invoice.payment_received_date.strftime('%Y-%m-%d') if invoice.payment_received_date else '',
             invoice.account_entry_date.strftime('%Y-%m-%d') if invoice.account_entry_date else '',
             payment_method_display,
             invoice.actual_received_amount if invoice.actual_received_amount else '',
+            invoice.get_payment_status_display() if invoice.payment_status else '',
             invoice.notes if invoice.notes else '',
             invoice.created_by.profile.name if invoice.created_by and hasattr(invoice.created_by, 'profile') and invoice.created_by.profile.name else (invoice.created_by.username if invoice.created_by else ''),
             invoice.created_at.strftime('%Y-%m-%d %H:%M:%S') if invoice.created_at else ''

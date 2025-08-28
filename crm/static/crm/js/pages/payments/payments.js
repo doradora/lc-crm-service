@@ -5,6 +5,7 @@ const paymentList = createApp({
       payments: [],
       projects: [], // 所有專案（保留給付款單顯示用）
       isLoading: false,
+      isExporting: false, // 匯出狀態
       searchQuery: "",
       paidFilter: "", // 付款狀態過濾
       projectFilter: "", // 專案過濾（實際選到的專案id）
@@ -178,6 +179,290 @@ const paymentList = createApp({
       return payment.invoices.reduce((total, invoice) => {
         return total + Number(invoice.actual_received_amount || 0);
       }, 0);
+    },
+
+    /**
+     * 取得年份選項（2000~今年）
+     */
+    getYearOptions() {
+      const currentYear = new Date().getFullYear();
+      const years = [];
+      for (let y = currentYear; y >= 2000; y--) {
+        years.push(y);
+      }
+      return years;
+    },
+
+    /**
+     * 取得月份選項（1-12月）
+     */
+    getMonthOptions() {
+      const months = [];
+      for (let m = 1; m <= 12; m++) {
+        months.push({ value: m.toString().padStart(2, '0'), text: `${m}月` });
+      }
+      return months;
+    },
+
+    /**
+     * 彈出請款年月區間選擇 Swal，回傳 {year_month_start, year_month_end, select_all} 或 null
+     */
+    async selectPaymentDateRange() {
+      const years = this.getYearOptions();
+      const months = this.getMonthOptions();
+      const yearOptions = years.map(y => `<option value='${y}'>${y}</option>`).join('');
+      const monthOptions = months.map(m => `<option value='${m.value}'>${m.text}</option>`).join('');
+      
+      const { value: formValues } = await Swal.fire({
+        title: '選擇請款年月區間',
+        html:
+          `<div class='mb-3'>\n` +
+          `<label class='form-check-label'>\n` +
+          `<input type='checkbox' id='swal-select-all' class='form-check-input me-2' checked>\n` +
+          `匯出全部資料\n` +
+          `</label>\n` +
+          `</div>\n` +
+          `<div id='date-range-section'>\n` +
+          `<div class='row mb-3'>\n` +
+          `<div class='col-6'>\n` +
+          `<label class='form-label mb-2'>開始年份</label>\n` +
+          `<select id='swal-year-start' class='form-select' disabled><option value=''>選擇年份</option>${yearOptions}</select>\n` +
+          `</div>\n` +
+          `<div class='col-6'>\n` +
+          `<label class='form-label mb-2'>開始月份</label>\n` +
+          `<select id='swal-month-start' class='form-select' disabled><option value=''>選擇月份</option>${monthOptions}</select>\n` +
+          `</div>\n` +
+          `</div>\n` +
+          `<div class='row mb-2'>\n` +
+          `<div class='col-6'>\n` +
+          `<label class='form-label mb-2'>結束年份</label>\n` +
+          `<select id='swal-year-end' class='form-select' disabled><option value=''>選擇年份</option>${yearOptions}</select>\n` +
+          `</div>\n` +
+          `<div class='col-6'>\n` +
+          `<label class='form-label mb-2'>結束月份</label>\n` +
+          `<select id='swal-month-end' class='form-select' disabled><option value=''>選擇月份</option>${monthOptions}</select>\n` +
+          `</div>\n` +
+          `</div>\n` +
+          `</div>`,
+        width: '480px',
+        heightAuto: false,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '匯出',
+        cancelButtonText: '取消',
+        customClass: {
+          popup: 'swal-wide-popup',
+          htmlContainer: 'swal-html-container'
+        },
+        didOpen: () => {
+          const selectAllCheckbox = document.getElementById('swal-select-all');
+          const yearStartSelect = document.getElementById('swal-year-start');
+          const monthStartSelect = document.getElementById('swal-month-start');
+          const yearEndSelect = document.getElementById('swal-year-end');
+          const monthEndSelect = document.getElementById('swal-month-end');
+          
+          selectAllCheckbox.addEventListener('change', function() {
+            const isDisabled = this.checked;
+            yearStartSelect.disabled = isDisabled;
+            monthStartSelect.disabled = isDisabled;
+            yearEndSelect.disabled = isDisabled;
+            monthEndSelect.disabled = isDisabled;
+            
+            if (isDisabled) {
+              yearStartSelect.value = '';
+              monthStartSelect.value = '';
+              yearEndSelect.value = '';
+              monthEndSelect.value = '';
+            }
+          });
+        },
+        preConfirm: () => {
+          const select_all = document.getElementById('swal-select-all').checked;
+          
+          if (select_all) {
+            return { select_all: true };
+          }
+          
+          const year_start = document.getElementById('swal-year-start').value;
+          const month_start = document.getElementById('swal-month-start').value;
+          const year_end = document.getElementById('swal-year-end').value;
+          const month_end = document.getElementById('swal-month-end').value;
+          
+          if (!year_start && !month_start && !year_end && !month_end) {
+            return { select_all: true };
+          }
+          
+          if ((year_start && !month_start) || (!year_start && month_start)) {
+            Swal.showValidationMessage('請同時選擇開始年份和月份');
+            return false;
+          }
+          
+          if ((year_end && !month_end) || (!year_end && month_end)) {
+            Swal.showValidationMessage('請同時選擇結束年份和月份');
+            return false;
+          }
+          
+          if (year_start && month_start && year_end && month_end) {
+            const startDate = new Date(parseInt(year_start), parseInt(month_start) - 1);
+            const endDate = new Date(parseInt(year_end), parseInt(month_end) - 1);
+            if (startDate > endDate) {
+              Swal.showValidationMessage('開始日期不能晚於結束日期');
+              return false;
+            }
+          }
+          
+          return {
+            select_all: false,
+            year_month_start: year_start && month_start ? `${year_start}-${month_start}` : '',
+            year_month_end: year_end && month_end ? `${year_end}-${month_end}` : ''
+          };
+        }
+      });
+      
+      if (!formValues) return null;
+      return formValues;
+    },
+
+    /**
+     * 匯出發票資料為 EXCEL
+     */
+    async exportInvoices() {
+      try {
+        const dateRange = await this.selectPaymentDateRange();
+        if (dateRange === null) return;
+        
+        this.isExporting = true;
+        
+        // 構建匯出 URL，包含當前的篩選條件
+        let url = '/crm/export/invoices/csv/';
+        const params = new URLSearchParams();
+        
+        // 添加年月範圍參數
+        if (!dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
+          if (dateRange.year_month_start) params.append('year_month_start', dateRange.year_month_start);
+          if (dateRange.year_month_end) params.append('year_month_end', dateRange.year_month_end);
+        }
+        
+        // 添加當前頁面的篩選條件
+        if (this.searchQuery) {
+          params.append('search', this.searchQuery);
+        }
+        if (this.paidFilter === "paid") {
+          params.append('paid', 'true');
+        } else if (this.paidFilter === "unpaid") {
+          params.append('paid', 'false');
+        }
+        if (this.projectFilter) {
+          params.append('project', this.projectFilter);
+        }
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
+        await this.downloadFile(url);
+        this.showSuccessMessage('發票資料匯出成功');
+        
+      } catch (error) {
+        this.showErrorMessage('發票資料匯出失敗', error);
+      } finally {
+        this.isExporting = false;
+      }
+    },
+
+    /**
+     * 下載檔案的通用方法
+     */
+    async downloadFile(url) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // 取得檔案名稱（如果有的話）
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `export_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        if (contentDisposition) {
+          // 首先嘗試解析 UTF-8 編碼的檔案名稱
+          const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+          if (utf8Match) {
+            try {
+              filename = decodeURIComponent(utf8Match[1]);
+            } catch (e) {
+              console.warn('Failed to decode UTF-8 filename:', e);
+            }
+          } else {
+            // 如果沒有 UTF-8 編碼，則使用標準的 filename
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch) {
+              filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+          }
+        }
+
+        const blob = await response.blob();
+        
+        // 創建下載連結
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // 清理
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return response;
+      } catch (error) {
+        console.error('Download error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * 顯示成功訊息
+     */
+    showSuccessMessage(message) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: '匯出成功',
+          text: message,
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } else {
+        alert(message);
+      }
+    },
+
+    /**
+     * 顯示錯誤訊息
+     */
+    showErrorMessage(message, error) {
+      console.error(message, error);
+      const errorText = error?.message || error || '未知錯誤';
+      
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: '匯出失敗',
+          text: `${message}: ${errorText}`,
+          confirmButtonText: '確定'
+        });
+      } else {
+        alert(`${message}: ${errorText}`);
+      }
     },
 
     // 格式化日期
