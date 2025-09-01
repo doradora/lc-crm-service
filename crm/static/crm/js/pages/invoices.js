@@ -26,6 +26,7 @@ createApp({
       isEdit: false,
       validationErrors: {},
       dateErrors: {}, // 新增日期錯誤狀態
+      dateWarning: {}, // 新增日期警告狀態
       invoiceForm: {
         id: null,
         invoice_type: "normal", // 新增發票類型
@@ -713,6 +714,7 @@ createApp({
 
     // 驗證日期輸入並檢查邏輯關係
     handleDateValidation(fieldName) {
+      this.dateWarning[fieldName] = null; // 清除警告訊息
       const value = this.invoiceForm[fieldName];
       
       // 先驗證單個日期格式
@@ -726,7 +728,7 @@ createApp({
         const issueDate = new Date(this.invoiceForm.issue_date + 'T00:00:00');
         
         if (this.invoiceForm.issue_date && paymentDate < issueDate) {
-          this.dateErrors[fieldName] = '收款日期不能早於發票開立日期';
+          this.dateWarning[fieldName] = '收款日期不能早於發票開立日期';
         }
       }
 
@@ -790,6 +792,7 @@ createApp({
       // 清空驗證錯誤
       this.validationErrors = {};
       this.dateErrors = {};
+      this.dateWarning = {};
     },
 
     /**

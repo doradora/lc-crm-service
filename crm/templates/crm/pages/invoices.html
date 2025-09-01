@@ -410,6 +410,9 @@
                     <div v-if="dateErrors.payment_received_date" class="invalid-feedback">
                       [[ dateErrors.payment_received_date ]]
                     </div>
+                    <div v-if="dateWarning.payment_received_date" class="text-warning fs-7 mt-1">
+                      [[ dateWarning.payment_received_date ]]
+                    </div>
                     <small class="text-gray-500">請確實填寫收款日期</small>
                   </div>
                 </div>

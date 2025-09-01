@@ -45,6 +45,7 @@ const paymentDetail = createApp({
       // 新增表單驗證相關
       validationErrors: {},
       dateErrors: {}, // 新增日期錯誤狀態
+      dateWarning: {}, // 新增日期警告狀態
       // 新增專案搜索相關資料
       newProjectItem: {
         project: null,
@@ -1515,6 +1516,7 @@ const paymentDetail = createApp({
 
     // 驗證日期輸入並檢查邏輯關係
     handleInvoiceDateValidation(fieldName) {
+      this.dateWarning[fieldName] = null; // 清除警告訊息
       const value = this.newInvoice[fieldName];
       
       // 先驗證單個日期格式
@@ -1528,7 +1530,7 @@ const paymentDetail = createApp({
         const issueDate = new Date(this.newInvoice.issue_date + 'T00:00:00');
         
         if (this.newInvoice.issue_date && paymentDate < issueDate) {
-          this.dateErrors[fieldName] = '收款日期不能早於發票開立日期';
+          this.dateWarning[fieldName] = '收款日期不能早於發票開立日期';
         }
       }
 
@@ -1569,6 +1571,7 @@ const paymentDetail = createApp({
       // 清空驗證錯誤
       this.validationErrors = {};
       this.dateErrors = {};
+      this.dateWarning = {};
     },
 
     // 取得發票類型文字
