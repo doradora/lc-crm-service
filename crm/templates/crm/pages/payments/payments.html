@@ -8,7 +8,7 @@
         <button class="btn btn-primary" @click="exportInvoices" :disabled="isExporting">
           <span v-if="isExporting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           <i v-else class="ki-outline ki-cloud-download fs-5 me-2"></i>
-          匯出發票 EXCEL
+          匯出請款單列表
         </button>
         <button class="btn btn-primary" @click.prevent="createNewPayment">建立請款單</button>
       </div>

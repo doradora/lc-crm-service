@@ -398,7 +398,7 @@
               <div class="row mb-5">
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label class="form-label" :class="{ 'required': invoiceForm.invoice_type === 'normal' }">收款日</label>
+                    <label class="form-label">收款日</label>
                     <input type="date" class="form-control" v-model="invoiceForm.payment_received_date" 
                           :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
                           @change="handleDateValidation('payment_received_date')"
@@ -415,7 +415,7 @@
                 </div>
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label class="form-label" :class="{ 'required': invoiceForm.invoice_type === 'normal' }">入帳日</label>
+                    <label class="form-label">入帳日</label>
                     <input type="date" class="form-control" v-model="invoiceForm.account_entry_date"
                           :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
                           @change="handleDateValidation('account_entry_date')"

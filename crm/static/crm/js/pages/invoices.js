@@ -267,16 +267,16 @@ createApp({
         this.validationErrors.payment = true;
       }
 
-      // 收款日和入帳日必填驗證（除了不開發票的情況）
-      if (this.invoiceForm.invoice_type === 'no_invoice') {
-        if (!this.invoiceForm.payment_received_date) {
-          this.validationErrors.payment_received_date = '請填寫正確收款日期';
-        }
+      // 收款日和入帳日不需驗證
+      // if (this.invoiceForm.invoice_type === 'normal') {
+      //   if (!this.invoiceForm.payment_received_date) {
+      //     this.validationErrors.payment_received_date = '請填寫正確收款日期';
+      //   }
 
-        if (!this.invoiceForm.account_entry_date) {
-          this.validationErrors.account_entry_date = '請填寫正確入帳日期';
-        }
-      }
+      //   if (!this.invoiceForm.account_entry_date) {
+      //     this.validationErrors.account_entry_date = '請填寫正確入帳日期';
+      //   }
+      // }
 
       // 重新驗證所有日期
       this.handleDateValidation('issue_date');
