@@ -23,9 +23,9 @@
               <div class="d-flex align-items-center position-relative my-1">
                 <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
                 <input type="text" v-model="searchQuery" class="form-control form-control-solid w-250px ps-12"
-                  placeholder="搜尋請款單號/專案" @keyup.enter="fetchPayments()" ref="searchInput" />
+                  placeholder="搜尋請款單號/專案/業主" @keyup.enter="fetchPayments()" ref="searchInput" />
               </div>
-              <div class="d-flex position-relative my-1 ms-3 col-md-6 ">
+              <div class="d-flex position-relative my-1 ms-3 col-md-8 ">
                 <div class="w-200 mw-150px me-2">
                   <select class="form-select" v-model="paidFilter" data-placeholder="付款狀態">
                     <option value="">所有狀態</option>

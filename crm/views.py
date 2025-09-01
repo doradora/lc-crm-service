@@ -629,16 +629,18 @@ class QuotationViewSet(BaseViewSet):
 
 class PaymentViewSet(CanPaymentViewSet):
     queryset = Payment.objects.all().prefetch_related(
-        "projects", "paymentproject_set", "paymentproject_set__project"
+        "projects", "paymentproject_set", "paymentproject_set__project", 
+        "paymentproject_set__project__owner"
     )
     serializer_class = PaymentSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
-    search_fields = ["payment_number", "projects__name"]
+    search_fields = ["payment_number", "projects__name", "projects__owner__company_name"]
 
     def get_queryset(self):
         queryset = Payment.objects.all().prefetch_related(
-            "projects", "paymentproject_set", "paymentproject_set__project"
+            "projects", "paymentproject_set", "paymentproject_set__project",
+            "paymentproject_set__project__owner"
         )
 
         # 報價過濾
