@@ -307,7 +307,12 @@ def generate_payment_excel(payment):
                 cell.border = Border(bottom=Side(style="thin"))
             else:
                 original_ws.cell(row=row, column=3).value = ""
-        
+                
+            # 讓同一列其他欄位有下框線
+            for col in range(1, 9):
+                cell = original_ws.cell(row=row, column=col)
+                cell.border = Border(bottom=Side(style="thin"))
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
