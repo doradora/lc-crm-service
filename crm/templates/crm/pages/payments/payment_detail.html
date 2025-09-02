@@ -137,14 +137,14 @@
                 </div>
                 <div class="mb-5">
                   <label class="form-label fw-semibold">請款日期</label>
-                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.date_issued" />
+                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.date_issued" max="9999-12-31"/>
                   <div v-else class="form-control-plaintext">
                     [[ formatDate(payment.date_issued) ]]
                   </div>
                 </div>
                 <div class="mb-5">
                   <label class="form-label fw-semibold">到期日</label>
-                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.due_date" />
+                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.due_date" max="9999-12-31"/>
                   <div v-else class="form-control-plaintext">
                     [[ formatDate(payment.due_date) ]]
                   </div>
@@ -157,7 +157,7 @@
                 </div>
                 <div class="mb-5" v-if="payment.paid">
                   <label class="form-label fw-semibold">付款日期</label>
-                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.payment_date" />
+                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.payment_date" max="9999-12-31"/>
                   <div v-else class="form-control-plaintext">
                     [[ formatDate(payment.payment_date) ]]
                   </div>
@@ -500,7 +500,8 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">開立日期</label>
-                <input type="date" class="form-control" v-model="newInvoice.issue_date" 
+                <input type="date" class="form-control" max="9999-12-31"
+                       v-model="newInvoice.issue_date" 
                        :class="{ 'is-invalid': validationErrors.issue_date || dateErrors.issue_date }"
                        @input="handleInvoiceDateValidation('issue_date')"
                        :disabled="newInvoice.invoice_type !== 'normal'" />
@@ -595,7 +596,8 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">收款日</label>
-                <input type="date" class="form-control" v-model="newInvoice.payment_received_date" 
+                <input type="date" class="form-control" max="9999-12-31"
+                       v-model="newInvoice.payment_received_date" 
                        :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
                        @input="handleInvoiceDateValidation('payment_received_date')" />
                 <div v-if="validationErrors.payment_received_date" class="invalid-feedback">
@@ -613,7 +615,8 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">入帳日</label>
-                <input type="date" class="form-control" v-model="newInvoice.account_entry_date" 
+                <input type="date" class="form-control" max="9999-12-31"
+                       v-model="newInvoice.account_entry_date" 
                        :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
                        @input="handleInvoiceDateValidation('account_entry_date')" />
                 <div v-if="validationErrors.account_entry_date" class="invalid-feedback">

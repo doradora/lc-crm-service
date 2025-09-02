@@ -183,7 +183,7 @@
                                 :class="{ 'is-invalid': field.required && (customFieldValues[fieldName] === null || customFieldValues[fieldName] === undefined || customFieldValues[fieldName] === '') }"
                                 v-model="customFieldValues[fieldName]" :required="field.required">
                               <!-- 日期欄位 -->
-                              <input v-else-if="field.type === 'date'" type="date" class="form-control"
+                              <input v-else-if="field.type === 'date'" type="date" class="form-control" max="9999-12-31"
                                 :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                 v-model="customFieldValues[fieldName]" :required="field.required">
                               <!-- 是/否欄位 -->
@@ -680,7 +680,7 @@
               <label class="form-label">
                 支出日期<span class="text-danger">*</span>
               </label>
-              <input type="date" class="form-control" v-model="newExpenditure.date" required>
+              <input type="date" max="9999-12-31" class="form-control" v-model="newExpenditure.date" required>
             </div>
             <div class="mb-5">
               <label class="form-label">
@@ -721,7 +721,7 @@
               <label class="form-label">
                 變更日期<span class="text-danger">*</span>
               </label>
-              <input type="date" class="form-control" v-model="newChange.created_at" required>
+              <input type="date" max="9999-12-31" class="form-control" v-model="newChange.created_at" required>
             </div>
             <div class="mb-5">
               <label class="form-label">

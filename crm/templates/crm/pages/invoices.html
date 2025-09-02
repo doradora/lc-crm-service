@@ -73,10 +73,10 @@
                 <label class="form-label">發票開立日期範圍</label>
                 <div class="d-flex gap-3 align-items-center">
                   <input type="date" class="form-control form-control-solid" v-model="startDate"
-                    @change="fetchInvoices(1)" min="1900-01-01" max="2999-12-31" />
+                    @change="fetchInvoices(1)" min="1900-01-01" max="9999-12-31" />
                   <span class="text-muted">至</span>
                   <input type="date" class="form-control form-control-solid" v-model="endDate"
-                    @change="fetchInvoices(1)" min="1900-01-01" max="2999-12-31" />
+                    @change="fetchInvoices(1)" min="1900-01-01" max="9999-12-31" />
                 </div>
               </div>
             </div>
@@ -294,7 +294,7 @@
                       :required="invoiceForm.invoice_type === 'normal'"
                       :class="{ 'is-invalid': validationErrors.issue_date || dateErrors.issue_date }"
                       @change="handleDateValidation('issue_date')"
-                      min="1900-01-01" max="2999-12-31" />
+                      min="1900-01-01" max="9999-12-31" />
                     <div v-if="validationErrors.issue_date" class="invalid-feedback">
                       請選擇發票開立日期
                     </div>
@@ -422,7 +422,7 @@
                           :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
                           @change="handleDateValidation('payment_received_date')"
                           :required="invoiceForm.invoice_type === 'normal'"
-                          min="1900-01-01" max="2999-12-31" />
+                          min="1900-01-01" max="9999-12-31" />
                     <div v-if="validationErrors.payment_received_date" class="invalid-feedback">
                       [[ validationErrors.payment_received_date ]]
                     </div>
@@ -442,7 +442,7 @@
                           :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
                           @change="handleDateValidation('account_entry_date')"
                           :required="invoiceForm.invoice_type === 'normal'"
-                          min="1900-01-01" max="2999-12-31" />
+                          min="1900-01-01" max="9999-12-31" />
                     <div v-if="validationErrors.account_entry_date" class="invalid-feedback">
                       [[ validationErrors.account_entry_date ]]
                     </div>
