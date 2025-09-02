@@ -43,6 +43,7 @@ createApp({
         gross_amount: "", // 含稅金額
         payment_status: "unpaid", // 新的付款狀態
         is_paid: false, // 保留舊欄位以保持相容性
+        project_amounts: [ { project_id: '', amount: '' } ],
       },
       menuPosition: {
         x: 0,
@@ -220,6 +221,7 @@ createApp({
         gross_amount: (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0)),
         payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"), // 新的付款狀態
         is_paid: invoice.is_paid || false, // 保留舊欄位以保持相容性
+        project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [ { project_id: '', amount: '' } ],
       };
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
@@ -738,7 +740,7 @@ createApp({
         if (this.invoiceForm.payment_received_date) {
           const paymentDate = new Date(this.invoiceForm.payment_received_date + 'T00:00:00');
           if (entryDate < paymentDate) {
-            this.dateErrors[fieldName] = '入帳日期不能早於收款日期';
+            this.dateWarning[fieldName] = '入帳日期不能早於收款日期';
           }
         }
       }

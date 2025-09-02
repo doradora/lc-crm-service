@@ -275,6 +275,18 @@
               </div>
               <div class="row mb-5">
                 <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="form-label" :class="{ 'required': invoiceForm.invoice_type === 'normal' }">發票號碼</label>
+                    <input type="text" class="form-control" v-model="invoiceForm.invoice_number" 
+                      :disabled="invoiceForm.invoice_type !== 'normal'"
+                      :required="invoiceForm.invoice_type === 'normal'"
+                      :class="{ 'is-invalid': validationErrors.invoice_number }" ref="invoiceNumberInput" />
+                    <div v-if="validationErrors.invoice_number" class="invalid-feedback">
+                      請輸入發票號碼
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
                   <div class="form-group mb-5">
                     <label class="form-label" :class="{ 'required': invoiceForm.invoice_type === 'normal' }">發票開立日期</label>
                     <input type="date" class="form-control" v-model="invoiceForm.issue_date" 
@@ -288,18 +300,6 @@
                     </div>
                     <div v-if="dateErrors.issue_date" class="invalid-feedback">
                       [[ dateErrors.issue_date ]]
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-group">
-                    <label class="form-label" :class="{ 'required': invoiceForm.invoice_type === 'normal' }">發票號碼</label>
-                    <input type="text" class="form-control" v-model="invoiceForm.invoice_number" 
-                      :disabled="invoiceForm.invoice_type !== 'normal'"
-                      :required="invoiceForm.invoice_type === 'normal'"
-                      :class="{ 'is-invalid': validationErrors.invoice_number }" ref="invoiceNumberInput" />
-                    <div v-if="validationErrors.invoice_number" class="invalid-feedback">
-                      請輸入發票號碼
                     </div>
                   </div>
                 </div>
@@ -391,9 +391,28 @@
                   <option value="other">其他</option>
                 </select>
               </div>
+              <!-- 專案實收金額（可多筆） -->
               <div class="form-group mb-5">
-                <label class="form-label">實收金額</label>
-                <input type="number" class="form-control" v-model="invoiceForm.actual_received_amount" />
+                <label class="form-label">專案實收金額</label>
+                <template v-if="invoiceForm.project_amounts && invoiceForm.project_amounts.filter(item => item && item.project_id).length > 0">
+                  <div v-for="(item, idx) in invoiceForm.project_amounts.filter(item => item && item.project_id)"
+                    :key="item.project_id"
+                    class="row mb-2 align-items-center">
+                    <div class="col-md-8">
+                      <div class="form-control">
+                        [[ item.year ]][[item.category_code]][[ item.project_number ]] - [[ item.project_name ]]
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-control text-end">
+                        [[ item.amount ]]
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <template v-else>
+                  <div>暫無專案實收金額資料</div>
+                </template>
               </div>
               <div class="row mb-5">
                 <div class="col-md-6">
@@ -429,6 +448,9 @@
                     </div>
                     <div v-if="dateErrors.account_entry_date" class="invalid-feedback">
                       [[ dateErrors.account_entry_date ]]
+                    </div>
+                    <div v-if="dateWarning.account_entry_date" class="text-warning fs-7 mt-1">
+                      [[ dateWarning.account_entry_date ]]
                     </div>
                     <small class="text-gray-500">請確實填寫入帳日期</small>
                   </div>

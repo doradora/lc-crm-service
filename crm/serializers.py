@@ -472,6 +472,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return [
             {
                 "project_id": pi.project.id if pi.project else None,
+                "project_name": pi.project.name if pi.project else None,
+                "category_code": pi.project.category.code if pi.project and pi.project.category else None,
+                "year": pi.project.year if pi.project else None,
+                "project_number": pi.project.project_number if pi.project else None,
                 "amount": pi.amount or 0
             }
             for pi in project_invoices

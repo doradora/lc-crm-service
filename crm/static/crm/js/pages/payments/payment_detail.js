@@ -1570,7 +1570,7 @@ const paymentDetail = createApp({
         if (this.newInvoice.payment_received_date) {
           const paymentDate = new Date(this.newInvoice.payment_received_date + 'T00:00:00');
           if (entryDate < paymentDate) {
-            this.dateErrors[fieldName] = '入帳日期不能早於收款日期';
+            this.dateWarning[fieldName] = '入帳日期不能早於收款日期';
           }
         }
       }
