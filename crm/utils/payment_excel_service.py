@@ -247,6 +247,8 @@ def generate_payment_excel(payment):
         invoice_qs = payment.invoices.all() if hasattr(payment, 'invoices') else []
         bank_name = payment.selected_bank_account.bank_name if payment.selected_bank_account else ""
         row = receipt_note_start_row
+        # 收集所有已列出的專案 id
+        listed_project_ids = set()
         for invoice in invoice_qs:
             # 查詢這張發票關聯的所有專案
             related_projects = ProjectInvoice.objects.filter(invoice=invoice).select_related("project")
@@ -271,6 +273,7 @@ def generate_payment_excel(payment):
                     number = getattr(project, "project_number", "")
                     if year and code and number is not None:
                         pcode = f"{year}{code}{str(number).zfill(3)}"
+                        listed_project_ids.add(project.id)
                 original_ws.cell(row=row, column=3).value = pcode
                 # 收款方式
                 original_ws.cell(row=row, column=4).value = dict(invoice.PAYMENT_METHOD_CHOICES).get(invoice.payment_method, invoice.payment_method) if invoice.payment_method else ""
@@ -297,40 +300,41 @@ def generate_payment_excel(payment):
                 original_ws.row_dimensions[row].height = 30
             original_ws.row_dimensions[row].height = 30
 
-        # # 在上面"案號(空白)"的地方，使用for迴圈，填上這個請款單中，所有的"案號"資料
-        # # 收集所有案號
-        # all_pcodes = []
-        # for detail in project_details:
-        #     project = detail["project"]
-        #     if project:
-        #         year = getattr(project, "year", None)
-        #         category = getattr(project, "category", None)
-        #         code = getattr(category, "code", "") if category else ""
-        #         number = getattr(project, "project_number", "")
-        #         if year and code and number is not None:
-        #             pcode = f"{year}{code}{str(number).zfill(3)}"
-        #             all_pcodes.append(pcode)
+        # 補上沒有發票的專案（僅列出專案號碼，其餘留空）
+        all_project_ids = set()
+        all_pcodes = dict()
+        for detail in project_details:
+            project = detail["project"]
+            if project:
+                year = getattr(project, "year", None)
+                category = getattr(project, "category", None)
+                code = getattr(category, "code", "") if category else ""
+                number = getattr(project, "project_number", "")
+                if year and code and number is not None:
+                    pcode = f"{year}{code}{str(number).zfill(3)}"
+                    all_project_ids.add(project.id)
+                    all_pcodes[project.id] = pcode
+        missing_project_ids = all_project_ids - listed_project_ids
+        for pid in missing_project_ids:
+            row += 1
+            original_ws.cell(row=row, column=1).value = ""
+            original_ws.cell(row=row, column=2).value = ""
+            original_ws.cell(row=row, column=3).value = all_pcodes.get(pid, "")
+            original_ws.cell(row=row, column=4).value = ""
+            original_ws.cell(row=row, column=5).value = ""
+            original_ws.cell(row=row, column=6).value = ""
+            original_ws.cell(row=row, column=7).value = ""
+            original_ws.cell(row=row, column=8).value = ""
+            for col in range(1, 9):
+                cell = original_ws.cell(row=row, column=col)
+                cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
+                cell.alignment = Alignment(vertical="center")
+                if col in [1, 2, 3, 4, 5]:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = Border(bottom=Side(style="thin"))
+            original_ws.row_dimensions[row].height = 30
 
-        # # 回填案號到收款註記區塊
-        # for idx, invoice in enumerate(all_pcodes, 1):
-        #     row = receipt_note_start_row + idx
-        #     # 案號 - 如果有對應的案號就填入，否則留空
-        #     if idx <= len(all_pcodes):
-        #         original_ws.cell(row=row, column=3).value = all_pcodes[idx - 1]
-        #         cell = original_ws.cell(row=row, column=3)
-        #         cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
-        #         cell.alignment = Alignment(vertical="center")
-        #         if col in [2, 3, 4, 5]:
-        #             cell.alignment = Alignment(horizontal="center", vertical="center")
-        #         cell.border = Border(bottom=Side(style="thin"))
-        #     else:
-        #         original_ws.cell(row=row, column=3).value = ""
-                
-        #     # 讓同一列其他欄位有下框線
-        #     for col in range(1, 9):
-        #         cell = original_ws.cell(row=row, column=col)
-        #         cell.border = Border(bottom=Side(style="thin"))
-
+        
         output = BytesIO()
         wb.save(output)
         output.seek(0)
