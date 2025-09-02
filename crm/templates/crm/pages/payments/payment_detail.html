@@ -581,8 +581,9 @@
                   移除
                 </button>
               </div>
-              <div class="d-flex gap-2 mt-1">
-                <span v-if="item.project_id" class="text-gray-500 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
+              <div class="d-flex gap-2 mt-1" v-if="item.project_id" >
+                <span class="text-gray-500 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
+                <span class="text-warning fs-7 ml-auto text-end" v-if="item.amount !== payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">請款金額與實收金額不符!</span>
                 <span class="text-primary cursor-pointer fs-7 ml-2 text-end" @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">帶入請款金額</span>
               </div>
             </div>
