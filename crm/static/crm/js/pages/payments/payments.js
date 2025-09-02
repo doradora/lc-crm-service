@@ -400,7 +400,7 @@ const paymentList = createApp({
     },
 
     /**
-     * 匯出發票資料為 EXCEL
+     * 匯出請款單發票資料為 Excel
      */
     async exportInvoices() {
       try {
@@ -409,38 +409,48 @@ const paymentList = createApp({
         
         this.isExporting = true;
         
-        // 構建匯出 URL，包含當前的篩選條件
-        let url = '/crm/export/invoices/csv/';
+        // 構建匯出 URL
+        let url = '/crm/export/payment-invoices/excel/';
         const params = new URLSearchParams();
         
-        // 添加年月範圍參數
+        // 添加日期範圍參數（使用日期格式而非年月格式）
         if (!dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
-          if (dateRange.year_month_start) params.append('year_month_start', dateRange.year_month_start);
-          if (dateRange.year_month_end) params.append('year_month_end', dateRange.year_month_end);
+          if (dateRange.year_month_start) {
+            // 將 YYYY-MM 格式轉換為 YYYY-MM-01 格式
+            const startDate = dateRange.year_month_start + '-01';
+            params.append('date_start', startDate);
+          }
+          if (dateRange.year_month_end) {
+            // 將 YYYY-MM 格式轉換為該月的最後一天
+            const [year, month] = dateRange.year_month_end.split('-');
+            const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+            const endDate = `${year}-${month}-${lastDay.toString().padStart(2, '0')}`;
+            params.append('date_end', endDate);
+          }
         }
         
-        // 添加當前頁面的篩選條件
-        if (this.searchQuery) {
-          params.append('search', this.searchQuery);
-        }
-        if (this.paidFilter === "paid") {
-          params.append('paid', 'true');
-        } else if (this.paidFilter === "unpaid") {
-          params.append('paid', 'false');
-        }
-        if (this.projectFilter) {
-          params.append('project', this.projectFilter);
-        }
+        // 添加當前頁面的篩選條件（可選，如果需要的話）
+        // if (this.searchQuery) {
+        //   params.append('search', this.searchQuery);
+        // }
+        // if (this.paidFilter === "paid") {
+        //   params.append('paid', 'true');
+        // } else if (this.paidFilter === "unpaid") {
+        //   params.append('paid', 'false');
+        // }
+        // if (this.projectFilter) {
+        //   params.append('project', this.projectFilter);
+        // }
         
         if (params.toString()) {
           url += '?' + params.toString();
         }
         
         await this.downloadFile(url);
-        this.showSuccessMessage('發票資料匯出成功');
+        this.showSuccessMessage('請款單發票資料匯出成功');
         
       } catch (error) {
-        this.showErrorMessage('發票資料匯出失敗', error);
+        this.showErrorMessage('請款單發票資料匯出失敗', error);
       } finally {
         this.isExporting = false;
       }
@@ -464,7 +474,7 @@ const paymentList = createApp({
 
         // 取得檔案名稱（如果有的話）
         const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = `export_${new Date().toISOString().split('T')[0]}.csv`;
+        let filename = `export_${new Date().toISOString().split('T')[0]}.xlsx`; // 預設為 xlsx 格式
         
         if (contentDisposition) {
           // 首先嘗試解析 UTF-8 編碼的檔案名稱

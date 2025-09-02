@@ -1699,3 +1699,221 @@ class ProjectInvoiceViewSet(viewsets.ModelViewSet):
         if project_id:
             queryset = queryset.filter(project_id=project_id)
         return queryset.order_by("-id")
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
+def export_payment_invoices_excel(request):
+    """
+    匯出請款單發票資料為Excel格式
+    根據時間區間匯出請款單的發票資料，每個專案顯示一筆記錄
+    """
+    try:
+        # 取得篩選參數
+        date_start = request.GET.get('date_start')  # 格式: YYYY-MM-DD
+        date_end = request.GET.get('date_end')      # 格式: YYYY-MM-DD
+        
+        # 建立基礎查詢
+        payment_filter = Q()
+        
+        # 如果有提供日期範圍，根據請款發行日期篩選
+        if date_start:
+            try:
+                payment_filter &= Q(date_issued__gte=date_start)
+            except ValueError:
+                return Response({'error': '開始日期格式不正確，請使用 YYYY-MM-DD 格式'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+        
+        if date_end:
+            try:
+                payment_filter &= Q(date_issued__lte=date_end)
+            except ValueError:
+                return Response({'error': '結束日期格式不正確，請使用 YYYY-MM-DD 格式'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+        
+        # 查詢請款單及相關資料
+        payments = Payment.objects.filter(payment_filter).select_related(
+            'owner', 'company', 'created_by'
+        ).prefetch_related(
+            'paymentproject_set__project__category',
+            'invoices',
+            'projects__projectinvoice_set'
+        ).order_by('date_issued', 'payment_number')
+        
+        if not payments.exists():
+            return Response({'message': '在指定的時間範圍內沒有找到請款單資料'}, 
+                          status=status.HTTP_204_NO_CONTENT)
+        
+        # 準備匯出資料
+        export_data = []
+        
+        for payment in payments:
+            # 遍歷請款單中的每個專案
+            for payment_project in payment.paymentproject_set.all():
+                project = payment_project.project
+                
+                if not project:
+                    continue
+                
+                # 組合案件編號 (year + category_code + project_number)
+                category_code = project.category.code if project.category else 'N'
+                project_code = f"{project.year}{category_code}{project.project_number or '000'}"
+                
+                # 查找該專案對應的發票和ProjectInvoice記錄
+                project_invoice_record = None
+                corresponding_invoice = None
+                
+                # 找出該專案在這個請款單中對應的發票
+                for invoice in payment.invoices.all():
+                    project_invoice = invoice.projectinvoice_set.filter(project=project).first()
+                    if project_invoice:
+                        project_invoice_record = project_invoice
+                        corresponding_invoice = invoice
+                        break
+                
+                # 如果沒有找到對應的發票記錄，使用預設值
+                if not corresponding_invoice:
+                    # 預設值處理
+                    payment_method_display = '-'
+                    payment_status_display = '未付款'
+                    project_invoice_amount = 0
+                    payment_received_date_str = '-'
+                    account_entry_date_str = '-'
+                    notes = ''
+                else:
+                    # 格式化收款方式
+                    if corresponding_invoice.payment_method:
+                        payment_method_choices = dict(Invoice.PAYMENT_METHOD_CHOICES)
+                        payment_method_display = payment_method_choices.get(
+                            corresponding_invoice.payment_method, 
+                            corresponding_invoice.payment_method
+                        )
+                    else:
+                        payment_method_display = '-'
+                    
+                    # 格式化付款狀態
+                    if corresponding_invoice.payment_status:
+                        payment_status_choices = dict(Invoice.PAYMENT_STATUS_CHOICES)
+                        payment_status_display = payment_status_choices.get(
+                            corresponding_invoice.payment_status, 
+                            corresponding_invoice.payment_status
+                        )
+                    else:
+                        payment_status_display = '未付款'
+                    
+                    # 取得該專案的實收金額
+                    project_invoice_amount = project_invoice_record.amount if project_invoice_record and project_invoice_record.amount else 0
+                    
+                    # 格式化日期
+                    payment_received_date_str = (
+                        corresponding_invoice.payment_received_date.strftime('%Y/%m/%d') 
+                        if corresponding_invoice.payment_received_date else '-'
+                    )
+                    account_entry_date_str = (
+                        corresponding_invoice.account_entry_date.strftime('%Y/%m/%d') 
+                        if corresponding_invoice.account_entry_date else '-'
+                    )
+                    
+                    # 備註
+                    notes = corresponding_invoice.notes if corresponding_invoice.notes else '-'
+                
+                # 組裝資料行
+                row_data = {
+                    '案件編號': project_code,
+                    '請款單號': payment.payment_number,
+                    '業主': payment.owner.company_name if payment.owner else '-',
+                    '收款公司': payment.company.name if payment.company else '-',
+                    '請款金額': payment_project.amount,
+                    '收款日': payment_received_date_str,
+                    '入帳日': account_entry_date_str,
+                    '收款方式': payment_method_display,
+                    '實收金額': project_invoice_amount,
+                    '付款狀態': payment_status_display,
+                    '備註': notes,
+                    '建立者': payment.created_by.username if payment.created_by else '-',
+                    '建立時間': payment.created_at.strftime('%Y/%m/%d %H:%M') if payment.created_at else '-'
+                }
+                
+                export_data.append(row_data)
+        
+        if not export_data:
+            return Response({'message': '沒有找到可匯出的專案資料'}, 
+                          status=status.HTTP_204_NO_CONTENT)
+        
+        # 建立Excel工作簿
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "請款單發票資料"
+        
+        # 設定欄位標題
+        headers = ['案件編號', '請款單號', '業主', '收款公司', '請款金額', '收款日', 
+                  '入帳日', '收款方式', '實收金額', '付款狀態', '備註', '建立者', '建立時間']
+        
+        # 寫入標題行
+        for col, header in enumerate(headers, 1):
+            cell = worksheet.cell(row=1, column=col, value=header)
+            cell.font = Font(name="Microsoft JhengHei", bold=True)
+            cell.alignment = Alignment(horizontal='center')
+        
+        # 寫入資料行
+        for row_idx, data in enumerate(export_data, 2):
+            for col_idx, header in enumerate(headers, 1):
+                value = data.get(header, '')
+                cell = worksheet.cell(row=row_idx, column=col_idx, value=value)
+                cell.font = Font(name="Microsoft JhengHei", color="000000")
+
+                # 數字欄位右對齊
+                if header in ['請款金額', '實收金額']:
+                    cell.alignment = Alignment(horizontal='right')
+                    cell.number_format = "#,##0"
+                elif header in ['收款日', '入帳日', '建立時間']:
+                    cell.alignment = Alignment(horizontal='center')
+        
+        # 自動調整欄寬
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)  # 最大寬度限制為50
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        # 準備回應
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        # 產生檔名
+        today = timezone.now().strftime('%Y%m%d')
+        date_range_str = ''
+        if date_start and date_end:
+            date_range_str = f"_{date_start.replace('-', '')}_{date_end.replace('-', '')}"
+        elif date_start:
+            date_range_str = f"_{date_start.replace('-', '')}_onwards"
+        elif date_end:
+            date_range_str = f"_until_{date_end.replace('-', '')}"
+        
+        filename = f"請款單發票資料{date_range_str}_{today}.xlsx"
+        
+        # 設定檔案下載標頭，支援中文檔名
+        from urllib.parse import quote
+        try:
+            filename.encode('ascii')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        except UnicodeEncodeError:
+            encoded_filename = quote(filename.encode('utf-8'))
+            response['Content-Disposition'] = f'attachment; filename="export.xlsx"; filename*=UTF-8\'\'{encoded_filename}'
+        
+        # 儲存工作簿到回應
+        workbook.save(response)
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"匯出請款單發票資料時發生錯誤: {str(e)}")
+        return Response({'error': f'匯出失敗: {str(e)}'}, 
+                       status=status.HTTP_500_INTERNAL_SERVER_ERROR)

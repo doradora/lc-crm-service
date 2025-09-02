@@ -73,6 +73,8 @@ urlpatterns = [
     path("export/payments/csv/", views.export_payments_csv, name="export_payments_csv"),
     path("export/invoices/csv/", views.export_invoices_csv, name="export_invoices_csv"),
     path("export/categories/csv/", views.export_categories_csv, name="export_categories_csv"),
+    # 新增匯出請款單發票資料為Excel的路由
+    path("export/payment-invoices/excel/", views.export_payment_invoices_excel, name="export_payment_invoices_excel"),
     # 匯入 API 端點
     path("api/import/owners/", views.import_owners_api, name="import_owners_api"),
     path("api/import/projects/", views.import_projects_api, name="import_projects_api"),
