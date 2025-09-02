@@ -1869,18 +1869,20 @@ def export_payment_invoices_excel(request):
                 elif header in ['收款日', '入帳日', '建立時間']:
                     cell.alignment = Alignment(horizontal='center')
         
-        # 自動調整欄寬
-        for column in worksheet.columns:
-            max_length = 0
-            column_letter = get_column_letter(column[0].column)
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)  # 最大寬度限制為50
-            worksheet.column_dimensions[column_letter].width = adjusted_width
+        # 凍結窗格（凍結第2列第2欄）
+        worksheet.freeze_panes = worksheet.cell(row=2, column=3)
+        # 列印重複表頭（每頁都重複第1列）
+        worksheet.print_title_rows = '1:1'
+        # 自動篩選（假設資料從第2列到最後一列，A到M欄）
+        worksheet.auto_filter.ref = f"A1:M{worksheet.max_row}"
+        # 水平置中
+        worksheet.page_setup.centerHorizontally = True
+        
+        # 固定欄寬
+        column_widths = [18.75, 26.25, 37.5, 37.5, 18.75, 18.75, 18.75, 15.0, 18.75, 16.25, 25.0, 12.5, 26.25]
+        for idx, width in enumerate(column_widths, 1):
+            column_letter = get_column_letter(idx)
+            worksheet.column_dimensions[column_letter].width = width
         
         # 準備回應
         response = HttpResponse(
