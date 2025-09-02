@@ -440,6 +440,22 @@ class Invoice(models.Model):
         # 移除 unique=True 限制，因為不開發票和發票待開可能沒有發票號碼
         pass
 
+class ProjectInvoice(models.Model):
+    """發票與專案的關聯表"""
+
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.CASCADE, null=True
+    )  # 關聯的發票
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, null=True
+    )  # 關聯的專案
+    amount = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True)  # 此專案的發票金額
+
+    def __str__(self):
+        return f"{self.invoice.invoice_number} - {self.project.name}"
+
+    class Meta:
+        unique_together = ("invoice", "project")  # 確保一個發票中一個專案只出現一次
 
 class BankAccount(models.Model):
     """銀行帳戶模型"""

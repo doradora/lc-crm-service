@@ -39,6 +39,7 @@ const paymentDetail = createApp({
         gross_amount: 0, // 含稅金額
         payment_status: "unpaid", // 新的付款狀態
         is_paid: false, // 保留舊欄位以保持相容性
+        project_amounts: [ { project_id: '', amount: '' } ], // 初始化為一筆
       },
       editingInvoice: false,
       editingInvoiceId: null,
@@ -827,6 +828,20 @@ const paymentDetail = createApp({
       return project ? project.name : "";
     },
 
+    // 根據專案ID獲取專案名稱（用於發票顯示）
+    getProjectNameById(projectId) {
+      // 先從請款單的專案中查找
+      const paymentProject = this.payment.payment_projects?.find(
+        (pp) => pp.project === projectId
+      );
+      if (paymentProject) {
+        return paymentProject.project_name;
+      }
+      // 如果沒找到，則從全部專案中查找
+      const project = this.projects?.find((p) => p.id === projectId);
+      return project ? project.name : `專案 ID: ${projectId}`;
+    },
+
     // 確認添加選中的專案 (簡化版本，不再需要檢查金額)
     addSelectedProjects() {
       // 將選中的專案添加到請款單中，金額預設為0
@@ -973,6 +988,7 @@ const paymentDetail = createApp({
         gross_amount: 0,
         payment_status: "unpaid",
         is_paid: false,
+        project_amounts: [ { project_id: '', amount: '' } ], // 初始化為一筆
       };
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
@@ -1015,6 +1031,7 @@ const paymentDetail = createApp({
           gross_amount: gross,
           payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"),
           is_paid: invoice.is_paid || false,
+          project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [ { project_id: '', amount: '' } ],
         };
       }
       const modal = new bootstrap.Modal(
@@ -1064,11 +1081,23 @@ const paymentDetail = createApp({
         gross_amount: 0,
         payment_status: "unpaid",
         is_paid: false,
+        project_amounts: [ { project_id: '', amount: '' } ],
       };
       this.validationErrors = {};
       this.dateErrors = {};
       this.editingInvoice = false;
       this.editingInvoiceId = null;
+    },
+
+    // 新增一筆專案金額
+    addProjectAmount() {
+      this.newInvoice.project_amounts.push({ project_id: '', amount: '' });
+    },
+    // 移除一筆專案金額
+    removeProjectAmount(idx) {
+      if (this.newInvoice.project_amounts.length > 1) {
+        this.newInvoice.project_amounts.splice(idx, 1);
+      }
     },
 
     // 提交發票表單
@@ -1100,6 +1129,7 @@ const paymentDetail = createApp({
         actual_received_amount: this.newInvoice.actual_received_amount || null,
         payment_status: this.newInvoice.payment_status,
         is_paid: this.newInvoice.payment_status === 'paid',
+        project_amounts: this.newInvoice.project_amounts.filter(item => item.project_id && item.amount), // 過濾掉空值
       };
 
       // 清空空字串值

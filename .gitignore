@@ -30,8 +30,9 @@ yarn-error.log
 
 # VS Code
 .vscode/
+.github/
 
-#fonrtend
+#frontend
 vite/
 fonrtend/
 

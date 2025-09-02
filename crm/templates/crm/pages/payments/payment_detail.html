@@ -561,9 +561,31 @@
               </option>
             </select>
           </div>
+          <!-- 專案實收金額（可多筆） -->
           <div class="form-group mb-5">
-            <label class="form-label">實收金額</label>
-            <input type="number" class="form-control" v-model="newInvoice.actual_received_amount" />
+            <label class="form-label">專案實收金額</label>
+            <div v-for="(item, idx) in newInvoice.project_amounts" :key="idx" class="row mb-2 align-items-center">
+              <div class="col-md-8">
+                <select class="form-select" v-model="item.project_id">
+                  <option v-for="project in payment.payment_projects" :key="project.project" :value="project.project">
+                    [[ project.project_info.year ]][[project.project_info.category_code]][[ project.project_info.project_number ]] - [[ project.project_name ]]
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <input type="number" class="form-control text-end" v-model="item.amount" placeholder="金額" />
+              </div>
+              <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-danger" @click="removeProjectAmount(idx)" v-if="newInvoice.project_amounts.length > 1">
+                  移除
+                </button>
+              </div>
+            </div>
+            <div class="mb-2">
+              <button type="button" class="btn btn-sm btn-light-primary" @click="addProjectAmount">
+                新增
+              </button>
+            </div>
           </div>
           <div class="row mb-5">
             <div class="col-md-6">

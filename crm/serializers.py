@@ -13,6 +13,7 @@ from .models import (
     Company,  # 添加 Company
     BankAccount,  # 添加 BankAccount
     PaymentDocument,  # 添加 PaymentDocument
+    ProjectInvoice,  # 添加 ProjectInvoice
 )
 from django.contrib.auth.models import User
 
@@ -430,6 +431,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     created_by_name = serializers.SerializerMethodField(read_only=True)
     payment_number = serializers.SerializerMethodField(read_only=True)
+    project_amounts = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Invoice
@@ -448,6 +450,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "account_entry_date",    # 新增
             "payment_method",        # 新增
             "actual_received_amount",# 新增
+            "project_amounts",       # 新增專案金額關聯
             "notes",
             "created_by",
             "created_by_name",
@@ -462,6 +465,17 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_payment_number(self, obj):
         return obj.payment.payment_number if obj.payment else None
+
+    def get_project_amounts(self, obj):
+        """獲取發票關聯的專案金額列表"""
+        project_invoices = obj.projectinvoice_set.all()
+        return [
+            {
+                "project_id": pi.project.id if pi.project else None,
+                "amount": pi.amount or 0
+            }
+            for pi in project_invoices
+        ]
 
 
 class BankAccountSerializer(serializers.ModelSerializer):
@@ -545,3 +559,24 @@ class PaymentDocumentSerializer(serializers.ModelSerializer):
         if value.size > 1024 * 1024:  # 1MB
             raise serializers.ValidationError("檔案大小不能超過 1MB")
         return value
+
+
+class ProjectInvoiceSerializer(serializers.ModelSerializer):
+    invoice_number = serializers.SerializerMethodField(read_only=True)
+    project_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ProjectInvoice
+        fields = [
+            "id",
+            "invoice",
+            "invoice_number",
+            "project",
+            "project_name",
+        ]
+
+    def get_invoice_number(self, obj):
+        return obj.invoice.invoice_number if obj.invoice else None
+
+    def get_project_name(self, obj):
+        return obj.project.name if obj.project else None

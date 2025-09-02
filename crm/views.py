@@ -22,9 +22,10 @@ from .models import (
     Expenditure,
     ProjectChange,
     PaymentProject,
-    Company,  # 添加 Company
-    BankAccount,  # 添加 BankAccount
-    PaymentDocument,  # 添加 PaymentDocument
+    Company,
+    BankAccount,
+    PaymentDocument,
+    ProjectInvoice, 
 )
 from .serializers import (
     OwnerSerializer,
@@ -36,9 +37,10 @@ from .serializers import (
     ExpenditureSerializer,
     ProjectChangeSerializer,
     PaymentProjectSerializer,
-    CompanySerializer,  # 添加 CompanySerializer
-    BankAccountSerializer,  # 添加 BankAccountSerializer
-    PaymentDocumentSerializer,  # 添加 PaymentDocumentSerializer
+    CompanySerializer,
+    BankAccountSerializer,
+    PaymentDocumentSerializer,
+    ProjectInvoiceSerializer,
 )
 import pandas as pd
 import traceback
@@ -813,7 +815,40 @@ class InvoiceViewSet(CanPaymentViewSet):
         return queryset.order_by(ordering)
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        # 先建立發票
+        invoice = serializer.save(created_by=self.request.user)
+        # 取得前端送來的 project_amounts
+        project_amounts = self.request.data.get("project_amounts", [])
+        for item in project_amounts:
+            project_id = item.get("project_id")
+            amount = item.get("amount")
+            if project_id:
+                # 建立 ProjectInvoice 關聯
+                ProjectInvoice.objects.create(
+                    invoice=invoice,
+                    project_id=project_id,
+                    amount=amount
+                )
+
+    def perform_update(self, serializer):
+        # 更新發票
+        invoice = serializer.save()
+        # 取得前端送來的 project_amounts
+        project_amounts = self.request.data.get("project_amounts", [])
+        
+        # 先刪除舊的關聯
+        ProjectInvoice.objects.filter(invoice=invoice).delete()
+        
+        # 建立新的關聯
+        for item in project_amounts:
+            project_id = item.get("project_id")
+            amount = item.get("amount")
+            if project_id:
+                ProjectInvoice.objects.create(
+                    invoice=invoice,
+                    project_id=project_id,
+                    amount=amount
+                )
 
 
 # 案件支出
@@ -1649,3 +1684,18 @@ class PaymentDocumentViewSet(CanPaymentViewSet):
                 {'error': f'下載失敗: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class ProjectInvoiceViewSet(viewsets.ModelViewSet):
+    queryset = ProjectInvoice.objects.select_related("invoice", "project")
+    serializer_class = ProjectInvoiceSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        queryset = ProjectInvoice.objects.select_related("invoice", "project")
+        invoice_id = self.request.query_params.get("invoice", None)
+        project_id = self.request.query_params.get("project", None)
+        if invoice_id:
+            queryset = queryset.filter(invoice_id=invoice_id)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset.order_by("-id")
