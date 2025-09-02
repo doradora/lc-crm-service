@@ -580,6 +580,10 @@
                   移除
                 </button>
               </div>
+              <div class="d-flex gap-2 mt-1">
+                <span v-if="item.project_id" class="text-gray-500 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
+                <span class="text-primary cursor-pointer fs-7 ml-2 text-end" @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">帶入請款金額</span>
+              </div>
             </div>
             <div class="mb-2">
               <button type="button" class="btn btn-sm btn-light-primary" @click="addProjectAmount">

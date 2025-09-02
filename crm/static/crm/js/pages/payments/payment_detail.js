@@ -1115,6 +1115,11 @@ const paymentDetail = createApp({
         return;
       }
 
+      // 從 project_amounts 取出 amount 並加總
+      const totalProjectAmount = this.newInvoice.project_amounts
+        .filter(item => item.project_id && item.amount)
+        .reduce((sum, item) => sum + Number(item.amount), 0);
+
       const invoiceData = {
         invoice_type: this.newInvoice.invoice_type,
         invoice_number: this.newInvoice.invoice_number,
@@ -1126,7 +1131,7 @@ const paymentDetail = createApp({
         payment_received_date: this.newInvoice.payment_received_date || null,
         account_entry_date: this.newInvoice.account_entry_date || null,
         payment_method: this.newInvoice.payment_method || null,
-        actual_received_amount: this.newInvoice.actual_received_amount || null,
+        actual_received_amount: totalProjectAmount, // 使用加總值
         payment_status: this.newInvoice.payment_status,
         is_paid: this.newInvoice.payment_status === 'paid',
         project_amounts: this.newInvoice.project_amounts.filter(item => item.project_id && item.amount), // 過濾掉空值
