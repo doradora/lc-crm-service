@@ -256,7 +256,7 @@ def generate_payment_excel(payment):
                 project = pi.project
                 row += 1
                 # 收款日
-                original_ws.cell(row=row, column=1).value = invoice.payment_received_date.strftime('%Y-%m-%d') if invoice.payment_received_date else ""
+                original_ws.cell(row=row, column=1).value = invoice.payment_received_date.strftime('%Y/%m/%d') if invoice.payment_received_date else ""
                 # 發票日期/字軌號碼
                 v = ""
                 if invoice.issue_date:
@@ -278,7 +278,7 @@ def generate_payment_excel(payment):
                 # 收款方式
                 original_ws.cell(row=row, column=4).value = dict(invoice.PAYMENT_METHOD_CHOICES).get(invoice.payment_method, invoice.payment_method) if invoice.payment_method else ""
                 # 入帳日
-                original_ws.cell(row=row, column=5).value = invoice.account_entry_date.strftime('%Y-%m-%d') if invoice.account_entry_date else ""
+                original_ws.cell(row=row, column=5).value = invoice.account_entry_date.strftime('%Y/%m/%d') if invoice.account_entry_date else ""
                 # 金額
                 original_ws.cell(row=row, column=6).value = pi.amount
                 original_ws.cell(row=row, column=6).number_format = "#,##0"
