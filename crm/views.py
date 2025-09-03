@@ -1823,6 +1823,7 @@ def export_payment_invoices_excel(request):
                     '請款單號': payment.payment_number,
                     '業主': payment.owner.company_name if payment.owner else '-',
                     '收款公司': payment.company.name if payment.company else '-',
+                    '發票號碼': corresponding_invoice.invoice_number if corresponding_invoice else '-',
                     '請款金額': payment_project.amount,
                     '收款日': payment_received_date_str,
                     '入帳日': account_entry_date_str,
@@ -1840,13 +1841,16 @@ def export_payment_invoices_excel(request):
             return Response({'message': '沒有找到可匯出的專案資料'}, 
                           status=status.HTTP_204_NO_CONTENT)
         
+        # 依請款單號、發票號碼排序，讓同一請款單下的同發票資料列在一起
+        export_data.sort(key=lambda x: (x['請款單號'], x['發票號碼'] == '-', x['發票號碼']))
+        
         # 建立Excel工作簿
         workbook = Workbook()
         worksheet = workbook.active
-        worksheet.title = "請款單發票資料"
+        worksheet.title = "請款單資料"
         
         # 設定欄位標題
-        headers = ['案件編號', '請款單號', '業主', '收款公司', '請款金額', '收款日', 
+        headers = ['案件編號', '請款單號', '業主', '收款公司', '發票號碼', '請款金額', '收款日', 
                   '入帳日', '收款方式', '實收金額', '付款狀態', '備註', '建立者', '建立時間']
         
         # 寫入標題行
@@ -1874,12 +1878,12 @@ def export_payment_invoices_excel(request):
         # 列印重複表頭（每頁都重複第1列）
         worksheet.print_title_rows = '1:1'
         # 自動篩選（假設資料從第2列到最後一列，A到M欄）
-        worksheet.auto_filter.ref = f"A1:M{worksheet.max_row}"
+        worksheet.auto_filter.ref = f"A1:N{worksheet.max_row}"
         # 水平置中
         worksheet.page_setup.centerHorizontally = True
         
         # 固定欄寬
-        column_widths = [18.75, 26.25, 37.5, 37.5, 18.75, 18.75, 18.75, 15.0, 18.75, 16.25, 25.0, 12.5, 26.25]
+        column_widths = [18.75, 26.25, 37.5, 37.5, 18.75, 18.75, 18.75, 18.75, 15.0, 18.75, 16.25, 25.0, 12.5, 26.25]
         for idx, width in enumerate(column_widths, 1):
             column_letter = get_column_letter(idx)
             worksheet.column_dimensions[column_letter].width = width
@@ -1899,7 +1903,7 @@ def export_payment_invoices_excel(request):
         elif date_end:
             date_range_str = f"_until_{date_end.replace('-', '')}"
         
-        filename = f"請款單發票資料{date_range_str}_{today}.xlsx"
+        filename = f"請款單資料{date_range_str}_{today}.xlsx"
         
         # 設定檔案下載標頭，支援中文檔名
         from urllib.parse import quote
