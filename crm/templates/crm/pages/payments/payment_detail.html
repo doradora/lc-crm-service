@@ -547,8 +547,8 @@
               </div>
             </div>
             <div class="col">
-              <span class="text-gray-500 fs-7">輸入發票金額(含稅)，自動計算未稅金額(÷1.05)與稅額(含稅-未稅)。</span><br>
-              <span class="text-gray-500 fs-7">若不需自動計算稅額，亦可自行輸入未稅金額或稅額。</span>
+              <span class="text-gray-700 fs-7">輸入發票金額(含稅)，自動計算未稅金額(÷1.05)與稅額(含稅-未稅)。</span><br>
+              <span class="text-gray-700 fs-7">若不需自動計算稅額，亦可自行輸入未稅金額或稅額。</span>
             </div>
           </div>
           
@@ -581,10 +581,16 @@
                   移除
                 </button>
               </div>
-              <div class="d-flex gap-2 mt-1" v-if="item.project_id" >
-                <span class="text-gray-500 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
+              <div class="col-8 d-flex gap-2 mt-1" v-if="item.project_id" >
+                <span class="text-gray-700 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
                 <span class="text-warning fs-7 ml-auto text-end" v-if="item.amount !== payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">請款金額與實收金額不符!</span>
-                <span class="text-primary cursor-pointer fs-7 ml-2 text-end" @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">帶入請款金額</span>
+              </div>
+              <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >
+                <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end" 
+                     @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount"
+                >
+                  帶入請款金額
+                </div>
               </div>
             </div>
             <div class="mb-2">
