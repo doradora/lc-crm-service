@@ -583,7 +583,10 @@
               </div>
               <div class="col-8 d-flex gap-2 mt-1" v-if="item.project_id" >
                 <span class="text-gray-700 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
-                <span class="text-warning fs-7 ml-auto text-end" v-if="item.amount !== payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">請款金額與實收金額不符!</span>
+                <span class="text-warning fs-7 ml-auto text-end"
+                      v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
+                  請款金額與實收金額不符!
+                </span>
               </div>
               <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >
                 <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end" 

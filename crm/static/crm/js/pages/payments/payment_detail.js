@@ -973,6 +973,10 @@ const paymentDetail = createApp({
       this.editingInvoiceId = null;
       this.validationErrors = {};
       this.dateErrors = {};
+      // 取得請款單第一個專案ID
+      const firstProjectId = (this.payment.payment_projects && this.payment.payment_projects.length > 0)
+        ? this.payment.payment_projects[0].project
+        : '';
       this.newInvoice = {
         id: null,
         invoice_type: "normal",
@@ -988,7 +992,7 @@ const paymentDetail = createApp({
         gross_amount: 0,
         payment_status: "unpaid",
         is_paid: false,
-        project_amounts: [ { project_id: '', amount: '' } ], // 初始化為一筆
+        project_amounts: [ { project_id: firstProjectId, amount: 0 } ], // 預設為第一個專案id，金額0
       };
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
@@ -1031,7 +1035,7 @@ const paymentDetail = createApp({
           gross_amount: gross,
           payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"),
           is_paid: invoice.is_paid || false,
-          project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [ { project_id: '', amount: '' } ],
+          project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [ { project_id: '', amount: 0 } ],
         };
       }
       const modal = new bootstrap.Modal(
