@@ -344,9 +344,7 @@ class PaymentProjectSerializer(serializers.ModelSerializer):
 class PaymentSerializer(serializers.ModelSerializer):
     projects = serializers.SerializerMethodField(read_only=True)
     created_by_name = serializers.SerializerMethodField(read_only=True)
-    payment_projects = PaymentProjectSerializer(
-        source="paymentproject_set", many=True, read_only=True
-    )
+    payment_projects = serializers.SerializerMethodField(read_only=True)  # 改成使用自訂方法
     invoices = serializers.SerializerMethodField(read_only=True)
     owner_name = serializers.SerializerMethodField(read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True)
@@ -397,6 +395,34 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     def get_projects(self, obj):
         return [project.id for project in obj.projects.all()]
+    
+    def get_payment_projects(self, obj):
+        """依照年份->category_code->案號進行由小到大排序"""
+        payment_projects = obj.paymentproject_set.all().select_related('project', 'project__category')
+        
+        # 先序列化資料
+        serialized_data = PaymentProjectSerializer(payment_projects, many=True).data
+        
+        # 依照project_info的內容進行排序
+        def sort_key(pp):
+            if not pp['project_info']:
+                return (0, '', 0)
+            
+            year = pp['project_info']['year'] if pp['project_info']['year'] else 0
+            category_code = pp['project_info']['category_code'] if pp['project_info']['category_code'] else ''
+            
+            # 將案號轉換為數字進行排序
+            project_number = pp['project_info']['project_number']
+            try:
+                project_number_int = int(project_number) if project_number else 0
+            except (ValueError, TypeError):
+                project_number_int = 0
+            
+            return (year, category_code, project_number_int)
+        
+        sorted_data = sorted(serialized_data, key=sort_key)
+        
+        return sorted_data
 
     def get_created_by_name(self, obj):
         if obj.created_by and hasattr(obj.created_by, "profile"):
