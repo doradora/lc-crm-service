@@ -70,22 +70,20 @@ def generate_payment_excel(payment):
         def get_sort_key(pp):
             project = pp.project
             if not project or not project.category:
-                return ("", [])
-            category_code = project.category.code or ""
-            # 依自訂欄位順序取值
-            custom_schema = project.category.custom_field_schema or {}
-            custom_order = sorted(
-                [(k, v.get("order", 0)) for k, v in custom_schema.items()], key=lambda x: x[1]
-            )
-            custom_values = []
-            for field, _ in custom_order:
-                val = getattr(project, "custom_fields", {}).get(field)
-                # 強制轉成 str，dict 也會變成字串，避免 unhashable type 錯誤
-                try:
-                    custom_values.append(str(val) if val is not None else "")
-                except Exception:
-                    custom_values.append("")
-            return (category_code, tuple(custom_values))  # tuple 可 hash
+                return (0, '', 0)
+
+            # 年份
+            year = project.year if project.year else 0
+            # 類別代碼
+            category_code = project.category.code if project.category.code else ''
+            # 案號轉換為數字進行排序
+            project_number = project.project_number
+            try:
+                project_number_int = int(project_number) if project_number else 0
+            except (ValueError, TypeError):
+                project_number_int = 0
+
+            return (year, category_code, project_number_int)
         payment_projects = sorted(payment_projects, key=get_sort_key)
 
         # --- 創建專案明細列表 ---
