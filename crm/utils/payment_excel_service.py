@@ -241,50 +241,106 @@ def generate_payment_excel(payment):
                 top=Side(style="mediumDashDot"),
                 bottom=Side(style="thin")
             )
-        # 寫入發票資料
+        # 寫入發票資料 - 以專案為主體排序
         invoice_qs = payment.invoices.all() if hasattr(payment, 'invoices') else []
         bank_name = payment.selected_bank_account.bank_name if payment.selected_bank_account else ""
-        row = receipt_note_start_row
-        # 收集所有已列出的專案 id
-        listed_project_ids = set()
+        
+        # 建立發票與專案的對應關係字典
+        project_invoices_map = {}  # {project_id: [(pi, invoice), ...]}
         for invoice in invoice_qs:
-            # 查詢這張發票關聯的所有專案
-            related_projects = ProjectInvoice.objects.filter(invoice=invoice).select_related("project")
+            related_projects = ProjectInvoice.objects.filter(invoice=invoice).select_related("project", "project__category")
             for pi in related_projects:
-                project = pi.project
+                if pi.project:
+                    project_id = pi.project.id
+                    if project_id not in project_invoices_map:
+                        project_invoices_map[project_id] = []
+                    project_invoices_map[project_id].append((pi, invoice))
+        
+        # 取得所有專案並排序：年份 → 類別代碼 → 案號
+        all_projects = []
+        for detail in project_details:
+            if detail["project"]:
+                all_projects.append(detail["project"])
+        
+        def get_project_sort_key(project):
+            if not project:
+                return (0, '', 0)
+            
+            year = project.year if project.year else 0
+            category_code = project.category.code if project.category and project.category.code else ''
+            try:
+                project_number_int = int(project.project_number) if project.project_number else 0
+            except (ValueError, TypeError):
+                project_number_int = 0
+            
+            return (year, category_code, project_number_int)
+        
+        all_projects.sort(key=get_project_sort_key)
+        
+        row = receipt_note_start_row
+        
+        # 依專案排序順序寫入資料
+        for project in all_projects:
+            # 產生案號
+            year = getattr(project, "year", None)
+            category = getattr(project, "category", None)
+            code = getattr(category, "code", "") if category else ""
+            number = getattr(project, "project_number", "")
+            pcode = ""
+            if year and code and number is not None:
+                pcode = f"{year}{code}{str(number).zfill(3)}"
+            
+            # 檢查此專案是否有發票
+            project_invoice_data = project_invoices_map.get(project.id, [])
+            
+            if project_invoice_data:
+                # 有發票：寫入每張發票的資料
+                for pi, invoice in project_invoice_data:
+                    row += 1
+                    # 收款日
+                    original_ws.cell(row=row, column=1).value = invoice.payment_received_date.strftime('%Y/%m/%d') if invoice.payment_received_date else ""
+                    # 發票日期/字軌號碼
+                    v = ""
+                    if invoice.issue_date:
+                        v += invoice.issue_date.strftime('%Y-%m-%d')
+                    if invoice.invoice_number:
+                        v += f"/{invoice.invoice_number}"
+                    original_ws.cell(row=row, column=2).value = v
+                    # 案號
+                    original_ws.cell(row=row, column=3).value = pcode
+                    # 收款方式
+                    original_ws.cell(row=row, column=4).value = dict(invoice.PAYMENT_METHOD_CHOICES).get(invoice.payment_method, invoice.payment_method) if invoice.payment_method else ""
+                    # 入帳日
+                    original_ws.cell(row=row, column=5).value = invoice.account_entry_date.strftime('%Y/%m/%d') if invoice.account_entry_date else ""
+                    # 金額
+                    original_ws.cell(row=row, column=6).value = pi.amount
+                    original_ws.cell(row=row, column=6).number_format = "#,##0"
+                    # 存放行庫
+                    original_ws.cell(row=row, column=7).value = bank_name
+                    # 備註
+                    original_ws.cell(row=row, column=8).value = invoice.notes or ""
+                    # 格式設定
+                    for col in range(1, 9):
+                        cell = original_ws.cell(row=row, column=col)
+                        cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
+                        cell.alignment = Alignment(vertical="center")
+                        if col in [1, 2, 3, 4, 5]:
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+                        if col == 1:
+                            cell.font = Font(size=9, name="Microsoft JhengHei", color="000000")
+                        cell.border = Border(bottom=Side(style="thin"))
+                    original_ws.row_dimensions[row].height = 30
+            else:
+                # 沒有發票：只寫案號，其餘留空
                 row += 1
-                # 收款日
-                original_ws.cell(row=row, column=1).value = invoice.payment_received_date.strftime('%Y/%m/%d') if invoice.payment_received_date else ""
-                # 發票日期/字軌號碼
-                v = ""
-                if invoice.issue_date:
-                    v += invoice.issue_date.strftime('%Y-%m-%d')
-                if invoice.invoice_number:
-                    v += f"/{invoice.invoice_number}"
-                original_ws.cell(row=row, column=2).value = v
-                # 案號
-                pcode = ""
-                if project:
-                    year = getattr(project, "year", None)
-                    category = getattr(project, "category", None)
-                    code = getattr(category, "code", "") if category else ""
-                    number = getattr(project, "project_number", "")
-                    if year and code and number is not None:
-                        pcode = f"{year}{code}{str(number).zfill(3)}"
-                        listed_project_ids.add(project.id)
+                original_ws.cell(row=row, column=1).value = ""
+                original_ws.cell(row=row, column=2).value = ""
                 original_ws.cell(row=row, column=3).value = pcode
-                # 收款方式
-                original_ws.cell(row=row, column=4).value = dict(invoice.PAYMENT_METHOD_CHOICES).get(invoice.payment_method, invoice.payment_method) if invoice.payment_method else ""
-                # 入帳日
-                original_ws.cell(row=row, column=5).value = invoice.account_entry_date.strftime('%Y/%m/%d') if invoice.account_entry_date else ""
-                # 金額
-                original_ws.cell(row=row, column=6).value = pi.amount
-                original_ws.cell(row=row, column=6).number_format = "#,##0"
-                # 存放行庫
-                bank_name = payment.selected_bank_account.bank_name if payment.selected_bank_account else ""
-                original_ws.cell(row=row, column=7).value = bank_name
-                # 備註
-                original_ws.cell(row=row, column=8).value = invoice.notes or ""
+                original_ws.cell(row=row, column=4).value = ""
+                original_ws.cell(row=row, column=5).value = ""
+                original_ws.cell(row=row, column=6).value = ""
+                original_ws.cell(row=row, column=7).value = ""
+                original_ws.cell(row=row, column=8).value = ""
                 # 格式設定
                 for col in range(1, 9):
                     cell = original_ws.cell(row=row, column=col)
@@ -292,45 +348,8 @@ def generate_payment_excel(payment):
                     cell.alignment = Alignment(vertical="center")
                     if col in [1, 2, 3, 4, 5]:
                         cell.alignment = Alignment(horizontal="center", vertical="center")
-                    if col == 1:
-                        cell.font = Font(size=9, name="Microsoft JhengHei", color="000000")
                     cell.border = Border(bottom=Side(style="thin"))
                 original_ws.row_dimensions[row].height = 30
-            original_ws.row_dimensions[row].height = 30
-
-        # 補上沒有發票的專案（僅列出專案號碼，其餘留空）
-        all_project_ids = set()
-        all_pcodes = dict()
-        for detail in project_details:
-            project = detail["project"]
-            if project:
-                year = getattr(project, "year", None)
-                category = getattr(project, "category", None)
-                code = getattr(category, "code", "") if category else ""
-                number = getattr(project, "project_number", "")
-                if year and code and number is not None:
-                    pcode = f"{year}{code}{str(number).zfill(3)}"
-                    all_project_ids.add(project.id)
-                    all_pcodes[project.id] = pcode
-        missing_project_ids = all_project_ids - listed_project_ids
-        for pid in missing_project_ids:
-            row += 1
-            original_ws.cell(row=row, column=1).value = ""
-            original_ws.cell(row=row, column=2).value = ""
-            original_ws.cell(row=row, column=3).value = all_pcodes.get(pid, "")
-            original_ws.cell(row=row, column=4).value = ""
-            original_ws.cell(row=row, column=5).value = ""
-            original_ws.cell(row=row, column=6).value = ""
-            original_ws.cell(row=row, column=7).value = ""
-            original_ws.cell(row=row, column=8).value = ""
-            for col in range(1, 9):
-                cell = original_ws.cell(row=row, column=col)
-                cell.font = Font(size=12, name="Microsoft JhengHei", color="000000")
-                cell.alignment = Alignment(vertical="center")
-                if col in [1, 2, 3, 4, 5]:
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                cell.border = Border(bottom=Side(style="thin"))
-            original_ws.row_dimensions[row].height = 30
 
         
         output = BytesIO()
