@@ -57,6 +57,8 @@ from .permissions import IsAdminOrCanRequestPayment, IsAdmin
 from .utils.import_utils import import_owners_from_file, import_projects_from_file
 from .utils.payment_excel_service import generate_payment_excel
 import logging
+from django.db.models.functions import Concat
+from django.db.models import Value, CharField
 
 logger = logging.getLogger(__name__)
 
@@ -397,36 +399,28 @@ class ProjectViewSet(BaseViewSet):
     def get_queryset(self):
         queryset = Project.objects.select_related("owner", "category").prefetch_related(
             "changes", "expenditures", "managers"
+        ).annotate(
+            full_project_number=Concat(
+                F('year'),
+                Value(''),
+                F('category__code'),
+                Value(''),
+                F('project_number'),
+                output_field=CharField()
+            )
         )
 
         # 搜尋
         search_query = self.request.query_params.get("search", None)
         if search_query:
-            # 基本搜尋條件
             search_conditions = (
                 Q(name__icontains=search_query)
                 | Q(project_number__icontains=search_query)
                 | Q(owner__company_name__icontains=search_query)
                 | Q(managers__username__icontains=search_query)
                 | Q(managers__profile__name__icontains=search_query)
+                | Q(full_project_number__icontains=search_query)
             )
-            
-            # 檢查是否是完整案件編號格式搜尋 (如: 2025A025)
-            # 如果搜尋查詢符合年份+字母+數字的格式，嘗試拆解並搜尋
-            import re
-            full_number_match = re.match(r'^(\d{4})([a-zA-Z]+)(\d{3,})$', search_query)
-            if full_number_match:
-                year = int(full_number_match.group(1))
-                category_code = full_number_match.group(2).upper()  # 統一轉為大寫比對
-                project_num = full_number_match.group(3).zfill(3)  # 補齊為3位數
-                
-                # 添加組合搜尋條件 - 使用 |= 來添加而不是替換
-                search_conditions |= Q(
-                    year=year,
-                    category__code=category_code,
-                    project_number__icontains=project_num
-                )
-
             queryset = queryset.filter(search_conditions).distinct()
 
         # 專案負責人過濾
