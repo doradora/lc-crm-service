@@ -1118,11 +1118,32 @@ const paymentDetail = createApp({
         });
         return;
       }
+      // 驗證 project_amounts 金額
+      for (let i = 0; i < this.newInvoice.project_amounts.length; i++) {
+        const item = this.newInvoice.project_amounts[i];
+        if (item.amount === '') {
+          Swal.fire({
+            icon: "warning",
+            title: "提示",
+            text: `專案實收金額 第${i + 1}筆專案金額請輸入正確的金額`,
+          });
+          return;
+        }
+      }
 
       // 從 project_amounts 取出 amount 並加總
       const totalProjectAmount = this.newInvoice.project_amounts
         .filter(item => item.project_id && item.amount)
         .reduce((sum, item) => sum + Number(item.amount), 0);
+
+      const filtered_project_amounts = this.newInvoice.project_amounts
+        .filter(item => 
+          item.project_id !== '' 
+          && item.project_id !== null 
+          && item.project_id !== undefined 
+          && item.amount !== null 
+          && item.amount !== undefined
+        )
 
       const invoiceData = {
         invoice_type: this.newInvoice.invoice_type,
@@ -1138,7 +1159,7 @@ const paymentDetail = createApp({
         actual_received_amount: totalProjectAmount, // 使用加總值
         payment_status: this.newInvoice.payment_status,
         is_paid: this.newInvoice.payment_status === 'paid',
-        project_amounts: this.newInvoice.project_amounts.filter(item => item.project_id && item.amount), // 過濾掉空值
+        project_amounts: filtered_project_amounts
       };
 
       // 清空空字串值
