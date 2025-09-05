@@ -230,10 +230,10 @@
                     </div>
 
                     <!-- 舊系統匯入 -->
-                    <div class="card-title mb-5 mt-8">
+                    <div v-if="currentUser && currentUser.profile && (currentUser.profile.is_admin || currentUser.profile.can_request_payment)" class="card-title mb-5 mt-8">
                       <h4>⚠️舊系統匯入(過時資料，僅顯示)</h4>
                     </div>
-                    <div class="row mb-5">
+                    <div v-if="currentUser && currentUser.profile && (currentUser.profile.is_admin || currentUser.profile.can_request_payment)" class="row mb-5">
                       <div class="col-md-6 mb-5">
                         <label class="form-label">是否請款</label>
                         <div class="form-control-plaintext" style="white-space: pre-line;">[[
