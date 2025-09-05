@@ -284,13 +284,13 @@
                       <button class="btn btn-sm btn-light-primary" @click="createInvoice">
                         <i class="ki-outline ki-plus fs-2"></i>建立發票
                       </button>
-                      <div class="text-gray-700">右滑到底可進行刪除/編輯 -></div>
                     </div>
                   </div>
                   <div class="table-responsive">
                     <table class="table table-row-bordered table-row-gray-200" :style="isEditing ? 'min-width:940px;' : 'min-width:790px;'">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
+                          <th v-if="isEditing">操作</th>
                           <th>發票類型 & 號碼</th>
                           <th>付款狀態 & 收款方式</th>
                           <th class="text-end">發票金額</th>
@@ -299,11 +299,18 @@
                           <th class="text-end">實收金額</th>
                           <th>收款日</th>
                           <th>入帳日</th>
-                          <th v-if="isEditing">操作</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-for="invoice in payment.invoices || []" :key="invoice.id">
+                          <td v-if="isEditing">
+                            <button class="btn btn-sm btn-icon btn-light-primary me-2" @click="editInvoice(invoice.id)">
+                              <i class="ki-outline ki-pencil fs-2"></i>
+                            </button>
+                            <button class="btn btn-sm btn-icon btn-light-danger" @click="deleteInvoice(invoice.id)">
+                              <i class="ki-outline ki-trash fs-2"></i>
+                            </button>
+                          </td>
                           <td>
                             <div>
                               <span class="badge" :class="getInvoiceTypeBadgeClass(invoice.invoice_type)">
@@ -334,14 +341,6 @@
                             [[ formatDate(invoice.payment_received_date) ]]
                           </td>
                           <td>[[ formatDate(invoice.account_entry_date) ]]</td>
-                          <td v-if="isEditing">
-                            <button class="btn btn-sm btn-icon btn-light-primary me-2" @click="editInvoice(invoice.id)">
-                              <i class="ki-outline ki-pencil fs-2"></i>
-                            </button>
-                            <button class="btn btn-sm btn-icon btn-light-danger" @click="deleteInvoice(invoice.id)">
-                              <i class="ki-outline ki-trash fs-2"></i>
-                            </button>
-                          </td>
                         </tr>
                         <tr v-if="!payment.invoices || payment.invoices.length === 0">
                           <td :colspan="isEditing ? 9 : 8" class="text-center py-5">
@@ -351,6 +350,7 @@
                       </tbody>
                       <tfoot v-if="payment.invoices && payment.invoices.length > 0">
                         <tr class="fw-bold fs-6 text-gray-800">
+                          <td v-if="isEditing"></td>
                           <td colspan="2">總計</td>
                           <td class="text-end">[[ formatCurrency(totalInvoiceAmount) ]]</td>
                           <td class="text-end">[[ formatCurrency(totalInvoiceTaxAmount) ]]</td>
@@ -360,7 +360,6 @@
                           <td class="text-end">
                             發票總額:[[ formatCurrency(totalInvoiceAmount + totalInvoiceTaxAmount) ]]
                           </td>
-                          <td v-if="isEditing"></td>
                         </tr>
                       </tfoot>
                     </table>
