@@ -561,9 +561,9 @@
               </option>
             </select>
           </div>
-          <!-- 專案實收金額（可多筆） -->
+          <!-- 專案應收金額（可多筆） -->
           <div class="form-group mb-5">
-            <label class="form-label">專案實收金額</label>
+            <label class="form-label">專案應收金額</label>
             <div v-for="(item, idx) in newInvoice.project_amounts" :key="idx" class="row mb-2 align-items-center">
               <div class="col-md-8">
                 <select class="form-select" v-model="item.project_id">
@@ -584,7 +584,7 @@
                 <span class="text-gray-700 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
                 <span class="text-warning fs-7 ml-auto text-end"
                       v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
-                  請款金額與實收金額不符!
+                  請款金額與應收金額不符!
                 </span>
               </div>
               <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >

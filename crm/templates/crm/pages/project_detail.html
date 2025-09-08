@@ -93,29 +93,6 @@
                   <div class="tab-pane fade show active" id="tab_basic_info" role="tabpanel">
                     <!-- 基本資料區塊 -->
                     <div class="row mb-5">
-                      <div class="col-md-12">
-                        <label class="form-label">報告書名稱</label>
-                        <input v-if="isEditMode && canEditProject" type="text" class="form-control"
-                          v-model="project.report_name" placeholder="請輸入報告書名稱">
-                        <div v-else class="form-control-plaintext">[[ project.report_name ||
-                          '未設定' ]]</div>
-                      </div>
-                    </div>
-                    <div class="row mb-5">
-                      <div class="col-md-12">
-                        <label class="form-label">業主</label>
-                        <div v-if="isEditMode" class="input-group">
-                          <input type="text" class="form-control" :value="project.owner_name"
-                            @click="showOwnerSelectionModal" readonly placeholder="點擊選擇業主...">
-                          <button class="btn btn-outline-secondary" type="button" @click="showOwnerSelectionModal">
-                            <i class="ki-outline ki-magnifier fs-5"></i>
-                          </button>
-                        </div>
-                        <div v-else class="form-control-plaintext">[[ project.owner_name ||
-                          getOwnerName ]]</div>
-                      </div>
-                    </div>
-                    <div class="row mb-5">
                       <div class="col-md-4 mb-5">
                         <label class="form-label">年份</label>
                         <!-- <input v-if="isEditMode"
@@ -147,6 +124,29 @@
                           v-model="project.project_number"
                           >
                         <div v-else class="form-control-plaintext">[[ project.project_number ]]</div>
+                      </div>
+                    </div>
+                    <div class="row mb-5">
+                      <div class="col-md-12">
+                        <label class="form-label">報告書名稱</label>
+                        <input v-if="isEditMode && canEditProject" type="text" class="form-control"
+                          v-model="project.report_name" placeholder="請輸入報告書名稱">
+                        <div v-else class="form-control-plaintext">[[ project.report_name ||
+                          '未設定' ]]</div>
+                      </div>
+                    </div>
+                    <div class="row mb-5">
+                      <div class="col-md-12">
+                        <label class="form-label">業主</label>
+                        <div v-if="isEditMode" class="input-group">
+                          <input type="text" class="form-control" :value="project.owner_name"
+                            @click="showOwnerSelectionModal" readonly placeholder="點擊選擇業主...">
+                          <button class="btn btn-outline-secondary" type="button" @click="showOwnerSelectionModal">
+                            <i class="ki-outline ki-magnifier fs-5"></i>
+                          </button>
+                        </div>
+                        <div v-else class="form-control-plaintext">[[ project.owner_name ||
+                          getOwnerName ]]</div>
                       </div>
                     </div>
                     <div class="row mb-5">
