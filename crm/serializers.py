@@ -14,6 +14,7 @@ from .models import (
     BankAccount,  # 添加 BankAccount
     PaymentDocument,  # 添加 PaymentDocument
     ProjectInvoice,  # 添加 ProjectInvoice
+    ProjectReceipt,
 )
 from django.contrib.auth.models import User
 
@@ -349,6 +350,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField(read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True)
     selected_bank_account_details = serializers.SerializerMethodField(read_only=True)
+    project_receipts = serializers.SerializerMethodField(read_only=True)  # 新增收款記錄
 
     class Meta:
         model = Payment
@@ -373,6 +375,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'company_name',  # 添加用於顯示的公司名稱
             'selected_bank_account',  # 添加銀行帳號欄位
             'selected_bank_account_details',  # 添加銀行帳號詳細資訊
+            'project_receipts',  # 添加收款記錄
         ]
         read_only_fields = ["amount", "created_at"]
     
@@ -450,6 +453,11 @@ class PaymentSerializer(serializers.ModelSerializer):
             'bank_name': obj.selected_bank_account.bank_name,
             'bank_code': obj.selected_bank_account.bank_code,
         }
+
+    def get_project_receipts(self, obj):
+        """獲取請款單相關的收款記錄，依專案分組"""
+        receipts = ProjectReceipt.objects.filter(payment=obj).select_related('project')
+        return ProjectReceiptSerializer(receipts, many=True).data
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
@@ -608,5 +616,28 @@ class ProjectInvoiceSerializer(serializers.ModelSerializer):
     def get_invoice_number(self, obj):
         return obj.invoice.invoice_number if obj.invoice else None
 
+    def get_project_name(self, obj):
+        return obj.project.name if obj.project else None
+
+class ProjectReceiptSerializer(serializers.ModelSerializer):
+    payment_number = serializers.SerializerMethodField(read_only=True)
+    project_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ProjectReceipt
+        fields = [
+            "id",
+            "payment",
+            "payment_number",
+            "project",
+            "project_name",
+            "amount",
+            "payment_date",
+            "payment_method",
+        ]
+        
+    def get_payment_number(self, obj):
+        return obj.payment.payment_number if obj.payment else None
+    
     def get_project_name(self, obj):
         return obj.project.name if obj.project else None

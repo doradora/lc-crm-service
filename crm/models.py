@@ -457,6 +457,32 @@ class ProjectInvoice(models.Model):
     class Meta:
         unique_together = ("invoice", "project")  # 確保一個發票中一個專案只出現一次
 
+# 專案收款記錄關聯表
+class ProjectReceipt(models.Model):
+    """專案收款記錄"""
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', '現金'),
+        ('bank_transfer', '銀行轉帳'),
+        ('check', '支票'),
+        ('credit_card', '信用卡'),
+        ('other', '其他'),
+    ]
+    
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True)  # 關聯的專案
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, null=True)  # 關聯的請款單
+    amount = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True)  # 收款金額
+    payment_date = models.DateField(null=True, blank=True)  # 收款日期
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        blank=True,
+        null=True
+    )  # 收款方式
+    
+
+    def __str__(self):
+        return f"{self.project.name} - {self.payment.payment_number} - {self.amount}"
+
 class BankAccount(models.Model):
     """銀行帳戶模型"""
     company = models.ForeignKey(Company, related_name='bank_accounts', on_delete=models.CASCADE)  # 所屬公司

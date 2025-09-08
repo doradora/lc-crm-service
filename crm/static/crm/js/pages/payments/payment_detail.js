@@ -97,6 +97,18 @@ const paymentDetail = createApp({
       // 內存請款單相關資料
       paymentDocuments: [], // 內存請款單文件列表
       isUploadingDocument: false, // 上傳狀態
+      
+      // 收款記錄相關資料
+      projectReceipts: [], // 收款記錄列表
+      newProjectReceipt: {
+        id: null,
+        project: null,
+        amount: null,
+        payment_date: null,
+        payment_method: "",
+      },
+      editingProjectReceipt: false,
+      editingProjectReceiptId: null,
     };
   },
   computed: {
@@ -169,6 +181,13 @@ const paymentDetail = createApp({
             this.payment.payment_projects.forEach((project) => {
               project.change_count = project.change_count || 0; // 確保變更次數有值
             });
+          }
+
+          // 載入收款記錄
+          if (this.payment.project_receipts) {
+            this.projectReceipts = this.payment.project_receipts;
+          } else {
+            this.fetchProjectReceipts();
           }
         })
         .catch((error) => {
@@ -1798,6 +1817,179 @@ const paymentDetail = createApp({
           title: "錯誤",
           text: "操作失敗",
         });
+      }
+    },
+
+    // ========== 收款記錄相關方法 ==========
+    getProjectPayments(projectId) {
+      // 根據專案ID回傳該專案的收款記錄
+      return this.projectReceipts.filter(receipt => receipt.project === projectId);
+    },
+
+    getProjectReceivableAmount(projectId) {
+      // 計算專案應收金額：從發票中的project_amounts根據專案做加總
+      if (!this.payment.invoices || this.payment.invoices.length === 0) {
+        return 0;
+      }
+      
+      let totalAmount = 0;
+      this.payment.invoices.forEach(invoice => {
+        if (invoice.project_amounts && invoice.project_amounts.length > 0) {
+          invoice.project_amounts.forEach(projectAmount => {
+            if (projectAmount.project_id === projectId) {
+              totalAmount += Number(projectAmount.amount || 0);
+            }
+          });
+        }
+      });
+      
+      return totalAmount;
+    },
+
+    getTotalProjectPaymentAmount() {
+      // 計算所有收款記錄的總金額
+      return this.projectReceipts.reduce((sum, receipt) => sum + Number(receipt.amount || 0), 0);
+    },
+
+    showAddProjectPaymentModal() {
+      // 顯示新增收款記錄對話框
+      this.resetProjectReceiptForm();
+      this.editingProjectReceipt = false;
+      
+      const modal = new bootstrap.Modal(document.getElementById('addProjectReceiptModal'));
+      modal.show();
+    },
+
+    hideProjectReceiptModal() {
+      // 隱藏收款記錄對話框
+      const modal = bootstrap.Modal.getInstance(document.getElementById('addProjectReceiptModal'));
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    editProjectPayment(receiptId) {
+      // 編輯收款記錄
+      const receipt = this.projectReceipts.find(r => r.id === receiptId);
+      if (receipt) {
+        this.newProjectReceipt = { ...receipt };
+        this.editingProjectReceipt = true;
+        this.editingProjectReceiptId = receiptId;
+        
+        const modal = new bootstrap.Modal(document.getElementById('addProjectReceiptModal'));
+        modal.show();
+      }
+    },
+
+    async deleteProjectPayment(receiptId) {
+      // 刪除收款記錄
+      try {
+        const result = await Swal.fire({
+          title: "確認刪除",
+          text: "您確定要刪除這筆收款記錄嗎？",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "刪除",
+          cancelButtonText: "取消",
+        });
+
+        if (result.isConfirmed) {
+          await axios.delete(`/crm/api/project-receipts/${receiptId}/`, {
+            headers: {
+              'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            }
+          });
+          
+          // 從本地列表移除
+          this.projectReceipts = this.projectReceipts.filter(r => r.id !== receiptId);
+          
+          Swal.fire({
+            icon: "success",
+            title: "刪除成功",
+            timer: 1500,
+          });
+        }
+      } catch (error) {
+        console.error('Error deleting receipt:', error);
+        Swal.fire({
+          icon: "error",
+          title: "刪除失敗",
+          text: error.response?.data?.detail || "刪除收款記錄時發生錯誤",
+        });
+      }
+    },
+
+    async saveProjectReceipt() {
+      // 儲存收款記錄
+      try {
+        const receiptData = {
+          ...this.newProjectReceipt,
+          payment: this.paymentId,
+        };
+
+        let response;
+        if (this.editingProjectReceipt) {
+          // 更新
+          response = await axios.put(`/crm/api/project-receipts/${this.editingProjectReceiptId}/`, receiptData, {
+            headers: {
+              'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            }
+          });
+          const index = this.projectReceipts.findIndex(r => r.id === this.editingProjectReceiptId);
+          if (index !== -1) {
+            this.projectReceipts[index] = response.data;
+          }
+        } else {
+          // 新增
+          response = await axios.post('/crm/api/project-receipts/', receiptData, {
+            headers: {
+              'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            }
+          });
+          this.projectReceipts.push(response.data);
+        }
+
+        this.resetProjectReceiptForm();
+        this.hideProjectReceiptModal();
+        
+        Swal.fire({
+          icon: "success",
+          title: this.editingProjectReceipt ? "更新成功" : "新增成功",
+          timer: 1500,
+        });
+
+      } catch (error) {
+        console.error('Error saving receipt:', error);
+        Swal.fire({
+          icon: "error",
+          title: "儲存失敗",
+          text: error.response?.data?.detail || "儲存收款記錄時發生錯誤",
+        });
+      }
+    },
+
+    resetProjectReceiptForm() {
+      // 重置收款記錄表單
+      this.newProjectReceipt = {
+        id: null,
+        project: null,
+        amount: null,
+        payment_date: null,
+        payment_method: "",
+      };
+      this.editingProjectReceipt = false;
+      this.editingProjectReceiptId = null;
+    },
+
+    async fetchProjectReceipts() {
+      // 載入收款記錄
+      try {
+        const response = await axios.get(`/crm/api/project-receipts/?payment=${this.paymentId}`);
+        this.projectReceipts = response.data.results || response.data;
+      } catch (error) {
+        console.error('Error fetching project receipts:', error);
       }
     },
   },

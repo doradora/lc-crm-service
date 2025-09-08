@@ -26,6 +26,7 @@ from .models import (
     BankAccount,
     PaymentDocument,
     ProjectInvoice, 
+    ProjectReceipt,
 )
 from .serializers import (
     OwnerSerializer,
@@ -41,6 +42,7 @@ from .serializers import (
     BankAccountSerializer,
     PaymentDocumentSerializer,
     ProjectInvoiceSerializer,
+    ProjectReceiptSerializer,
 )
 import pandas as pd
 import traceback
@@ -1694,6 +1696,20 @@ class ProjectInvoiceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(project_id=project_id)
         return queryset.order_by("-id")
 
+class ProjectReceiptViewSet(CanPaymentViewSet):
+    queryset = ProjectReceipt.objects.all()
+    serializer_class = ProjectReceiptSerializer
+    authentication_classes = [SessionAuthentication]
+    
+    def get_queryset(self):
+        queryset = ProjectReceipt.objects.select_related("payment", "project")
+        payment_id = self.request.query_params.get("payment", None)
+        project_id = self.request.query_params.get("project", None)
+        if payment_id:
+            queryset = queryset.filter(payment_id=payment_id)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset.order_by("-id")
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
