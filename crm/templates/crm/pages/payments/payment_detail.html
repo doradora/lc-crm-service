@@ -585,8 +585,48 @@
             </div>
           </div>
           
+          <!-- 專案應收金額（可多筆） -->
+          <div class="form-group mb-5">
+            <label class="form-label">專案應收金額(含稅)</label>
+            <div v-for="(item, idx) in newInvoice.project_amounts" :key="idx" class="row mb-2 align-items-center">
+              <div class="col-md-8">
+                <select class="form-select" v-model="item.project_id">
+                  <option v-for="project in payment.payment_projects" :key="project.project" :value="project.project">
+                    [[ project.project_info.year ]][[project.project_info.category_code]][[ project.project_info.project_number ]] - [[ project.project_name ]]
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <input type="number" class="form-control text-end" v-model="item.amount" placeholder="金額" />
+              </div>
+              <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectAmount(idx)" v-if="newInvoice.project_amounts.length > 1">
+                  <i class="ki-outline ki-trash fs-2"></i>
+                </button>
+              </div>
+              <div class="col-8 d-flex gap-2 mt-1" v-if="item.project_id" >
+                <span class="text-gray-700 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
+                <span class="text-warning fs-7 ml-auto text-end"
+                      v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
+                  請款金額與應收金額不符!
+                </span>
+              </div>
+              <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >
+                <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end" 
+                     @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount"
+                >
+                  帶入請款金額
+                </div>
+              </div>
+            </div>
+            <div class="mb-2">
+              <button type="button" class="btn btn-sm btn-light-primary" @click="addProjectAmount">
+                新增
+              </button>
+            </div>
+          </div>
           <!-- 金額相關欄位 -->
-          <div class="row mb-8">
+          <div v-if="newInvoice.invoice_type === 'normal'" class="row mb-8">
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label required text-end">發票金額(含稅)</label>
@@ -631,46 +671,6 @@
                 [[ option.display ]]
               </option>
             </select>
-          </div>
-          <!-- 專案應收金額（可多筆） -->
-          <div class="form-group mb-5">
-            <label class="form-label">專案應收金額</label>
-            <div v-for="(item, idx) in newInvoice.project_amounts" :key="idx" class="row mb-2 align-items-center">
-              <div class="col-md-8">
-                <select class="form-select" v-model="item.project_id">
-                  <option v-for="project in payment.payment_projects" :key="project.project" :value="project.project">
-                    [[ project.project_info.year ]][[project.project_info.category_code]][[ project.project_info.project_number ]] - [[ project.project_name ]]
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <input type="number" class="form-control text-end" v-model="item.amount" placeholder="金額" />
-              </div>
-              <div class="col-md-1">
-                <button type="button" class="btn btn-sm btn-danger" @click="removeProjectAmount(idx)" v-if="newInvoice.project_amounts.length > 1">
-                  移除
-                </button>
-              </div>
-              <div class="col-8 d-flex gap-2 mt-1" v-if="item.project_id" >
-                <span class="text-gray-700 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
-                <span class="text-warning fs-7 ml-auto text-end"
-                      v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
-                  請款金額與應收金額不符!
-                </span>
-              </div>
-              <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >
-                <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end" 
-                     @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount"
-                >
-                  帶入請款金額
-                </div>
-              </div>
-            </div>
-            <div class="mb-2">
-              <button type="button" class="btn btn-sm btn-light-primary" @click="addProjectAmount">
-                新增
-              </button>
-            </div>
           </div>
           <div class="row mb-5">
             <div class="col-md-6">

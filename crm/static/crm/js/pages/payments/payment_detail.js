@@ -146,6 +146,19 @@ const paymentDetail = createApp({
       }, 0);
     },
   },
+  watch: {
+    // 監聽 newInvoice.project_amounts，自動加總金額到 gross_amount
+    'newInvoice.project_amounts': {
+      handler(val) {
+        // 自動加總所有專案金額
+        const total = val.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        this.newInvoice.gross_amount = total;
+        // 同步更新未稅金額與稅額
+        this.handleGrossAmountChange();
+      },
+      deep: true
+    }
+  },
   methods: {
     // 獲取付款詳情
     fetchPaymentDetails() {
