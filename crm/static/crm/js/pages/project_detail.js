@@ -1235,6 +1235,58 @@ const projectDetail = createApp({
         maximumFractionDigits: 2,
       });
     },
+
+    // 取得付款方式顯示文字
+    getPaymentMethodDisplay(method) {
+      const methods = {
+        'cash': '現金',
+        'bank_transfer': '銀行轉帳',
+        'check': '支票',
+        'credit_card': '信用卡',
+        'other': '其他'
+      };
+      return methods[method] || method || '未設定';
+    },
+
+    // 取得發票狀態顯示文字
+    getInvoiceStatusDisplay(status) {
+      const statuses = {
+        'paid': '已付款',
+        'unpaid': '未付款',
+        'partially_paid': '付款未完成'
+      };
+      return statuses[status] || '未設定';
+    },
+
+    // 取得發票狀態樣式類別
+    getInvoiceStatusBadgeClass(status) {
+      const classes = {
+        'paid': 'badge-success',
+        'unpaid': 'badge-secondary',
+        'partially_paid': 'badge-warning'
+      };
+      return classes[status] || 'badge-light-secondary';
+    },
+
+    // 取得收款狀態顯示文字
+    getPaymentStatusDisplay(status) {
+      const mapping = {
+        'full': '全額收款',
+        'partial': '部分收款',
+        'none': '未收款'
+      };
+      return mapping[status] || '未設定';
+    },
+
+    // 取得收款狀態 badge 樣式
+    getPaymentStatusBadgeClass(status) {
+      const mapping = {
+        'full': 'badge-success',
+        'partial': 'badge-warning',
+        'none': 'badge-danger'
+      };
+      return mapping[status] || 'badge-light-secondary';
+    },
   },
   mounted() {
     this.projectId = this.getProjectIdFromUrl();

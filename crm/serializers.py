@@ -261,9 +261,61 @@ class ProjectSerializer(serializers.ModelSerializer):
     def get_related_payments(self, obj):
         """Fetch all related payments for the project."""
         result = []
-        for payment in Payment.objects.filter(paymentproject__project=obj):
+        for payment in Payment.objects.filter(paymentproject__project=obj).select_related('selected_bank_account').prefetch_related('invoices', 'projectreceipt_set'):
             payment_project = PaymentProject.objects.filter(payment=payment, project=obj).first()
             if payment_project:
+                # 取得該請款單的發票資訊
+                invoices = []
+                for invoice in payment.invoices.all():
+                    # 檢查發票是否與此專案相關
+                    project_invoice = invoice.projectinvoice_set.filter(project=obj).first()
+                    if project_invoice or not invoice.projectinvoice_set.exists():  # 如果沒有專案關聯或有此專案關聯
+                        invoices.append({
+                            'id': invoice.id,
+                            'invoice_type': invoice.invoice_type,
+                            'invoice_number': invoice.invoice_number or '無發票號碼',
+                            'amount': project_invoice.amount if project_invoice else invoice.amount,
+                            'issue_date': invoice.issue_date,
+                            'payment_status': invoice.payment_status,
+                            'payment_method': invoice.payment_method,
+                            'payment_received_date': invoice.payment_received_date,
+                            'account_entry_date': invoice.account_entry_date,
+                            'actual_received_amount': invoice.actual_received_amount,
+                        })
+                
+                # 取得該請款單此專案的收款記錄
+                receipts = []
+                total_received = 0
+                for receipt in payment.projectreceipt_set.filter(project=obj):
+                    receipts.append({
+                        'id': receipt.id,
+                        'amount': receipt.amount,
+                        'payment_date': receipt.payment_date,
+                        'payment_method': receipt.payment_method,
+                    })
+                    if receipt.amount:
+                        total_received += float(receipt.amount)
+                
+                # 計算收款狀態
+                payment_amount = float(payment_project.amount)
+                remaining_amount = payment_amount - total_received
+                
+                if remaining_amount == 0:
+                    payment_status = 'full'  # 全額
+                elif 0 < remaining_amount < payment_amount:
+                    payment_status = 'partial'  # 部分
+                else:  # remaining_amount == payment_amount
+                    payment_status = 'none'  # 未收
+                # 取得銀行帳戶資訊
+                bank_account = None
+                if payment.selected_bank_account:
+                    bank_account = {
+                        'id': payment.selected_bank_account.id,
+                        'account_name': payment.selected_bank_account.account_name,
+                        'account_number': payment.selected_bank_account.account_number,
+                        'bank_name': payment.selected_bank_account.bank_name,
+                        'bank_code': payment.selected_bank_account.bank_code,
+                    }
                 result.append({
                     'id': payment.id,
                     'payment_number': payment.payment_number,
@@ -272,6 +324,12 @@ class ProjectSerializer(serializers.ModelSerializer):
                     'date_issued': payment.date_issued,
                     'due_date': payment.due_date,
                     'payment_date': payment.payment_date,
+                    'invoices': invoices,
+                    'receipts': receipts,
+                    'bank_account': bank_account,
+                    'total_received': total_received,
+                    'remaining_amount': remaining_amount,
+                    'payment_status': payment_status,
                 })
         return result
 
