@@ -441,16 +441,17 @@
                       </thead>
                       <tbody>
                         <template v-for="project in payment.payment_projects">
-                          <tr class="table-active">
-                            <td colspan="5">
-                              <span class="fw-bold">[[ project.project_name ]]</span>
-                              <span class="ms-2 text-muted">([[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
-                              <span class="ms-4">請款金額：[[ formatCurrency(project.amount) ]]</span>
-                              <span class="ms-4">應收金額：[[ formatCurrency(getProjectReceivableAmount(project.project)) ]]</span>
+                          <tr v-for="(paymentRecord, index) in getProjectPayments(project.project)" :key="paymentRecord.id">
+                            <td v-if="paymentRecord && index === 0">
+                              <div class="">
+                                <div class="fw-bold">[[ project.project_name ]]
+                                  <span class="text-muted">([[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
+                                </div>
+                                <div class="small">請款金額：[[ formatCurrency(project.amount) ]]</div>
+                                <div class="small">應收金額：[[ formatCurrency(getProjectReceivableAmount(project.project)) ]]</div>
+                              </div>
                             </td>
-                          </tr>
-                          <tr v-for="paymentRecord in getProjectPayments(project.project)" :key="paymentRecord.id">
-                            <td></td>
+                            <td v-else-if="paymentRecord && index > 0"></td>
                             <td>[[ formatCurrency(paymentRecord.amount) ]]</td>
                             <td>[[ formatDate(paymentRecord.payment_date) ]]</td>
                             <td>[[ getPaymentMethodDisplay(paymentRecord.payment_method) ]]</td>
@@ -464,7 +465,15 @@
                             </td>
                           </tr>
                           <tr v-if="getProjectPayments(project.project).length === 0">
-                            <td></td>
+                            <td>
+                              <div class="">
+                                <div class="fw-bold">[[ project.project_name ]]
+                                  <span class="text-muted">([[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
+                                </div>
+                                <div class="small">請款金額：[[ formatCurrency(project.amount) ]]</div>
+                                <div class="small">應收金額：[[ formatCurrency(getProjectReceivableAmount(project.project)) ]]</div>
+                              </div>
+                            </td>
                             <td colspan="4" class="text-center text-muted py-3">尚無收款記錄</td>
                           </tr>
                         </template>
