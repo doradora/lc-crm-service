@@ -3,6 +3,7 @@ from django.contrib.auth.models import User  # 改用 Django 內建的 User 模�
 from django.db import models
 from django.utils import timezone
 from django.db import transaction
+from django.core.exceptions import ValidationError
 
 
 class Owner(models.Model):
@@ -330,6 +331,14 @@ class Payment(models.Model):
         """更新請款總金額"""
         self.amount = self.get_total_amount()
         self.save(update_fields=["amount"])
+
+    def delete(self, *args, **kwargs):
+        # 檢查是否有發票、收款記錄關聯
+        has_invoice = self.invoices.exists()
+        has_receipt = self.projectreceipt_set.exists()
+        if has_invoice or has_receipt:
+            raise ValidationError("此請款單有發票或收款記錄關聯，無法刪除。")
+        super().delete(*args, **kwargs)
 
 
 class PaymentProject(models.Model):

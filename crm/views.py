@@ -6,6 +6,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count, Sum, F, Q, Min, Max
 from django.utils import timezone
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from rest_framework import viewsets, filters, permissions, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import SessionAuthentication
@@ -716,6 +717,13 @@ class PaymentViewSet(CanPaymentViewSet):
         serializer.save()
         return Response(serializer.data)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            instance.delete()
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class PaymentProjectViewSet(CanPaymentViewSet):
     queryset = PaymentProject.objects.all().select_related("project", "payment")

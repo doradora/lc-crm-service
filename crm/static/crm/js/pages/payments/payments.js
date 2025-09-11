@@ -583,23 +583,90 @@ const paymentList = createApp({
 
     // 刪除付款單
     deletePayment(paymentId) {
-      if (confirm("確定要刪除此請款單嗎？此操作無法還原！")) {
-        fetch(`/crm/api/payments/${paymentId}/`, {
-          method: "DELETE",
-          headers: {
-            "X-CSRFToken": document.querySelector(
-              '[name="csrfmiddlewaretoken"]'
-            ).value,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("刪除失敗");
-            }
-            this.fetchPayments(this.currentPage); // 重新獲取當前頁數據
-            this.activeMenu = null;
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '確定要刪除此請款單嗎？',
+          text: '此操作無法還原！',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: '確認刪除',
+          cancelButtonText: '取消',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            fetch(`/crm/api/payments/${paymentId}/`, {
+              method: "DELETE",
+              headers: {
+                "X-CSRFToken": document.querySelector(
+                  '[name="csrfmiddlewaretoken"]'
+                ).value,
+              },
+            })
+              .then(async (response) => {
+                if (!response.ok) {
+                  let errorMsg = "刪除失敗";
+                  try {
+                    const errorData = await response.json();
+                    if (errorData.error) {
+                      if (Array.isArray(errorData.error)) {
+                        errorMsg = errorData.error.join("\n");
+                      } else {
+                        errorMsg = errorData.error;
+                      }
+                    }
+                  } catch (e) {}
+                  Swal.fire({
+                    icon: 'error',
+                    title: '刪除失敗',
+                    text: errorMsg,
+                    confirmButtonText: '確定'
+                  });
+                  throw new Error(errorMsg);
+                }
+                Swal.fire({
+                  icon: 'success',
+                  title: '刪除成功',
+                  text: '請款單已成功刪除！',
+                  timer: 2000,
+                  showConfirmButton: false
+                });
+                this.fetchPayments(this.currentPage);
+                this.activeMenu = null;
+              })
+              .catch((error) => console.error("無法刪除:", error));
+          }
+        });
+      } else {
+        if (confirm("確定要刪除此請款單嗎？此操作無法還原！")) {
+          fetch(`/crm/api/payments/${paymentId}/`, {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                '[name="csrfmiddlewaretoken"]'
+              ).value,
+            },
           })
-          .catch((error) => console.error("無法刪除:", error));
+            .then(async (response) => {
+              if (!response.ok) {
+                let errorMsg = "刪除失敗";
+                try {
+                  const errorData = await response.json();
+                  if (errorData.error) {
+                    if (Array.isArray(errorData.error)) {
+                      errorMsg = errorData.error.join("\n");
+                    } else {
+                      errorMsg = errorData.error;
+                    }
+                  }
+                } catch (e) {}
+                alert(errorMsg);
+                throw new Error(errorMsg);
+              }
+              alert('請款單已成功刪除！');
+              this.fetchPayments(this.currentPage);
+              this.activeMenu = null;
+            })
+            .catch((error) => console.error("無法刪除:", error));
+        }
       }
     },
 
