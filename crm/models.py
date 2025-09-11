@@ -10,7 +10,7 @@ class Owner(models.Model):
     tax_id = models.CharField(max_length=10, unique=True)  # 統一編號，確保不重複
     phone = models.CharField(max_length=100)  # 電話
     fax = models.CharField(max_length=100, blank=True, null=True)  # 傳真
-    email = models.EmailField()  # Email
+    email = models.EmailField(blank=True, null=True)  # Email 改為非必填
     mobile = models.CharField(max_length=100, blank=True, null=True)  # 手機
     address = models.TextField()  # 地址
     contact_person = models.CharField(max_length=255)  # 聯絡人
