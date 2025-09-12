@@ -66,6 +66,27 @@ const paymentDetail = createApp({
       selectAllChecked: false, // 新增：全選狀態
       filteredProjectsForModal: [], // 新增：用於Modal的過濾後專案列表
 
+      // Modal 專案搜尋和分頁相關
+      modalProjects: [], // Modal 中的專案列表
+      isLoadingModalProjects: false, // Modal 載入狀態
+      projectPagination: null, // 專案分頁資訊
+      currentProjectPage: 1, // 當前專案頁面
+      projectModalSearchTerm: "", // Modal 搜尋關鍵字
+      projectSearchTimeout: null, // 搜尋防抖計時器
+      
+      // Modal 篩選條件
+      modalOwnerFilter: "", // Modal 業主篩選
+      modalCategoryFilter: "", // Modal 類別篩選
+      modalStartYearFilter: "", // Modal 開始年份篩選
+      modalEndYearFilter: "", // Modal 結束年份篩選
+      modalCompletedFilter: "", // Modal 完成狀態篩選
+      
+      // 基礎資料
+      categories: [], // 類別列表
+      availableYears: [], // 可用年份
+      minYear: null, // 最小年份
+      maxYear: null, // 最大年份
+
       // 業主搜索相關資料 (從create_payment借鑒)
       ownerFilter: "", // 業主篩選條件
       ownerSearchText: "", // 業主搜尋文字
@@ -145,6 +166,23 @@ const paymentDetail = createApp({
         return total + Number(invoice.actual_received_amount || 0);
       }, 0);
     },
+    
+    // 計算年份範圍
+    yearRange() {
+      // 如果沒有設定最小或最大年份，返回可用年份列表
+      if (this.minYear === null || this.maxYear === null) {
+        return this.availableYears;
+      }
+
+      // 創建從最小年份到最大年份的連續數組
+      const range = [];
+      for (let year = this.minYear; year <= this.maxYear; year++) {
+        range.push(year);
+      }
+
+      // 按降序排列（最近的年份在前）
+      return range.sort((a, b) => b - a);
+    },
   },
   watch: {
     // 監聽 newInvoice.project_amounts，自動加總金額到 gross_amount
@@ -172,6 +210,14 @@ const paymentDetail = createApp({
         })
         .then((data) => {
           this.payment = data;
+
+          // 確保所有陣列屬性都正確初始化
+          if (!this.payment.payment_projects) {
+            this.payment.payment_projects = [];
+          }
+          if (!this.payment.invoices) {
+            this.payment.invoices = [];
+          }
 
           // 如果請款單已經有公司和銀行帳號，獲取銀行帳號詳情
           if (data.company && !this.isEditing) {
@@ -266,8 +312,15 @@ const paymentDetail = createApp({
     updateProjectReportNames() {
       const updatePromises = [];
 
-      // 更新所有 payment_projects 中專案的報告書名稱
-      this.payment.payment_projects.forEach((projectItem) => {
+      // 只保留有填寫報告書名稱的專案
+      const modifiedProjects = this.payment.payment_projects.filter(item =>
+        item.report_name !== undefined &&
+        item.report_name !== null &&
+        item.report_name !== ""
+      );      
+
+      // 更新有填寫報告書名稱的專案的報告書名稱
+      modifiedProjects.forEach((projectItem) => {
         if (projectItem.project && projectItem.report_name !== undefined) {
           updatePromises.push(
             fetch(`/crm/api/projects/${projectItem.project}/`, {
@@ -317,6 +370,46 @@ const paymentDetail = createApp({
           this.companys = data.results || [];
         })
         .catch((error) => console.error("Error fetching companys:", error));
+    },
+
+    // 獲取類別列表
+    fetchCategories() {
+      fetch(`/crm/api/categories/?format=json&page_size=1000`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.results) {
+            this.categories = data.results;
+          } else {
+            this.categories = [];
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching categories:", error);
+          this.categories = [];
+        });
+    },
+
+    // 獲取可用年份
+    fetchYears() {
+      fetch(`/crm/api/projects/years/`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.years) {
+            this.availableYears = data.years;
+            this.minYear = data.min_year;
+            this.maxYear = data.max_year;
+          } else {
+            this.availableYears = [];
+            this.minYear = null;
+            this.maxYear = null;
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching years:", error);
+          this.availableYears = [];
+          this.minYear = null;
+          this.maxYear = null;
+        });
     },
 
     // 搜尋業主
@@ -762,35 +855,35 @@ const paymentDetail = createApp({
         });
     },
 
-    // 添加專案項目 - 修改為打開多選對話框
+    // 添加專案項目 - 修改為打開多選對話框支援分頁
     addProjectItem() {
       // 重置相關狀態
-      this.projectSearchTerm = "";
+      this.projectModalSearchTerm = "";
       this.selectedProjectIds = [];
       this.projectAmounts = {};
       this.projectDescriptions = {};
       this.selectAllChecked = false;
+      this.currentProjectPage = 1;
+      
+      // 重置篩選條件
+      this.resetModalFilters();
 
-      // 確保已載入專案列表
-      this.fetchProjectsForSelection().then(() => {
-        // 過濾可選專案 (排除已經在請款單中的專案)
-        this.filterProjectsForModal();
-
-        // 顯示模態對話框
-        const modal = new bootstrap.Modal(
-          document.getElementById("addProjectModal")
-        );
-        modal.show();
-        
-        // modal 顯示後自動focus到搜尋欄位
-        modal._element.addEventListener('shown.bs.modal', () => {
-          this.$nextTick(() => {
-            if (this.$refs.projectSearchInput) {
-              this.$refs.projectSearchInput.focus();
-            }
-          });
-        }, { once: true });
-      });
+      // 顯示模態對話框
+      const modal = new bootstrap.Modal(
+        document.getElementById("addProjectModal")
+      );
+      modal.show();
+      
+      // modal 顯示後自動載入資料並 focus 到搜尋欄位
+      modal._element.addEventListener('shown.bs.modal', () => {
+        this.$nextTick(() => {
+          if (this.$refs.modalProjectSearchInput) {
+            this.$refs.modalProjectSearchInput.focus();
+          }
+        });
+        // 載入初始資料
+        this.loadModalProjects();
+      }, { once: true });
     },
 
     // 過濾Modal中的專案列表
@@ -854,6 +947,235 @@ const paymentDetail = createApp({
       }
     },
 
+    // 重置模態框篩選條件
+    resetModalFilters() {
+      this.modalOwnerFilter = "";
+      this.modalCategoryFilter = "";
+      this.modalStartYearFilter = "";
+      this.modalEndYearFilter = "";
+      this.modalCompletedFilter = "";
+    },
+
+    // 載入 Modal 專案資料（支援分頁和搜尋）
+    loadModalProjects(url = null) {
+      this.isLoadingModalProjects = true;
+      
+      // 建構 API URL
+      let apiUrl = url || "/crm/api/projects/";
+      const params = new URLSearchParams();
+      
+      if (!url) {
+        params.append("format", "json");
+        params.append("page_size", "10"); // 每頁顯示10筆
+        params.append("page", this.currentProjectPage.toString());
+
+        // 搜尋條件
+        if (this.projectModalSearchTerm.trim()) {
+          params.append("search", this.projectModalSearchTerm.trim());
+        }
+
+        // 業主篩選
+        if (this.modalOwnerFilter) {
+          params.append("owner", this.modalOwnerFilter);
+        } else {
+          // 使用當前請款單的業主
+          if (this.payment && this.payment.owner) {
+            params.append("owner", this.payment.owner);
+          }
+        }
+
+        // 類別篩選
+        if (this.modalCategoryFilter) {
+          params.append("category", this.modalCategoryFilter);
+        }
+
+        // 年份篩選
+        if (this.modalStartYearFilter) {
+          params.append("year_start", this.modalStartYearFilter);
+        }
+
+        if (this.modalEndYearFilter) {
+          params.append("year_end", this.modalEndYearFilter);
+        }
+
+        // 完成狀態篩選
+        if (this.modalCompletedFilter) {
+          params.append("is_completed", this.modalCompletedFilter);
+        }
+
+        // 排除已經在當前請款單中的專案
+        if (this.payment && this.payment.payment_projects) {
+          const existingProjectIds = this.payment.payment_projects
+            .map(item => item.project)
+            .filter(id => id);
+          if (existingProjectIds.length > 0) {
+            params.append("exclude_projects", existingProjectIds.join(','));
+          }
+        }
+        
+        apiUrl += "?" + params.toString();
+      }
+
+      fetch(apiUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.modalProjects = data.results || [];
+          
+          // 更新分頁資訊
+          this.projectPagination = {
+            count: data.count,
+            next: data.next,
+            previous: data.previous,
+          };
+          
+          // 更新當前頁面
+          if (url) {
+            const urlObj = new URL(url);
+            const pageParam = urlObj.searchParams.get('page');
+            if (pageParam) {
+              this.currentProjectPage = parseInt(pageParam);
+            }
+          }
+
+          // 更新全選狀態
+          this.updateModalSelectAllState();
+        })
+        .catch((error) => {
+          console.error("載入專案時發生錯誤:", error);
+          this.modalProjects = [];
+          this.projectPagination = null;
+        })
+        .finally(() => {
+          this.isLoadingModalProjects = false;
+        });
+    },
+
+    // Modal 專案搜尋（防抖處理）
+    searchModalProjects() {
+      // 清除之前的計時器
+      if (this.projectSearchTimeout) {
+        clearTimeout(this.projectSearchTimeout);
+      }
+      
+      // 設置新的計時器，300ms後執行搜尋
+      this.projectSearchTimeout = setTimeout(() => {
+        this.currentProjectPage = 1;
+        this.loadModalProjects();
+      }, 300);
+    },
+
+    // 前往特定專案頁面
+    goToModalProjectPage(page) {
+      this.currentProjectPage = page;
+      this.loadModalProjects();
+    },
+
+    // 取得專案頁碼陣列（用於分頁顯示）
+    getModalProjectPageNumbers() {
+      if (!this.projectPagination || this.projectPagination.count === 0) {
+        return [];
+      }
+      
+      const totalPages = Math.ceil(this.projectPagination.count / 10);
+      const currentPage = this.currentProjectPage;
+      const pages = [];
+      
+      // 如果總頁數 <= 7，顯示所有頁碼
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // 總頁數 > 7，使用省略號邏輯
+        if (currentPage <= 4) {
+          // 當前頁在前段
+          for (let i = 1; i <= 5; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 3) {
+          // 當前頁在後段
+          pages.push(1);
+          pages.push('...');
+          for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+        } else {
+          // 當前頁在中段
+          pages.push(1);
+          pages.push('...');
+          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        }
+      }
+      
+      return pages;
+    },
+
+    // Modal 全選/取消全選專案
+    selectAllModalProjects() {
+      this.selectAllChecked = !this.selectAllChecked;
+
+      if (this.selectAllChecked) {
+        // 全選當前頁面的專案
+        this.modalProjects.forEach((project) => {
+          if (!this.selectedProjectIds.includes(project.id)) {
+            this.selectedProjectIds.push(project.id);
+            // 設置預設金額
+            if (!this.projectAmounts[project.id]) {
+              this.projectAmounts[project.id] = 0;
+            }
+          }
+        });
+      } else {
+        // 取消選擇當前頁面的專案
+        this.modalProjects.forEach((project) => {
+          const index = this.selectedProjectIds.indexOf(project.id);
+          if (index > -1) {
+            this.selectedProjectIds.splice(index, 1);
+            delete this.projectAmounts[project.id];
+          }
+        });
+      }
+    },
+
+    // 更新 Modal 全選狀態
+    updateModalSelectAllState() {
+      if (this.modalProjects.length > 0) {
+        this.selectAllChecked = this.modalProjects.every((project) =>
+          this.selectedProjectIds.includes(project.id)
+        );
+      } else {
+        this.selectAllChecked = false;
+      }
+    },
+
+    // 切換專案選擇狀態
+    toggleModalProjectSelection(project) {
+      const index = this.selectedProjectIds.indexOf(project.id);
+      if (index > -1) {
+        this.selectedProjectIds.splice(index, 1);
+        delete this.projectAmounts[project.id];
+      } else {
+        this.selectedProjectIds.push(project.id);
+        // 設置預設金額
+        if (!this.projectAmounts[project.id]) {
+          this.projectAmounts[project.id] = 0;
+        }
+      }
+
+      // 更新全選狀態
+      this.updateModalSelectAllState();
+    },
+
+    // 檢查專案是否被選取
+    isModalProjectSelected(projectId) {
+      return this.selectedProjectIds.includes(projectId);
+    },
+
     // 根據ID獲取專案名稱
     getProjectName(projectId) {
       const project = this.projects.find((p) => p.id === projectId);
@@ -874,18 +1196,32 @@ const paymentDetail = createApp({
       return project ? project.name : `專案 ID: ${projectId}`;
     },
 
-    // 確認添加選中的專案 (簡化版本，不再需要檢查金額)
+    // 確認添加選中的專案
     addSelectedProjects() {
-      // 將選中的專案添加到請款單中，金額預設為0
+      if (this.selectedProjectIds.length === 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "請先選擇專案",
+          text: "請至少選擇一個專案",
+        });
+        return;
+      }
+
+      // 將選中的專案添加到請款單中
       this.selectedProjectIds.forEach((projectId) => {
-        const project = this.projects.find((p) => p.id === projectId);
+        // 從 modalProjects 或 projects 中找到專案
+        let project = this.modalProjects.find((p) => p.id === projectId);
+        if (!project) {
+          project = this.projects.find((p) => p.id === projectId);
+        }
+
         if (project) {
           this.payment.payment_projects.push({
             project: projectId,
             project_name: project.name,
             report_name: project.report_name || '', // 加入報告書名稱
-            amount: 0, // 預設金額為0
-            description: "", // 預設描述為空白
+            amount: this.projectAmounts[projectId] || 0, // 使用設定的金額或預設為0
+            description: this.projectDescriptions[projectId] || "", // 使用設定的描述或預設為空白
             change_count: 0, // 預設變更次數為0
           });
         }
@@ -893,6 +1229,15 @@ const paymentDetail = createApp({
 
       // 關閉對話框
       this.hideAddProjectModal();
+
+      // 顯示成功訊息
+      Swal.fire({
+        icon: "success",
+        title: "專案新增成功",
+        text: `已新增 ${this.selectedProjectIds.length} 個專案`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
     },
     hideAddProjectModal() {
       const modal = bootstrap.Modal.getInstance(
@@ -1909,11 +2254,16 @@ const paymentDetail = createApp({
         });
 
         if (result.isConfirmed) {
-          await axios.delete(`/crm/api/project-receipts/${receiptId}/`, {
+          const response = await fetch(`/crm/api/project-receipts/${receiptId}/`, {
+            method: 'DELETE',
             headers: {
               'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
             }
           });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           
           // 從本地列表移除
           this.projectReceipts = this.projectReceipts.filter(r => r.id !== receiptId);
@@ -1929,7 +2279,7 @@ const paymentDetail = createApp({
         Swal.fire({
           icon: "error",
           title: "刪除失敗",
-          text: error.response?.data?.detail || "刪除收款記錄時發生錯誤",
+          text: "刪除收款記錄時發生錯誤",
         });
       }
     },
@@ -1945,23 +2295,41 @@ const paymentDetail = createApp({
         let response;
         if (this.editingProjectReceipt) {
           // 更新
-          response = await axios.put(`/crm/api/project-receipts/${this.editingProjectReceiptId}/`, receiptData, {
+          response = await fetch(`/crm/api/project-receipts/${this.editingProjectReceiptId}/`, {
+            method: 'PUT',
             headers: {
+              'Content-Type': 'application/json',
               'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
-            }
+            },
+            body: JSON.stringify(receiptData)
           });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
           const index = this.projectReceipts.findIndex(r => r.id === this.editingProjectReceiptId);
           if (index !== -1) {
-            this.projectReceipts[index] = response.data;
+            this.projectReceipts[index] = data;
           }
         } else {
           // 新增
-          response = await axios.post('/crm/api/project-receipts/', receiptData, {
+          response = await fetch('/crm/api/project-receipts/', {
+            method: 'POST',
             headers: {
+              'Content-Type': 'application/json',
               'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
-            }
+            },
+            body: JSON.stringify(receiptData)
           });
-          this.projectReceipts.push(response.data);
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          this.projectReceipts.push(data);
         }
 
         this.resetProjectReceiptForm();
@@ -1978,7 +2346,7 @@ const paymentDetail = createApp({
         Swal.fire({
           icon: "error",
           title: "儲存失敗",
-          text: error.response?.data?.detail || "儲存收款記錄時發生錯誤",
+          text: "儲存收款記錄時發生錯誤",
         });
       }
     },
@@ -1999,14 +2367,32 @@ const paymentDetail = createApp({
     async fetchProjectReceipts() {
       // 載入收款記錄
       try {
-        const response = await axios.get(`/crm/api/project-receipts/?payment=${this.paymentId}`);
-        this.projectReceipts = response.data.results || response.data;
+        const response = await fetch(`/crm/api/project-receipts/?payment=${this.paymentId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        this.projectReceipts = data.results || data || [];
       } catch (error) {
         console.error('Error fetching project receipts:', error);
+        // 確保即使出錯也有空陣列
+        this.projectReceipts = [];
       }
     },
   },
-  mounted() {    // 從URL獲取payment ID
+  mounted() {
+    // 初始化陣列確保不會有 undefined 錯誤
+    if (!this.modalProjects) this.modalProjects = [];
+    if (!this.selectedProjectIds) this.selectedProjectIds = [];
+    if (!this.projectReceipts) this.projectReceipts = [];
+    if (!this.paymentDocuments) this.paymentDocuments = [];
+    if (!this.owners) this.owners = [];
+    if (!this.companys) this.companys = [];
+    if (!this.categories) this.categories = [];
+    if (!this.availableYears) this.availableYears = [];
+    if (!this.bankAccounts) this.bankAccounts = [];
+
+    // 從URL獲取payment ID
     const pathParts = window.location.pathname.split("/");
     this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; 
     
@@ -2016,6 +2402,8 @@ const paymentDetail = createApp({
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
     this.fetchPaymentDocuments(); // 新增：獲取內存請款單檔案列表
+    this.fetchCategories(); // 新增：獲取類別列表
+    this.fetchYears(); // 新增：獲取可用年份
     
     // 頁面載入後自動focus到搜尋欄位
     this.$nextTick(() => {
@@ -2039,6 +2427,13 @@ const paymentDetail = createApp({
         });
       });
     });
+  },
+  
+  unmounted() {
+    // 清理計時器
+    if (this.projectSearchTimeout) {
+      clearTimeout(this.projectSearchTimeout);
+    }
   },
 });
 

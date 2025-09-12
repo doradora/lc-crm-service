@@ -64,6 +64,10 @@ const paymentsList = createApp({
       lastSelectedCompanyId: null,
       // 公司搜尋防抖計時器
       companySearchTimeout: null,
+      // 專案分頁相關
+      projectPagination: null,
+      currentProjectPage: 1,
+      projectSearchTimeout: null, // 即時搜尋防抖計時器
     };
   },
   directives: {
@@ -104,21 +108,8 @@ const paymentsList = createApp({
       return range.sort((a, b) => b - a);
     },
     filteredProjects() {
-      if (!this.projectNameFilter.trim()) {
-        return this.projects;
-      }
-      const keyword = this.projectNameFilter.trim().toLowerCase();
-      return this.projects.filter(p => {
-        const nameMatch = p.name && p.name.toLowerCase().includes(keyword);
-        // 搜尋負責人
-        let managerMatch = false;
-        if (Array.isArray(p.managers_info)) {
-          managerMatch = p.managers_info.some(mgr =>
-            mgr.name && mgr.name.toLowerCase().includes(keyword)
-          );
-        }
-        return nameMatch || managerMatch;
-      });
+      // 移除前端過濾，直接返回從伺服器獲取的專案列表
+      return this.projects;
     },
   },
   methods: {
@@ -156,6 +147,66 @@ const paymentsList = createApp({
       this.ownerSearchText = "";
       this.filteredOwners = [];
       this.showOwnerDropdown = false;
+    },
+
+    // 專案即時搜尋（防抖處理）
+    searchProjects() {
+      // 清除之前的計時器
+      if (this.projectSearchTimeout) {
+        clearTimeout(this.projectSearchTimeout);
+      }
+      
+      // 設置新的計時器，300ms後執行搜尋
+      this.projectSearchTimeout = setTimeout(() => {
+        this.currentProjectPage = 1;
+        this.fetchProjects();
+      }, 300);
+    },
+
+    // 前往特定專案頁面
+    goToProjectPage(page) {
+      this.currentProjectPage = page;
+      this.fetchProjects();
+    },
+
+    // 取得專案頁碼陣列（用於分頁顯示）
+    getProjectPageNumbers() {
+      if (!this.projectPagination || this.projectPagination.count === 0) {
+        return [];
+      }
+      
+      const totalPages = Math.ceil(this.projectPagination.count / 10);
+      const currentPage = this.currentProjectPage;
+      const pages = [];
+      
+      // 如果總頁數 <= 7，顯示所有頁碼
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // 總頁數 > 7，使用省略號邏輯
+        if (currentPage <= 4) {
+          // 當前頁在前段
+          for (let i = 1; i <= 5; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 3) {
+          // 當前頁在後段
+          pages.push(1);
+          pages.push('...');
+          for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+        } else {
+          // 當前頁在中段
+          pages.push(1);
+          pages.push('...');
+          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        }
+      }
+      
+      return pages;
     },
 
     // 顯示業主選擇Modal
@@ -616,64 +667,84 @@ const paymentsList = createApp({
         this.selectAllChecked = false;
       }
     },
-    // 獲取專案列表 (更新以處理新增的篩選條件)
-    fetchProjects() {
+    // 獲取專案列表 (更新以處理分頁和伺服器端搜尋)
+    fetchProjects(url = null) {
       this.isLoading = true;
-      // 移除分頁參數，增加載入數量限制為1000
-      let url = `/crm/api/projects/?format=json&page_size=1000`;
+      
+      // 建構 API URL
+      let apiUrl = url || "/crm/api/projects/";
+      const params = new URLSearchParams();
+      
+      if (!url) {
+        params.append("format", "json");
+        params.append("page_size", "10"); // 每頁顯示10筆
+        params.append("page", this.currentProjectPage.toString());
 
-      // 添加搜尋條件
-      if (this.searchQuery) {
-        url += `&search=${encodeURIComponent(this.searchQuery)}`;
+        // 添加搜尋條件
+        if (this.searchQuery) {
+          params.append("search", this.searchQuery);
+        }
+        
+        // 即時搜尋專案名稱與負責人
+        if (this.projectNameFilter.trim()) {
+          params.append("search", this.projectNameFilter.trim());
+        }
+
+        // 添加業主過濾條件
+        if (this.ownerFilter) {
+          params.append("owner", this.ownerFilter);
+        } else {
+          // 如果沒有選擇業主，顯示警告並停止獲取專案
+          Swal.fire({
+            icon: "warning",
+            title: "請先選擇業主",
+          });
+          this.isLoading = false;
+          return;
+        }
+
+        // 新增：添加類別過濾條件
+        if (this.categoryFilter) {
+          params.append("category", this.categoryFilter);
+        }
+
+        // 使用年份區間過濾
+        if (this.startYearFilter) {
+          params.append("year_start", this.startYearFilter);
+        }
+
+        if (this.endYearFilter) {
+          params.append("year_end", this.endYearFilter);
+        }
+
+        // 修改：使用獨立的核取方塊來篩選
+        if (this.isCompletedFilter) {
+          params.append("is_completed", "true");
+        }
+
+        if (this.isUninvoicedFilter) {
+          params.append("is_invoiced", "false");
+        }
+
+        if (this.isPaidFilter) {
+          params.append("is_paid", "true");
+        }
+        
+        apiUrl += "?" + params.toString();
       }
 
-      // 添加業主過濾條件
-      if (this.ownerFilter) {
-        url += `&owner=${this.ownerFilter}`;
-      } else {
-        // 如果沒有選擇業主，顯示警告並停止獲取專案
-        Swal.fire({
-          icon: "warning",
-          title: "請先選擇業主",
-        });
-        this.isLoading = false;
-        return;
-      }
-
-      // 新增：添加類別過濾條件
-      if (this.categoryFilter) {
-        url += `&category=${this.categoryFilter}`;
-      }
-
-      // 使用年份區間過濾
-      if (this.startYearFilter) {
-        url += `&year_start=${this.startYearFilter}`;
-      }
-
-      if (this.endYearFilter) {
-        url += `&year_end=${this.endYearFilter}`;
-      }
-
-      // 修改：使用獨立的核取方塊來篩選
-      if (this.isCompletedFilter) {
-        url += `&is_completed=true`;
-      }
-
-      if (this.isUninvoicedFilter) {
-        url += `&is_invoiced=false`;
-      }
-
-      if (this.isPaidFilter) {
-        url += `&is_paid=true`;
-      }
-
-      fetch(url)
-        .then((response) => response.json())
+      fetch(apiUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
         .then((data) => {
           // 確保 data.results 存在
           if (data && data.results) {
             this.projects = data.results.map((project) => {
-              // 正確處理類別代碼 這裡不對
+              // 正確處理類別代碼
               if (project.category) {
                 if (
                   typeof project.category === "object" &&
@@ -691,22 +762,39 @@ const paymentsList = createApp({
               }
               return project;
             });
+            
+            // 更新分頁資訊
+            this.projectPagination = {
+              count: data.count,
+              next: data.next,
+              previous: data.previous,
+            };
+            
+            // 更新當前頁面
+            if (url) {
+              const urlObj = new URL(url);
+              const pageParam = urlObj.searchParams.get('page');
+              if (pageParam) {
+                this.currentProjectPage = parseInt(pageParam);
+              }
+            }
           } else {
             this.projects = []; // 確保即使 data.results 不存在也會初始化陣列
+            this.projectPagination = null;
           }
 
           // 更新全選狀態
           this.updateSelectAllState();
         })
         .catch((error) => {
-          // 如果沒有選擇業主，顯示警告並停止獲取專案
+          console.error("獲取專案時發生錯誤:", error);
+          this.projects = [];
+          this.projectPagination = null;
           Swal.fire({
-            icon: "warning",
-            title: "獲取專案錯誤，聯絡工程師",
+            icon: "error",
+            title: "載入專案失敗",
+            text: "請稍後再試或聯絡工程師",
           });
-          this.isLoading = false;
-          console.error("Error fetching projects:", error);
-          this.projects = []; // 錯誤處理時也初始化陣列
         })
         .finally(() => {
           this.isLoading = false;
@@ -925,6 +1013,9 @@ const paymentsList = createApp({
     }
     if (this.companySearchTimeout) {
       clearTimeout(this.companySearchTimeout);
+    }
+    if (this.projectSearchTimeout) {
+      clearTimeout(this.projectSearchTimeout);
     }
   },
 }).mount("#app_main");
