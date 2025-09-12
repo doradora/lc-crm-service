@@ -701,6 +701,38 @@ class PaymentViewSet(CanPaymentViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        # 自動新增「其他」專案到請款單
+        try:
+            from .models import Category
+            category = Category.objects.get(code='OTHER')
+            misc_project = Project.objects.get(
+                name='其他',
+                category=category,
+                project_number='9999'
+            )
+            
+            # 檢查是否已經有「其他」專案（避免重複）
+            existing_misc = PaymentProject.objects.filter(
+                payment=payment,
+                project=misc_project
+            ).exists()
+            
+            if not existing_misc:
+                # 新增「其他」專案，預設金額為 0
+                PaymentProject.objects.create(
+                    payment=payment,
+                    project=misc_project,
+                    amount=0,
+                    description='雜費項目（影印費、郵資費等）'
+                )
+                # 注意：金額為 0，所以不需要加到 total_amount
+                
+        except (Category.DoesNotExist, Project.DoesNotExist):
+            # 如果找不到「其他」專案，記錄錯誤但不阻止請款單建立
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"建立請款單 {payment.payment_number} 時找不到「其他」專案")
+
         # 更新請款單總金額
         payment.amount = total_amount
         payment.save()
