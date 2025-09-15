@@ -259,6 +259,14 @@ class ProjectSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def is_misc_project(self, obj):
+        """判斷是否為『其他』專案（category.code='OTHER', name='其他', project_number='9999'）"""
+        return (
+            obj.name == '其他' and
+            hasattr(obj, 'category') and obj.category and getattr(obj.category, 'code', None) == 'OTHER' and
+            obj.project_number == '9999'
+        )
+
     def get_related_payments(self, obj):
         """Fetch all related payments for the project."""
         result = []

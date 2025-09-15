@@ -294,7 +294,7 @@ class CategoryViewSet(BaseViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        return Category.objects.annotate(projects_count=Count("project")).order_by("code")
+        return Category.objects.annotate(projects_count=Count("project")).order_by("code").exclude(code='OTHER')
 
     @action(detail=True, methods=["get"])
     def custom_fields(self, request, pk=None):
@@ -352,6 +352,9 @@ class OwnerViewSet(BaseViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ["company_name", "tax_id", "contact_person", "phone", "email"]
+
+    def get_queryset(self):
+        return Owner.objects.all().order_by("tax_id").exclude(company_name="系統", tax_id="00000000")
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -411,6 +414,10 @@ class ProjectViewSet(BaseViewSet):
                 F('project_number'),
                 output_field=CharField()
             )
+        ).exclude(
+            name='其他',
+            category__code='OTHER',
+            project_number='9999'
         )
 
         # 搜尋
@@ -481,11 +488,16 @@ class ProjectViewSet(BaseViewSet):
         """獲取所有可用的專案年份"""
         years = (
             Project.objects.values_list("year", flat=True).distinct().order_by("-year")
+            .exclude(
+                name='其他',
+                category__code='OTHER',
+                project_number='9999'
+            )
         )
 
         # 獲取最小和最大年份
-        min_year = Project.objects.aggregate(Min("year"))["year__min"]
-        max_year = Project.objects.aggregate(Max("year"))["year__max"]
+        min_year = years.aggregate(Min("year"))["year__min"]
+        max_year = years.aggregate(Max("year"))["year__max"]
 
         # 如果沒有專案，設定預設值
         if not min_year:
