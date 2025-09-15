@@ -734,7 +734,7 @@ const paymentDetail = createApp({
           return;
         }
 
-        if (!item.amount || item.amount <= 0) {
+        if (item.amount === null || item.amount === '' || item.amount < 0) {
           Swal.fire({
             icon: "warning",
             title: "提示",
@@ -1472,7 +1472,7 @@ const paymentDetail = createApp({
 
     // 新增一筆專案金額
     addProjectAmount() {
-      this.newInvoice.project_amounts.push({ project_id: '', amount: '' });
+      this.newInvoice.project_amounts.push({ project_id: '', amount: 0 });
     },
     // 移除一筆專案金額
     removeProjectAmount(idx) {
