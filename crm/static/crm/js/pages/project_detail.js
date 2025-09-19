@@ -1262,7 +1262,7 @@ const projectDetail = createApp({
     getInvoiceStatusBadgeClass(status) {
       const classes = {
         'paid': 'badge-success',
-        'unpaid': 'badge-secondary',
+        'unpaid': 'badge-danger',
         'partially_paid': 'badge-warning'
       };
       return classes[status] || 'badge-light-secondary';

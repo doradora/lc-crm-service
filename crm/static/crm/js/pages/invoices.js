@@ -543,6 +543,7 @@ createApp({
         case 'partially_paid':
           return 'badge badge-warning';
         case 'unpaid':
+          return 'badge badge-danger';
         default:
           return 'badge badge-secondary';
       }
