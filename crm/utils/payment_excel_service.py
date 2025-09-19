@@ -58,9 +58,32 @@ def generate_payment_excel(payment):
         # 設定匯款帳號資訊（如果有的話）
         if payment.selected_bank_account:
             bank_account = payment.selected_bank_account
-            original_ws["B28"] = f"戶名：{bank_account.account_name}"
-            original_ws["B29"] = f"匯款帳號：{bank_account.account_number}"
-            original_ws["B30"] = f"銀行名稱：{bank_account.bank_name}(機構代碼:{bank_account.bank_code})"
+            original_ws["B29"] = f"戶名：{bank_account.account_name}"
+            original_ws["B30"] = f"匯款帳號：{bank_account.account_number}"
+            original_ws["B31"] = f"銀行名稱：{bank_account.bank_name}(機構代碼:{bank_account.bank_code})"
+            
+            # 設定藍色外框
+            # 上方儲存格 - 只有上、左、右邊框
+            top_border = Border(
+                top=Side(style="medium", color="00B0F0"),
+                left=Side(style="medium", color="00B0F0"),
+                right=Side(style="medium", color="00B0F0")
+            )
+            # 中間儲存格 - 只有左、右邊框
+            middle_border = Border(
+                left=Side(style="medium", color="00B0F0"),
+                right=Side(style="medium", color="00B0F0")
+            )
+            # 下方儲存格 - 只有下、左、右邊框
+            bottom_border = Border(
+                bottom=Side(style="medium", color="00B0F0"),
+                left=Side(style="medium", color="00B0F0"),
+                right=Side(style="medium", color="00B0F0")
+            )
+            
+            original_ws["B29"].border = top_border
+            original_ws["B30"].border = middle_border
+            original_ws["B31"].border = bottom_border
 
         # 獲取請款單關聯的專案明細
         payment_projects = payment.paymentproject_set.select_related("project", "project__category")
