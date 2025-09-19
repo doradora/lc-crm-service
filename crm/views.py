@@ -414,10 +414,6 @@ class ProjectViewSet(BaseViewSet):
                 F('project_number'),
                 output_field=CharField()
             )
-        ).exclude(
-            name='其他',
-            category__code='OTHER',
-            project_number='9999'
         )
 
         # 搜尋
@@ -438,10 +434,23 @@ class ProjectViewSet(BaseViewSet):
         if manager_id:
             queryset = queryset.filter(managers__id=manager_id)
 
-        # 業主過濾
+        # 業主過濾（包含「其他」專案，但僅在有搜尋條件時）
         owner_id = self.request.query_params.get("owner", None)
+        
         if owner_id:
-            queryset = queryset.filter(owner_id=owner_id)
+            # 建立查詢條件：指定業主的專案
+            owner_condition = Q(owner_id=owner_id)
+            
+            # 只有在有搜尋條件時才包含「其他」專案
+            if search_query:
+                misc_project_condition = Q(
+                    name='其他',
+                    category__code='OTHER', 
+                    project_number='9999'
+                )
+                queryset = queryset.filter(owner_condition | misc_project_condition)
+            else:
+                queryset = queryset.filter(owner_condition)
 
         # 類別過濾
         category_id = self.request.query_params.get("category", None)
@@ -481,6 +490,14 @@ class ProjectViewSet(BaseViewSet):
         if year_end:
             queryset = queryset.filter(year__lte=year_end)
         
+        # 如果沒有搜尋條件，則隱藏「其他」專案
+        if not search_query:
+            queryset = queryset.exclude(
+                name='其他',
+                category__code='OTHER',
+                project_number='9999'
+            )
+        
         return queryset.order_by("-year", "project_number")
 
     @action(detail=False, methods=["get"])
@@ -488,11 +505,6 @@ class ProjectViewSet(BaseViewSet):
         """獲取所有可用的專案年份"""
         years = (
             Project.objects.values_list("year", flat=True).distinct().order_by("-year")
-            .exclude(
-                name='其他',
-                category__code='OTHER',
-                project_number='9999'
-            )
         )
 
         # 獲取最小和最大年份
@@ -712,38 +724,6 @@ class PaymentViewSet(CanPaymentViewSet):
                     payment_project_serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-        # 自動新增「其他」專案到請款單
-        try:
-            from .models import Category
-            category = Category.objects.get(code='OTHER')
-            misc_project = Project.objects.get(
-                name='其他',
-                category=category,
-                project_number='9999'
-            )
-            
-            # 檢查是否已經有「其他」專案（避免重複）
-            existing_misc = PaymentProject.objects.filter(
-                payment=payment,
-                project=misc_project
-            ).exists()
-            
-            if not existing_misc:
-                # 新增「其他」專案，預設金額為 0
-                PaymentProject.objects.create(
-                    payment=payment,
-                    project=misc_project,
-                    amount=0,
-                    description='雜費項目（影印費、郵資費等）'
-                )
-                # 注意：金額為 0，所以不需要加到 total_amount
-                
-        except (Category.DoesNotExist, Project.DoesNotExist):
-            # 如果找不到「其他」專案，記錄錯誤但不阻止請款單建立
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"建立請款單 {payment.payment_number} 時找不到「其他」專案")
 
         # 更新請款單總金額
         payment.amount = total_amount

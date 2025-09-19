@@ -260,9 +260,7 @@
                             </div>
                           </td>
                           <td v-if="isEditing" class="align-bottom">
-                            <button class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectItem(index)"
-                              v-if="projectItem.project_name!=='其他' && projectItem.project_info.category_code!=='OTHER' && projectItem.project_info.project_number!=='9999'"
-                            >
+                            <button class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectItem(index)" >
                               <i class="ki-outline ki-trash fs-2"></i>
                             </button>
                           </td>
