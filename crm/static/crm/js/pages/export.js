@@ -284,13 +284,28 @@ const exportApp = createApp({
         const dateRange = await this.selectPaymentDateRange();
         if (dateRange === null) return;
         this.isLoading = true;
-        let url = '/crm/export/payments/csv/';
+        
+        // 構建匯出 URL
+        let url = '/crm/export/payment-invoices/excel/';
+        const params = new URLSearchParams();
+        
+        // 添加日期範圍參數（使用日期格式而非年月格式）
         if (!dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
-          const params = [];
-          if (dateRange.year_month_start) params.push(`year_month_start=${dateRange.year_month_start}`);
-          if (dateRange.year_month_end) params.push(`year_month_end=${dateRange.year_month_end}`);
-          url += '?' + params.join('&');
+          if (dateRange.year_month_start) {
+            const [year, month] = dateRange.year_month_start.split('-');
+            params.append('date_start', `${year}-${month}-01`);
+          }
+          if (dateRange.year_month_end) {
+            const [year, month] = dateRange.year_month_end.split('-');
+            const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+            params.append('date_end', `${year}-${month}-${lastDay}`);
+          }
         }
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
         await this.downloadFile(url);
         this.showSuccessMessage('請款資料匯出成功');
       } catch (error) {
