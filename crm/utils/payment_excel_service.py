@@ -65,20 +65,20 @@ def generate_payment_excel(payment):
             # 設定藍色外框
             # 上方儲存格 - 只有上、左、右邊框
             top_border = Border(
-                top=Side(style="medium", color="00B0F0"),
-                left=Side(style="medium", color="00B0F0"),
-                right=Side(style="medium", color="00B0F0")
+                top=Side(style="medium", color="000000"),
+                left=Side(style="medium", color="000000"),
+                right=Side(style="medium", color="000000")
             )
             # 中間儲存格 - 只有左、右邊框
             middle_border = Border(
-                left=Side(style="medium", color="00B0F0"),
-                right=Side(style="medium", color="00B0F0")
+                left=Side(style="medium", color="000000"),
+                right=Side(style="medium", color="000000")
             )
             # 下方儲存格 - 只有下、左、右邊框
             bottom_border = Border(
-                bottom=Side(style="medium", color="00B0F0"),
-                left=Side(style="medium", color="00B0F0"),
-                right=Side(style="medium", color="00B0F0")
+                bottom=Side(style="medium", color="000000"),
+                left=Side(style="medium", color="000000"),
+                right=Side(style="medium", color="000000")
             )
             
             original_ws["B29"].border = top_border
