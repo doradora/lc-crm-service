@@ -1495,6 +1495,7 @@ const paymentDetail = createApp({
         });
         return;
       }
+      
       // 驗證 project_amounts 金額
       for (let i = 0; i < this.newInvoice.project_amounts.length; i++) {
         const item = this.newInvoice.project_amounts[i];
@@ -1506,6 +1507,49 @@ const paymentDetail = createApp({
           });
           return;
         }
+      }
+
+      // 檢查是否有專案超出請款金額
+      let hasExceededAmount = false;
+      for (const item of this.newInvoice.project_amounts) {
+        if (item.project_id && item.amount) {
+          const project = this.payment.payment_projects.find(
+            p => p.project === item.project_id
+          );
+          
+          if (project) {
+            // 計算總已收金額（包含當前輸入的金額）
+            const totalReceived = this.getProjectInvoiceReceivedAmount(item.project_id);
+            const requestAmount = Number(project.amount);
+            
+            // 如果請款金額為0，跳過檢查
+            if (requestAmount > 0 && totalReceived > requestAmount) {
+              hasExceededAmount = true;
+              // 彈出警告提示
+                Swal.fire({
+                icon: 'error',
+                title: '無法儲存發票',
+                html: `
+                  <div class="text-start">
+                  <p><strong>專案：</strong><strong>${project.project_info ? `${project.project_info.year}${project.project_info.category_code}${project.project_info.project_number}` : ''}</strong> - ${project.project_name}</p>
+                  <p><strong>請款金額：</strong>${this.formatCurrency(requestAmount)}</p>
+                  <p><strong>發票總共金額：</strong>${this.formatCurrency(totalReceived)}</p>
+                  <p class="text-danger"><strong>超出金額：</strong>${this.formatCurrency(totalReceived - requestAmount)}</p>
+                  <p class="text-warning">⚠️ 發票總共金額超出請款金額<br />請修改專案請款金額後再儲存發票</p>
+                  </div>
+                `,
+                confirmButtonText: '我知道了',
+                width: '500px',
+                });
+              break;
+            }
+          }
+        }
+      }
+      
+      // 如果有超出金額，阻止表單送出
+      if (hasExceededAmount) {
+        return;
       }
 
       // 從 project_amounts 取出 amount 並加總
@@ -2205,6 +2249,46 @@ const paymentDetail = createApp({
       return totalAmount;
     },
 
+    // 計算專案收款總計
+    getProjectPaymentTotal(projectId) {
+      // 計算專案的所有收款金額：從projectReceipts中根據專案做加總
+      if (!this.projectReceipts || this.projectReceipts.length === 0) {
+        return 0;
+      }
+      
+      let totalAmount = 0;
+      this.projectReceipts.forEach(receipt => {
+        if (receipt.project === projectId) {
+          totalAmount += Number(receipt.amount || 0);
+        }
+      });
+      
+      return totalAmount;
+    },
+
+    // 計算專案已收金額（不包含當前正在輸入的金額）
+    getExistingProjectReceived(projectId) {
+      if (!projectId || !this.projectReceipts) {
+        return 0;
+      }
+      
+      return this.projectReceipts
+        .filter(receipt => receipt.project === projectId && (!this.editingProjectReceipt || receipt.id !== this.editingProjectReceiptId))
+        .reduce((sum, receipt) => sum + Number(receipt.amount || 0), 0);
+    },
+
+    // 計算專案總收款金額（包含當前正在輸入的金額）
+    getTotalProjectReceived(projectId) {
+      if (!projectId) {
+        return 0;
+      }
+      
+      const existingAmount = this.getExistingProjectReceived(projectId);
+      const currentAmount = Number(this.newProjectReceipt.amount || 0);
+      
+      return existingAmount + currentAmount;
+    },
+
     // 檢查專案總已收金額是否超出請款金額
     // 尚未使用
     checkProjectAmountExceed(item) {
@@ -2245,21 +2329,30 @@ const paymentDetail = createApp({
 
     // 計算特定專案在當前請款單所有發票中的已收金額總和
     getProjectInvoiceReceivedAmount(projectId) {
-      if (!this.payment.invoices || this.payment.invoices.length === 0) {
-        return 0;
+      let totalReceivedAmount = 0;
+      
+      // 計算已存在發票中的金額
+      if (this.payment.invoices && this.payment.invoices.length > 0) {
+        this.payment.invoices.forEach(invoice => {
+          if (invoice.project_amounts && invoice.project_amounts.length > 0) {
+            invoice.project_amounts.forEach(projectAmount => {
+              if (projectAmount.project_id === projectId) {
+                // 直接加總該專案在發票中的金額
+                totalReceivedAmount += Number(projectAmount.amount || 0);
+              }
+            });
+          }
+        });
       }
       
-      let totalReceivedAmount = 0;
-      this.payment.invoices.forEach(invoice => {
-        if (invoice.project_amounts && invoice.project_amounts.length > 0) {
-          invoice.project_amounts.forEach(projectAmount => {
-            if (projectAmount.project_id === projectId) {
-              // 直接加總該專案在發票中的金額
-              totalReceivedAmount += Number(projectAmount.amount || 0);
-            }
-          });
-        }
-      });
+      // 如果是新增發票模式且不是編輯狀態，加上正在輸入的發票金額
+      if (!this.editingInvoice && this.newInvoice.project_amounts && this.newInvoice.project_amounts.length > 0) {
+        this.newInvoice.project_amounts.forEach(projectAmount => {
+          if (projectAmount.project_id === projectId) {
+            totalReceivedAmount += Number(projectAmount.amount || 0);
+          }
+        });
+      }
       
       return totalReceivedAmount;
     },
@@ -2347,6 +2440,50 @@ const paymentDetail = createApp({
     async saveProjectReceipt() {
       // 儲存收款記錄
       try {
+        // 驗證基本資料
+        if (!this.newProjectReceipt.project) {
+          Swal.fire({
+            icon: "warning",
+            title: "提示",
+            text: "請選擇專案",
+          });
+          return;
+        }
+
+        if (!this.newProjectReceipt.amount || this.newProjectReceipt.amount <= 0) {
+          Swal.fire({
+            icon: "warning",
+            title: "提示",
+            text: "請輸入有效的收款金額",
+          });
+          return;
+        }
+
+        // 檢查是否超收
+        const projectReceivableAmount = this.getProjectReceivableAmount(this.newProjectReceipt.project);
+        const totalReceived = this.getTotalProjectReceived(this.newProjectReceipt.project);
+        
+        if (totalReceived > projectReceivableAmount) {
+          
+          Swal.fire({
+            icon: 'error',
+            title: '無法儲存收款記錄',
+            html: `
+              <div class="text-start">
+                <p><strong>發票金額：</strong>${this.formatCurrency(projectReceivableAmount)}</p>
+                <p><strong>已收金額：</strong>${this.formatCurrency(this.getExistingProjectReceived(this.newProjectReceipt.project))}</p>
+                <p><strong>本次收款：</strong>${this.formatCurrency(this.newProjectReceipt.amount)}</p>
+                <p class="text-danger"><strong>總收款金額：</strong>${this.formatCurrency(totalReceived)}</p>
+                <p class="text-danger"><strong>超收金額：</strong>${this.formatCurrency(totalReceived - projectReceivableAmount)}</p>
+                <p class="text-warning">⚠️ 收款金額超出發票金額<br />請修改收款金額後再儲存</p>
+              </div>
+            `,
+            confirmButtonText: '我知道了',
+            width: '500px',
+          });
+          return;
+        }
+
         const receiptData = {
           ...this.newProjectReceipt,
           payment: this.paymentId,
