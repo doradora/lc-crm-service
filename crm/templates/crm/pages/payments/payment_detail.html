@@ -228,12 +228,14 @@
                         <tr v-for="(projectItem, index) in payment.payment_projects" :key="projectItem.id || index">
                           <td>
                             <div v-if="isEditing">
-                              <div class="form-control-plaintext">[[ projectItem.project_name ]]</div>
+                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[ projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]</div>
+                              <div class="form-control-plaintext pt-0">[[ projectItem.project_name ]]</div>
                               <input type="text" class="form-control" :value="getProjectReportName(projectItem)"
                                 @input="updateProjectReportName(projectItem.project, $event.target.value)" 
                                 placeholder="請輸入報告書名稱" />
                             </div>
                             <div v-else>
+                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[ projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]</div>
                               <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
                               <div class="text-muted small">[[ getProjectReportName(projectItem) || '尚未設定報告書名稱' ]]</div>
                             </div>
@@ -432,16 +434,24 @@
                     <table class="table table-row-bordered table-row-gray-200">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
+                          <th v-if="isEditing" class="w-40px">操作</th>
                           <th>專案</th>
                           <th>收款金額</th>
                           <th>收款日期</th>
                           <th>收款方式</th>
-                          <th v-if="isEditing" class="text-end">操作</th>
                         </tr>
                       </thead>
                       <tbody>
                         <template v-for="project in payment.payment_projects">
                           <tr v-for="(paymentRecord, index) in getProjectPayments(project.project)" :key="paymentRecord.id">
+                            <td v-if="isEditing" class="d-flex justify-content-end gap-2">
+                              <button class="btn btn-sm btn-icon btn-light-primary" @click="editProjectPayment(paymentRecord.id)" title="編輯">
+                                <i class="ki-outline ki-pencil fs-4"></i>
+                              </button>
+                              <button class="btn btn-sm btn-icon btn-light-danger" @click="deleteProjectPayment(paymentRecord.id)" title="刪除">
+                                <i class="ki-outline ki-trash fs-4"></i>
+                              </button>
+                            </td>
                             <td v-if="paymentRecord && index === 0">
                               <div class="">
                                 <div class="fw-bold">[[ project.project_name ]]
@@ -455,14 +465,6 @@
                             <td>[[ formatCurrency(paymentRecord.amount) ]]</td>
                             <td>[[ formatDate(paymentRecord.payment_date) ]]</td>
                             <td>[[ getPaymentMethodDisplay(paymentRecord.payment_method) ]]</td>
-                            <td v-if="isEditing" class="d-flex justify-content-end gap-2">
-                              <button class="btn btn-sm btn-icon btn-light-primary" @click="editProjectPayment(paymentRecord.id)" title="編輯">
-                                <i class="ki-outline ki-pencil fs-4"></i>
-                              </button>
-                              <button class="btn btn-sm btn-icon btn-light-danger" @click="deleteProjectPayment(paymentRecord.id)" title="刪除">
-                                <i class="ki-outline ki-trash fs-4"></i>
-                              </button>
-                            </td>
                           </tr>
                           <tr v-if="getProjectPayments(project.project).length === 0">
                             <td>
@@ -613,12 +615,22 @@
                   <i class="ki-outline ki-trash fs-2"></i>
                 </button>
               </div>
-              <div class="col-8 d-flex gap-2 mt-1" v-if="item.project_id" >
-                <span class="text-gray-700 fs-7">請款金額: [[ payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount ]]</span>
-                <span class="text-warning fs-7 ml-auto text-end"
+              <div class="col-8 gap-2 mt-1" v-if="item.project_id" >
+                <div class="d-flex gap-2">
+                  <span class="text-gray-700 fs-7">請款金額: [[ formatCurrency(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount) ]]</span>
+                  <span class="text-primary fs-7">總共已收: [[ formatCurrency(getProjectInvoiceReceivedAmount(item.project_id)) ]]</span>
+                </div>
+
+                <div class="text-warning fs-7 ml-auto"
                       v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
                   請款金額與應收金額不符!
-                </span>
+                </div>
+
+                <div class="text-danger fs-7 ml-auto"
+                      v-if="(getProjectInvoiceReceivedAmount(item.project_id)) > Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
+                  ⚠️ 總已收金額超出請款金額! 請修改專案請款金額
+                </div>
+
               </div>
               <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >
                 <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end" 

@@ -2205,6 +2205,65 @@ const paymentDetail = createApp({
       return totalAmount;
     },
 
+    // 檢查專案總已收金額是否超出請款金額
+    // 尚未使用
+    checkProjectAmountExceed(item) {
+      if (!item.project_id) {
+        return;
+      }
+      
+      const project = this.payment.payment_projects.find(
+        p => p.project === item.project_id
+      );
+      
+      if (project) {
+        // 計算總已收金額（包含當前輸入的金額）
+        const totalReceived = this.getProjectInvoiceReceivedAmount(item.project_id) + Number(item.amount || 0);
+        const requestAmount = Number(project.amount);
+        
+        if (totalReceived > requestAmount) {
+          // 彈出警告提示
+          Swal.fire({
+            icon: 'warning',
+            title: '總已收金額超出警告',
+            html: `
+              <div class="text-start">
+                <p><strong>專案：</strong>${project.project_name}</p>
+                <p><strong>請款金額：</strong>${this.formatCurrency(requestAmount)}</p>
+                <p><strong>已收金額：</strong>${this.formatCurrency(this.getProjectInvoiceReceivedAmount(item.project_id))}</p>
+                <p><strong>本次輸入：</strong>${this.formatCurrency(item.amount || 0)}</p>
+                <p class="text-danger"><strong>總已收金額：</strong>${this.formatCurrency(totalReceived)}</p>
+                <p class="text-warning">⚠️ 總已收金額超出請款金額 ${this.formatCurrency(totalReceived - requestAmount)}<br />請至專案明細中修改請款金額</p>
+              </div>
+            `,
+            confirmButtonText: '我知道了',
+            width: '500px',
+          });
+        }
+      }
+    },
+
+    // 計算特定專案在當前請款單所有發票中的已收金額總和
+    getProjectInvoiceReceivedAmount(projectId) {
+      if (!this.payment.invoices || this.payment.invoices.length === 0) {
+        return 0;
+      }
+      
+      let totalReceivedAmount = 0;
+      this.payment.invoices.forEach(invoice => {
+        if (invoice.project_amounts && invoice.project_amounts.length > 0) {
+          invoice.project_amounts.forEach(projectAmount => {
+            if (projectAmount.project_id === projectId) {
+              // 直接加總該專案在發票中的金額
+              totalReceivedAmount += Number(projectAmount.amount || 0);
+            }
+          });
+        }
+      });
+      
+      return totalReceivedAmount;
+    },
+
     getTotalProjectPaymentAmount() {
       // 計算所有收款記錄的總金額
       return this.projectReceipts.reduce((sum, receipt) => sum + Number(receipt.amount || 0), 0);
