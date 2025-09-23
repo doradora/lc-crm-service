@@ -309,12 +309,17 @@ class ProjectSerializer(serializers.ModelSerializer):
                 payment_amount = float(payment_project.amount)
                 remaining_amount = payment_amount - total_received
                 
-                if remaining_amount == 0:
+                if payment_amount == 0:
+                    payment_status = 'no_judgment'  # 不判斷
+                elif remaining_amount == 0:
                     payment_status = 'full'  # 全額
                 elif 0 < remaining_amount < payment_amount:
                     payment_status = 'partial'  # 部分
-                else:  # remaining_amount == payment_amount
+                elif remaining_amount == payment_amount:
                     payment_status = 'none'  # 未收
+                elif remaining_amount < 0:
+                    payment_status = 'over'  # 超收
+                    
                 # 取得銀行帳戶資訊
                 bank_account = None
                 if payment.selected_bank_account:

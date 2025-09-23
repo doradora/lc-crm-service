@@ -390,7 +390,7 @@
         <div class="d-flex flex-column gap-5" style="width: 60% !important;">
           <!-- 請款狀態卡片 -->
           <div
-            v-if="project.is_completed && (currentUser && currentUser.profile && currentUser.profile.can_request_payment)"
+            v-if="(currentUser && currentUser.profile && currentUser.profile.can_request_payment)"
             class="card">
             <div class="card-header">
               <div class="card-title">
@@ -412,7 +412,7 @@
                     </div>
                     <div>
                       <span class="badge" :class="payment.is_paid ? 'badge-light-success' : 'badge-light-warning'">
-                        [[ payment.is_paid ? '已收款' : '未收款' ]]
+                        [[ payment.is_paid ? '已請款' : '未請款' ]]
                       </span>
                       <div v-if="payment.is_paid" class="text-gray-700 mt-1">
                         付款日期: [[ payment.payment_date ]]
@@ -539,14 +539,22 @@
                           <i class="ki-outline ki-chart-pie-simple fs-6 me-2"></i>收款狀態
                         </h6>
                         <div class="bg-white border border-gray-300 p-3 rounded text-center">
-                          <span class="badge fs-6 py-2 px-3" :class="getPaymentStatusBadgeClass(payment.payment_status)">
-                            [[ getPaymentStatusDisplay(payment.payment_status) ]]
-                          </span>
+                          <div class="d-flex justify-content-center align-items-center">
+                            <span class="badge fs-6 py-2 px-3" :class="getPaymentStatusBadgeClass(payment.payment_status)">
+                              [[ getPaymentStatusDisplay(payment.payment_status) ]]
+                            </span>
+                            <i v-if="payment.payment_status === 'no_judgment'" class="ki-outline ki-question-2 fs-7 text-muted ms-1 cursor-pointer" 
+                              data-bs-toggle="popover"
+                              data-bs-placement="top"
+                              data-bs-trigger="hover"
+                              data-bs-content="請款金額為0時，不進行判斷"
+                              title="請款金額為0時，不進行判斷"></i>
+                          </div>
                           <div class="mt-2">
                             <div class="text-gray-800 fw-bold fs-7">
                               已收: NT$ [[ formatAmount(payment.total_received) ]]
                             </div>
-                            <div class="text-gray-600 fs-7">
+                            <div v-if="payment.payment_status === 'no_judgment'" class="text-gray-600 fs-7">
                               餘額: NT$ [[ formatAmount(payment.remaining_amount) ]]
                             </div>
                           </div>
@@ -871,24 +879,59 @@
     </div>
   </div>
   <!-- 結束新增變更記錄 Modal -->
-  {% endblock content %}
-  {% block extra_js %}
-  <script>
-    // 定義此頁面專用的麵包屑資訊
-    window.pageBreadcrumbs = {
-      menu: "專案",
-      menuUrl: "{% url 'projects' %}",
-      submenu: "專案詳情",
-      submenuUrl: "{% url 'payments' %}",
-      currentPage: "專案詳情"
-    };
+</div>
+{% endblock content %}
+{% block extra_js %}
+<style>
+    
+/* 專案顯示文字樣式 */
+.project-display-text {
+  max-width: 300px;
+}
 
-    // 如果 breadcrumbApp 已經掛載，則更新它
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2 lines * 1.4 line-height */
+  /* cursor: help; */
+}
 
-    if (typeof breadcrumbApp !== 'undefined') {
-      breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
-      breadcrumbApp.updateBreadcrumb();
-    }
-  </script>
-  <script src="{% static 'crm/js/pages/project_detail.js' %}"></script>
-  {% endblock extra_js %}
+.text-truncate-multiline:hover {
+  color: #007bff;
+}
+
+/* 資訊圖示樣式 */
+.ki-information-2 {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.ki-information-2:hover {
+  opacity: 1;
+  color: #007bff !important;
+}
+</style>
+<script>
+  // 定義此頁面專用的麵包屑資訊
+  window.pageBreadcrumbs = {
+    menu: "專案",
+    menuUrl: "{% url 'projects' %}",
+    submenu: "專案詳情",
+    submenuUrl: "{% url 'payments' %}",
+    currentPage: "專案詳情"
+  };
+
+  // 如果 breadcrumbApp 已經掛載，則更新它
+
+  if (typeof breadcrumbApp !== 'undefined') {
+    breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
+    breadcrumbApp.updateBreadcrumb();
+  }
+</script>
+<script src="{% static 'crm/js/pages/project_detail.js' %}"></script>
+{% endblock extra_js %}

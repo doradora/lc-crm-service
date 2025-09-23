@@ -1271,9 +1271,11 @@ const projectDetail = createApp({
     // 取得收款狀態顯示文字
     getPaymentStatusDisplay(status) {
       const mapping = {
+        'over': '請款超收',
         'full': '全額收款',
         'partial': '部分收款',
-        'none': '未收款'
+        'none': '未收款',
+        'no_judgment': '不判斷'
       };
       return mapping[status] || '未設定';
     },
@@ -1281,6 +1283,7 @@ const projectDetail = createApp({
     // 取得收款狀態 badge 樣式
     getPaymentStatusBadgeClass(status) {
       const mapping = {
+        'over': 'badge-warning',
         'full': 'badge-success',
         'partial': 'badge-warning',
         'none': 'badge-danger'
