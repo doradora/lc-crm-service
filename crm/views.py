@@ -713,14 +713,55 @@ class PaymentViewSet(CanPaymentViewSet):
     )
     serializer_class = PaymentSerializer
     pagination_class = StandardResultsSetPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = ["payment_number", "projects__name", "projects__owner__company_name"]
+    # 移除 SearchFilter，因為我們在 get_queryset() 中自訂搜尋邏輯
+    # filter_backends = [filters.SearchFilter]
+    # search_fields = ["payment_number", "projects__name", "projects__owner__company_name"]
 
     def get_queryset(self):
         queryset = Payment.objects.all().prefetch_related(
             "projects", "paymentproject_set", "paymentproject_set__project",
             "paymentproject_set__project__owner"
         )
+
+        # 搜尋功能
+        search_query = self.request.query_params.get("search", None)
+        if search_query:
+            # 建立完整專案編號的條件 (year + category_code + project_number)
+            project_full_number_condition = Q(
+                projects__year__icontains=search_query
+            ) | Q(
+                projects__category__code__icontains=search_query
+            ) | Q(
+                projects__project_number__icontains=search_query
+            )
+            
+            # 嘗試組合搜尋 (例如: "2025D001")
+            # 分別嘗試匹配完整的專案編號格式
+            full_number_parts = []
+            if len(search_query) >= 4:
+                # 嘗試提取年份 (前4個字符)
+                if search_query[:4].isdigit():
+                    year_part = search_query[:4]
+                    remaining = search_query[4:]
+                    full_number_parts.append(Q(
+                        projects__year=year_part,
+                        projects__category__code__icontains=remaining[:1] if remaining else '',
+                        projects__project_number__icontains=remaining[1:] if len(remaining) > 1 else ''
+                    ))
+            
+            search_conditions = (
+                Q(payment_number__icontains=search_query)
+                | Q(projects__name__icontains=search_query)
+                | Q(projects__owner__company_name__icontains=search_query)
+                | Q(projects__project_number__icontains=search_query)
+                | project_full_number_condition
+            )
+            
+            # 加入完整專案編號的組合搜尋
+            for condition in full_number_parts:
+                search_conditions |= condition
+                
+            queryset = queryset.filter(search_conditions).distinct()
 
         # 報價過濾
         quotation_id = self.request.query_params.get("quotation", None)
