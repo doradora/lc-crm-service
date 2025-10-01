@@ -2314,10 +2314,11 @@ const paymentDetail = createApp({
               <div class="text-start">
                 <p><strong>專案：</strong>${project.project_name}</p>
                 <p><strong>請款金額：</strong>${this.formatCurrency(requestAmount)}</p>
-                <p><strong>已收金額：</strong>${this.formatCurrency(this.getProjectInvoiceReceivedAmount(item.project_id))}</p>
+                <p><strong>已收金額：</strong>${this.formatCurrency(this.getExistingProjectReceived(item.project_id))}</p>
                 <p><strong>本次輸入：</strong>${this.formatCurrency(item.amount || 0)}</p>
                 <p class="text-danger"><strong>總已收金額：</strong>${this.formatCurrency(totalReceived)}</p>
-                <p class="text-warning">⚠️ 總已收金額超出請款金額 ${this.formatCurrency(totalReceived - requestAmount)}<br />請至專案明細中修改請款金額</p>
+                <p class="text-danger"><strong>超收金額：</strong>${this.formatCurrency(totalReceived - requestAmount)}</p>
+                <p class="text-warning">⚠️ 總已收金額超出請款金額<br />請至專案明細中修改請款金額</p>
               </div>
             `,
             confirmButtonText: '我知道了',
@@ -2510,6 +2511,25 @@ const paymentDetail = createApp({
           if (index !== -1) {
             this.projectReceipts[index] = data;
           }
+          
+          // 暫存檢查結果，稍後處理
+          const completionCheck = data.payment_completion_check;
+          
+          this.resetProjectReceiptForm();
+          this.hideProjectReceiptModal();
+          
+          Swal.fire({
+            icon: "success",
+            title: "更新成功",
+            timer: 1500,
+          }).then(() => {
+            // 在成功訊息關閉後檢查請款完成狀態
+            if (completionCheck) {
+              setTimeout(() => {
+                this.handlePaymentCompletionCheck(completionCheck);
+              }, 100);
+            }
+          });
         } else {
           // 新增
           response = await fetch('/crm/api/project-receipts/', {
@@ -2527,16 +2547,27 @@ const paymentDetail = createApp({
 
           const data = await response.json();
           this.projectReceipts.push(data);
+          
+          // 暫存檢查結果，稍後處理
+          const completionCheck = data.payment_completion_check;
+          
+          this.resetProjectReceiptForm();
+          this.hideProjectReceiptModal();
+          
+          Swal.fire({
+            icon: "success",
+            title: "新增成功",
+            timer: 1500,
+          }).then(() => {
+            // 在成功訊息關閉後檢查請款完成狀態
+            if (completionCheck) {
+              console.log('新增模式-在Swal關閉後檢查結果:', completionCheck);
+              setTimeout(() => {
+                this.handlePaymentCompletionCheck(completionCheck);
+              }, 100);
+            }
+          });
         }
-
-        this.resetProjectReceiptForm();
-        this.hideProjectReceiptModal();
-        
-        Swal.fire({
-          icon: "success",
-          title: this.editingProjectReceipt ? "更新成功" : "新增成功",
-          timer: 1500,
-        });
 
       } catch (error) {
         console.error('Error saving receipt:', error);
@@ -2576,6 +2607,104 @@ const paymentDetail = createApp({
         this.projectReceipts = [];
       }
     },
+
+    // ========== 請款完成狀態檢查相關方法 ==========
+    async checkPaymentCompletion() {
+      /**
+       * 檢查請款完成狀態
+       */
+      try {
+        const response = await fetch(`/crm/api/payments/${this.paymentId}/check_payment_completion/`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        this.handlePaymentCompletionCheck(data);
+      } catch (error) {
+        console.error('Error checking payment completion:', error);
+      }
+    },
+
+    handlePaymentCompletionCheck(checkResult) {
+      /**
+       * 處理請款完成狀態檢查結果
+       */
+      console.log('handlePaymentCompletionCheck called with:', checkResult);
+      console.log('is_completed:', checkResult.is_completed);
+      console.log('already_marked:', checkResult.already_marked);
+      console.log('Condition result:', checkResult.is_completed && !checkResult.already_marked);
+      
+      if (checkResult.is_completed && !checkResult.already_marked) {
+        // 請款已完成但尚未標記，顯示確認對話框
+        console.log('Showing payment completion modal');
+        this.showPaymentCompletionModal();
+      } else {
+        console.log('Not showing modal - condition not met');
+      }
+    },
+
+    showPaymentCompletionModal() {
+      /**
+       * 顯示請款完成確認對話框
+       */
+      Swal.fire({
+        title: '請款已完成',
+        text: '所有專案的請款金額、發票金額與收款記錄金額均已匹配。是否要將此請款單標記為完成？',
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '是，標記為完成',
+        cancelButtonText: '稍後再說',
+        allowOutsideClick: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.markPaymentAsCompleted();
+        }
+      });
+    },
+
+    async markPaymentAsCompleted() {
+      /**
+       * 標記請款單為完成
+       */
+      try {
+        const response = await fetch(`/crm/api/payments/${this.paymentId}/mark_as_completed/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // 更新本地資料
+        this.payment.paid = true;
+        this.payment.payment_date = data.payment_date;
+        
+        Swal.fire({
+          icon: 'success',
+          title: '請款單已完成',
+          text: `完成日期：${data.payment_date}`,
+          timer: 2000
+        });
+
+      } catch (error) {
+        console.error('Error marking payment as completed:', error);
+        Swal.fire({
+          icon: 'error',
+          title: '標記失敗',
+          text: error.message || '標記請款單為完成時發生錯誤',
+        });
+      }
+    },
   },
   mounted() {
     // 初始化陣列確保不會有 undefined 錯誤
@@ -2594,7 +2723,10 @@ const paymentDetail = createApp({
     this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; 
     
     // 獲取基本資料 - 移除專案列表的載入
-    this.fetchPaymentDetails();
+    this.fetchPaymentDetails().then(() => {
+      // 頁面載入完成後檢查請款完成狀態
+      this.checkPaymentCompletion();
+    });
     
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表

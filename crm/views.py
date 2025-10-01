@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count, Sum, F, Q, Min, Max
+from django.db import models
 from django.utils import timezone
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -650,6 +651,61 @@ class QuotationViewSet(BaseViewSet):
         return queryset.order_by("-date_issued")
 
 
+def check_payment_completion_status(payment):
+    """
+    檢查請款單是否完成的工具函數
+    判斷條件：每個專案的請款金額 = 關聯發票總金額 = 收款記錄總金額
+    """
+    # 如果請款單已經標記為完成，直接返回
+    if payment.paid:
+        return {'is_completed': True, 'already_marked': True}
+    
+    # 獲取請款單中的所有專案
+    payment_projects = payment.paymentproject_set.all()
+    
+    if not payment_projects.exists():
+        return {'is_completed': False, 'reason': '請款單中沒有專案'}
+    
+    # 檢查每個專案的完成狀態
+    for payment_project in payment_projects:
+        project_id = payment_project.project.id
+        request_amount = float(payment_project.amount)  # 請款金額
+        
+        # 計算關聯發票總金額 - 透過 ProjectInvoice 關聯表
+        invoice_total = 0
+        # 查找該請款單的所有發票
+        for invoice in payment.invoices.all():
+            # 查找該發票中關於此專案的金額
+            project_invoice = invoice.projectinvoice_set.filter(project_id=project_id).first()
+            if project_invoice and project_invoice.amount:
+                invoice_total += float(project_invoice.amount)
+        
+        # 計算收款記錄總金額
+        receipt_total = payment.projectreceipt_set.filter(
+            project_id=project_id
+        ).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0
+        receipt_total = float(receipt_total)
+        
+        # 檢查三個金額是否相等（允許小數點差異）
+        if not (abs(request_amount - invoice_total) < 0.01 and 
+               abs(request_amount - receipt_total) < 0.01 and 
+               abs(invoice_total - receipt_total) < 0.01):
+            return {
+                'is_completed': False,
+                'reason': f'專案 {payment_project.project.name} 金額不匹配',
+                'details': {
+                    'project_name': payment_project.project.name,
+                    'request_amount': request_amount,
+                    'invoice_total': invoice_total,
+                    'receipt_total': receipt_total
+                }
+            }
+    
+    return {'is_completed': True}
+
+
 class PaymentViewSet(CanPaymentViewSet):
     queryset = Payment.objects.all().prefetch_related(
         "projects", "paymentproject_set", "paymentproject_set__project", 
@@ -748,6 +804,43 @@ class PaymentViewSet(CanPaymentViewSet):
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=True, methods=['get'])
+    def check_payment_completion(self, request, pk=None):
+        """
+        檢查請款單是否完成
+        判斷條件：每個專案的請款金額 = 關聯發票總金額 = 收款記錄總金額
+        """
+        payment = self.get_object()
+        result = check_payment_completion_status(payment)
+        return Response(result)
+    
+    @action(detail=True, methods=['post'])
+    def mark_as_completed(self, request, pk=None):
+        """
+        將請款單標記為完成
+        設定 paid = True 和 payment_date = 今天
+        """
+        payment = self.get_object()
+        
+        # 先檢查是否真的完成
+        check_result = check_payment_completion_status(payment)
+        if not check_result.get('is_completed'):
+            return Response({
+                'error': '請款單尚未完成，無法標記為已完成',
+                'check_result': check_result
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 標記為完成
+        payment.paid = True
+        payment.payment_date = timezone.now().date()
+        payment.save()
+        
+        return Response({
+            'success': True,
+            'message': '請款單已標記為完成',
+            'payment_date': payment.payment_date
+        })
 
 class PaymentProjectViewSet(CanPaymentViewSet):
     queryset = PaymentProject.objects.all().select_related("project", "payment")
@@ -1742,6 +1835,38 @@ class ProjectReceiptViewSet(CanPaymentViewSet):
         if project_id:
             queryset = queryset.filter(project_id=project_id)
         return queryset.order_by("-id")
+    
+    def create(self, request, *args, **kwargs):
+        """新增收款記錄後檢查請款完成狀態"""
+        response = super().create(request, *args, **kwargs)
+        
+        if response.status_code == 201:
+            # 獲取新建的收款記錄
+            receipt = ProjectReceipt.objects.get(id=response.data['id'])
+            if receipt.payment:
+                # 檢查請款完成狀態
+                check_result = check_payment_completion_status(receipt.payment)
+                
+                # 在回應中加入檢查結果
+                response.data['payment_completion_check'] = check_result
+        
+        return response
+    
+    def update(self, request, *args, **kwargs):
+        """更新收款記錄後檢查請款完成狀態"""
+        response = super().update(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            # 獲取更新的收款記錄
+            receipt = self.get_object()
+            if receipt.payment:
+                # 檢查請款完成狀態
+                check_result = check_payment_completion_status(receipt.payment)
+                
+                # 在回應中加入檢查結果
+                response.data['payment_completion_check'] = check_result
+        
+        return response
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated, IsAdminOrCanRequestPayment])
