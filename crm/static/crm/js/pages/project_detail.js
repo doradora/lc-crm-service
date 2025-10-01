@@ -1290,6 +1290,14 @@ const projectDetail = createApp({
       };
       return mapping[status] || 'badge-light-secondary';
     },
+
+    // 計算專案總支出
+    getTotalProjectReceived() {
+      if (!this.project.related_payments) return 0;
+      return this.project.related_payments.reduce((total, payment) => {
+        return total + (payment.total_received || 0);
+      }, 0);
+    }
   },
   mounted() {
     this.projectId = this.getProjectIdFromUrl();

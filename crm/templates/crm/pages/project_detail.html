@@ -57,7 +57,7 @@
         </div>
       </div>
       <div class="d-flex flex-column flex-column-fluid flex-xl-row gap-5">
-        <div class="d-flex flex-column flex-row-fluid" style="width: 40% !important;">
+        <div class="d-flex flex-column flex-row-fluid project-layout-left" style="width: 100%;">
           <!-- 專案詳細資料表單 -->
           <div class="card mb-xl-10" id="project_details_form">
             <div class="card-header border-0 cursor-pointer">
@@ -404,175 +404,307 @@
             </div>
           </div>
         </div>
-        <div class="d-flex flex-column gap-5" style="width: 60% !important;">
+        <div class="d-flex flex-column gap-5 project-layout-right" style="width: 100%;">
           <!-- 請款狀態卡片 -->
           <div
             v-if="(currentUser && currentUser.profile && currentUser.profile.can_request_payment)"
             class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <h4 class="fw-bold">相關請款資訊</h4>
+            <div class="card-header border-0 cursor-pointer">
+              <div class="card-title m-0">
+                <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-4 fw-semibold mb-0">
+                  <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#tab_receipt_status">收款狀態</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab_payment_info">請款單號</a>
+                  </li>
+                </ul>
               </div>
             </div>
-            <div class="card-body">
-              <!-- 相關請款資訊列表 -->
-              <div v-if="project.related_payments && project.related_payments.length > 0"
-                class="d-flex flex-column gap-5">
-                <div v-for="payment in project.related_payments" :key="payment.id" class="mb-2">
-                  <div class="d-flex justify-content-between align-items-center border-bottom pb-5">
-                    <div>
-                      <h6 class="fw-bold mb-1">請款單號: <a :href="`/crm/payment/${payment.id}/details`"
-                          class="text-primary">[[
-                          payment.payment_number ]]</a></h6>
-                      <div class="text-gray-700">請款金額: NT$ [[ formatAmount(payment.amount) ]]
-                      </div>
-                    </div>
-                    <div>
-                      <span class="badge" :class="payment.is_paid ? 'badge-light-success' : 'badge-light-warning'">
-                        [[ payment.is_paid ? '已請款完成' : '未請款完成' ]]
-                      </span>
-                      <div v-if="payment.is_paid" class="text-gray-700 mt-1">
-                        付款日期: [[ payment.payment_date ]]
-                      </div>
-                      <div v-else class="text-gray-700 mt-1">
-                        請款日期: [[ payment.date_issued ]]
-                        <div v-if="payment.due_date">到期日: [[ payment.due_date ]]</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- 新增的詳細資訊區塊 -->
-                  <div class="mt-4">
-                    <!-- 發票和收款記錄的上半部分 -->
-                    <div class="row mb-4">
-                      <!-- 左側：請款單關聯發票 -->
-                      <div class="col-md-6">
-                        <h6 class="fw-bold text-gray-800 mb-3">
-                          <i class="ki-outline ki-file-down fs-6 me-2"></i>關聯發票
-                        </h6>
-                        <div v-if="payment.invoices && payment.invoices.length > 0" class="bg-light-primary p-3 rounded">
-                          <div v-for="invoice in payment.invoices" :key="invoice.id" class="mb-2">
-                            <div class="d-flex justify-content-between align-items-start">
-                              <div class="flex-grow-1">
-                                <div class="fw-bold text-gray-800 fs-6">
-                                  <template v-if="invoice.invoice_type === 'no_invoice'">
-                                    <i class="ki-outline ki-cross-circle text-danger me-1"></i>不開發票
-                                  </template>
-                                  <template v-else-if="invoice.invoice_type === 'pending'">
-                                    <i class="ki-outline ki-time text-warning me-1"></i>發票待開
-                                  </template>
-                                  <template v-else>
-                                    <i class="ki-outline ki-document text-primary me-1"></i>[[ invoice.invoice_number ]]
-                                  </template>
-                                </div>
-                                <div v-if="invoice.amount" class="text-gray-600 fs-7">
-                                  金額: NT$ [[ formatAmount(invoice.amount) ]]
-                                </div>
-                                <div v-if="invoice.issue_date" class="text-gray-600 fs-7">
-                                  開立日期: [[ invoice.issue_date ]]
-                                </div>
-                                <div v-if="invoice.payment_method" class="text-gray-600 fs-7">
-                                  收款方式: [[ getPaymentMethodDisplay(invoice.payment_method) ]]
-                                </div>
+            <div class="card-body border-top p-9">
+              <div v-if="project.related_payments && project.related_payments.length > 0">
+                <!-- Tab 內容 -->
+                <div class="tab-content">
+                  <!-- Tab 1: 收款狀態 -->
+                  <div class="tab-pane fade show active" id="tab_receipt_status" role="tabpanel">
+                    <!-- 專案收款狀態總覽 -->
+                    <div class="border border-primary border-1 rounded p-4 mb-5 project-overview" >
+                      <h5 class="fw-bold text-primary mb-4">
+                        <i class="ki-outline ki-chart-pie-simple fs-5 me-2"></i>專案收款狀態總覽
+                      </h5>
+                      <div class="row">
+                        <div class="col-md-8">
+                          <div class="row">
+                            <div class="col-md-4 mb-3">
+                              <div class="text-gray-600 fs-7">專案報價金額</div>
+                              <div v-if="project.quoted_amount" class="fw-bold text-gray-800 fs-5">NT$ [[ formatAmount(project.quoted_amount) ]]</div>
+                              <div v-else class="fw-bold text-muted fs-5">未設定</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                              <div class="text-gray-600 fs-7">已收總金額</div>
+                              <div class="fw-bold text-success fs-5">NT$ [[ formatAmount(getTotalProjectReceived()) ]]</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                              <div class="text-gray-600 fs-7">未收金額</div>
+                              <div v-if="project.quoted_amount" class="fw-bold text-danger fs-5">
+                                NT$ [[ formatAmount(Math.max(0, project.quoted_amount - getTotalProjectReceived())) ]]
                               </div>
-                              <span class="badge" :class="getInvoiceStatusBadgeClass(invoice.payment_status)">
-                                [[ getInvoiceStatusDisplay(invoice.payment_status) ]]
+                              <div v-else class="fw-bold text-muted fs-5">-</div>
+                            </div>
+                          </div>
+                          <!-- 各請款單明細 -->
+                          <div class="mt-4">
+                            <h6 class="fw-bold text-gray-800 mb-3">各請款單收款明細</h6>
+                            <div class="table-responsive">
+                              <table class="table table-row-dashed table-row-gray-200 align-middle gs-0 gy-3">
+                                <thead>
+                                  <tr class="fw-bold text-muted bg-light fs-7">
+                                    <th class="min-w-150px">請款單號</th>
+                                    <th class="min-w-120px text-end">收款總額</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr v-for="payment in project.related_payments" :key="payment.id">
+                                    <td class="fs-7">
+                                      <a :href="`/crm/payment/${payment.id}/details`" class="text-primary text-decoration-none fw-bold">
+                                        [[ payment.payment_number ]]
+                                      </a>
+                                    </td>
+                                    <td class="text-end fw-bold fs-7">NT$ [[ formatAmount(payment.total_received) ]]</td>
+                                  </tr>
+                                </tbody>
+                                <tfoot>
+                                  <tr class="border-top border-gray-400">
+                                    <td class="fw-bold fs-7">總計</td>
+                                    <td class="text-end fw-bold text-primary fs-6">NT$ [[ formatAmount(getTotalProjectReceived()) ]]</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <div class="text-center">
+                            <div class="mb-3">
+                              <span v-if="!project.quoted_amount" class="badge badge-secondary fs-6 py-3 px-4">
+                                不判斷
+                                <i class="ki-outline ki-question-2 fs-7 text-muted ms-1 cursor-pointer" 
+                                  data-bs-toggle="popover"
+                                  data-bs-placement="top"
+                                  data-bs-trigger="hover"
+                                  data-bs-content="專案報價金額未設定時，不進行收款狀態判斷"
+                                  title="專案報價金額未設定"></i>
+                              </span>
+                              <span v-else-if="getTotalProjectReceived() > project.quoted_amount" class="badge badge-warning fs-6 py-3 px-4">
+                                請款超收
+                              </span>
+                              <span v-else-if="getTotalProjectReceived() >= project.quoted_amount" class="badge badge-success fs-6 py-3 px-4">
+                                收款完成
+                              </span>
+                              <span v-else-if="getTotalProjectReceived() > 0" class="badge badge-warning fs-6 py-3 px-4">
+                                部分收款
+                              </span>
+                              <span v-else class="badge badge-danger fs-6 py-3 px-4">
+                                未收款
                               </span>
                             </div>
-                          </div>
-                        </div>
-                        <div v-else class="bg-light-secondary p-3 rounded text-center text-muted fs-7">
-                          <i class="ki-outline ki-information-5 fs-6 mb-2"></i><br>
-                          尚無關聯發票
-                        </div>
-                      </div>
-                      
-                      <!-- 右側：請款單關聯收款記錄 -->
-                      <div class="col-md-6">
-                        <h6 class="fw-bold text-gray-800 mb-3">
-                          <i class="ki-outline ki-wallet fs-6 me-2"></i>收款記錄
-                        </h6>
-                        <div v-if="payment.receipts && payment.receipts.length > 0" class="bg-light-success p-3 rounded">
-                          <div v-for="receipt in payment.receipts" :key="receipt.id" class="mb-2">
-                            <div class="d-flex justify-content-between align-items-start">
-                              <div class="flex-grow-1">
-                                <div class="fw-bold text-gray-800 fs-7">
-                                  NT$ [[ formatAmount(receipt.amount) ]]
-                                </div>
-                                <div v-if="receipt.payment_date" class="text-gray-600 fs-7">
-                                  收款日期: [[ receipt.payment_date ]]
-                                </div>
-                                <div v-if="receipt.payment_method" class="text-gray-600 fs-7">
-                                  收款方式: [[ getPaymentMethodDisplay(receipt.payment_method) ]]
-                                </div>
-                              </div>
+                            <div v-if="project.quoted_amount" class="progress" style="height: 12px;">
+                              <div class="progress-bar bg-success" role="progressbar" 
+                                   :style="`width: ${Math.min(100, (getTotalProjectReceived() / project.quoted_amount * 100))}%`"></div>
+                              <div v-if="getTotalProjectReceived() > project.quoted_amount" 
+                                   class="progress-bar bg-warning" role="progressbar"
+                                   :style="`width: ${Math.min(20, ((getTotalProjectReceived() - project.quoted_amount) / project.quoted_amount * 100))}%`"></div>
+                            </div>
+                            <div v-if="project.quoted_amount" class="mt-2 fs-7 text-gray-600">
+                              完成度: [[ Math.round(getTotalProjectReceived() / project.quoted_amount * 100) ]]%
                             </div>
                           </div>
-                          <div class="border-top border-gray-300 pt-2 mt-2">
-                            <div class="fw-bold text-primary fs-7">
-                              總收款: NT$ [[ formatAmount(payment.total_received) ]]
-                            </div>
-                          </div>
-                        </div>
-                        <div v-else class="bg-light-secondary p-3 rounded text-center text-muted fs-7">
-                          <i class="ki-outline ki-information-5 fs-6 mb-2"></i><br>
-                          尚無收款記錄
                         </div>
                       </div>
                     </div>
-                    
-                    <!-- 下半部分：銀行資訊和收款狀態 -->
-                    <div class="row">
-                      <!-- 銀行帳戶資訊 -->
-                      <div class="col-md-8">
-                        <h6 class="fw-bold text-gray-800 mb-3">
-                          <i class="ki-outline ki-bank fs-6 me-2"></i>存放銀行
-                        </h6>
-                        <div v-if="payment.bank_account" class="bg-light-info p-3 rounded">
-                          <div class="row">
-                            <div class="col-md-6">
-                              <div class="fw-bold text-gray-800 fs-7">[[ payment.bank_account.account_name ]]</div>
-                              <div class="text-gray-600 fs-7">戶名</div>
-                            </div>
-                            <div class="col-md-6">
-                              <div class="fw-bold text-gray-800 fs-7">[[ payment.bank_account.account_number ]]</div>
-                              <div class="text-gray-600 fs-7">帳號</div>
-                            </div>
-                            <div class="col-md-12 mt-2">
-                              <div class="fw-bold text-gray-800 fs-7">[[ payment.bank_account.bank_name ]]</div>
-                              <div class="text-gray-600 fs-7">銀行名稱 ([[ payment.bank_account.bank_code ]])</div>
-                            </div>
-                          </div>
-                        </div>
-                        <div v-else class="bg-light-secondary p-3 rounded text-center text-muted fs-7">
-                          <i class="ki-outline ki-information-5 fs-6 mb-2"></i><br>
-                          未設定銀行帳戶
-                        </div>
-                      </div>
-                      
-                      <!-- 收款狀態 -->
-                      <div class="col-md-4">
-                        <h6 class="fw-bold text-gray-800 mb-3">
-                          <i class="ki-outline ki-chart-pie-simple fs-6 me-2"></i>收款狀態
-                        </h6>
-                        <div class="bg-white border border-gray-300 p-3 rounded text-center">
-                          <div class="d-flex justify-content-center align-items-center">
-                            <span class="badge fs-6 py-2 px-3" :class="getPaymentStatusBadgeClass(payment.payment_status)">
-                              [[ getPaymentStatusDisplay(payment.payment_status) ]]
-                            </span>
+
+                    <!-- 各請款單收款狀態詳細 -->
+                    <div class="d-flex flex-column gap-5">
+                      <div v-for="payment in project.related_payments" :key="payment.id" class="border border-gray-300 rounded p-4">
+                        <!-- 請款單標題 -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                          <h6 class="fw-bold mb-0">
+                            <i class="ki-outline ki-document text-primary me-1"></i>
+                            請款單號: <a :href="`/crm/payment/${payment.id}/details`" class="text-primary">[[ payment.payment_number ]]</a>
+                          </h6>
+                          <span class="badge fs-6 py-2 px-3" :class="getPaymentStatusBadgeClass(payment.payment_status)">
+                            [[ getPaymentStatusDisplay(payment.payment_status) ]]
                             <i v-if="payment.payment_status === 'no_judgment'" class="ki-outline ki-question-2 fs-7 text-muted ms-1 cursor-pointer" 
                               data-bs-toggle="popover"
                               data-bs-placement="top"
                               data-bs-trigger="hover"
                               data-bs-content="報價金額未設定時，不進行判斷"
                               title="報價金額未設定時，不進行判斷"></i>
-                          </div>
-                          <div class="mt-2">
-                            <div class="text-gray-800 fw-bold fs-7">
-                              已收: NT$ [[ formatAmount(payment.total_received) ]]
+                          </span>
+                        </div>
+
+                        <div class="row">
+                          <!-- 左側：收款記錄列表 -->
+                          <div class="col-md-8">
+                            <h6 class="fw-bold text-gray-800 mb-3">
+                              <i class="ki-outline ki-wallet fs-6 me-2"></i>收款記錄
+                            </h6>
+                            <div v-if="payment.receipts && payment.receipts.length > 0">
+                              <div class="table-responsive">
+                                <table class="table table-row-dashed table-row-gray-200 align-middle gs-0 gy-3">
+                                  <thead>
+                                    <tr class="fw-bold text-muted bg-light fs-7">
+                                      <th class="min-w-100px">收款日期</th>
+                                      <th class="min-w-120px text-end">收款金額</th>
+                                      <th class="min-w-100px">收款方式</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr v-for="receipt in payment.receipts" :key="receipt.id">
+                                      <td class="fs-7">[[ receipt.payment_date ]]</td>
+                                      <td class="text-end fw-bold fs-7">NT$ [[ formatAmount(receipt.amount) ]]</td>
+                                      <td class="fs-7">[[ getPaymentMethodDisplay(receipt.payment_method) ]]</td>
+                                    </tr>
+                                  </tbody>
+                                  <tfoot>
+                                    <tr class="border-top border-gray-400">
+                                      <td class="fw-bold fs-7">總計</td>
+                                      <td class="text-end fw-bold text-primary fs-6">NT$ [[ formatAmount(payment.total_received) ]]</td>
+                                      <td></td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
                             </div>
-                            <div v-if="payment.payment_status !== 'no_judgment'" class="text-gray-600 fs-7">
-                              未收: NT$ [[ formatAmount(payment.remaining_amount) ]]
+                            <div v-else class="bg-light-secondary p-3 rounded text-center text-muted fs-7">
+                              <i class="ki-outline ki-information-5 fs-6 mb-2"></i><br>
+                              尚無收款記錄
+                            </div>
+                          </div>
+
+                          <!-- 右側：收款統計 -->
+                          <div class="col-md-4">
+                            <h6 class="fw-bold text-gray-800 mb-3">
+                              <i class="ki-outline ki-chart-pie-simple fs-6 me-2"></i>收款統計
+                            </h6>
+                            <div class="bg-white border border-gray-300 p-3 rounded">
+                              <div class="mb-3">
+                                <div class="text-gray-600 fs-7">請款金額</div>
+                                <div class="fw-bold text-gray-800 fs-6">NT$ [[ formatAmount(payment.amount) ]]</div>
+                              </div>
+                              <div class="mb-3">
+                                <div class="text-gray-600 fs-7">已收金額</div>
+                                <div class="fw-bold text-success fs-6">NT$ [[ formatAmount(payment.total_received) ]]</div>
+                              </div>
+                              <div v-if="payment.payment_status !== 'no_judgment'" class="mb-3">
+                                <div class="text-gray-600 fs-7">未收金額</div>
+                                <div class="fw-bold text-danger fs-6">NT$ [[ formatAmount(payment.remaining_amount) ]]</div>
+                              </div>
+                              <div v-if="payment.payment_status !== 'no_judgment'" class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     :style="`width: ${(payment.total_received / payment.amount * 100)}%`"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tab 2: 請款單號 (包含存放銀行、發票資訊) -->
+                  <div class="tab-pane fade" id="tab_payment_info" role="tabpanel">
+                    <div class="d-flex flex-column gap-5">
+                      <div v-for="payment in project.related_payments" :key="payment.id" class="border border-gray-300 rounded p-4">
+                        <!-- 請款單基本資訊 -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                          <div>
+                            <h6 class="fw-bold mb-1">
+                              <i class="ki-outline ki-document text-primary me-1"></i>
+                              請款單號: <a :href="`/crm/payment/${payment.id}/details`" class="text-primary">[[ payment.payment_number ]]</a>
+                            </h6>
+                            <div class="text-gray-700 fs-6">請款金額: NT$ [[ formatAmount(payment.amount) ]]</div>
+                          </div>
+                          <div class="text-end">
+                            <span class="badge" :class="payment.is_paid ? 'badge-light-success' : 'badge-light-warning'">
+                              [[ payment.is_paid ? '已請款完成' : '未請款完成' ]]
+                            </span>
+                            <div v-if="payment.is_paid" class="text-gray-700 mt-1 fs-7">
+                              付款日期: [[ payment.payment_date ]]
+                            </div>
+                            <div v-else class="text-gray-700 mt-1 fs-7">
+                              請款日期: [[ payment.date_issued ]]
+                              <div v-if="payment.due_date">到期日: [[ payment.due_date ]]</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="row">
+                          <!-- 左側：發票資訊 -->
+                          <div class="col-md-6">
+                            <h6 class="fw-bold text-gray-800 mb-3">
+                              <i class="ki-outline ki-file-down fs-6 me-2"></i>關聯發票
+                            </h6>
+                            <div v-if="payment.invoices && payment.invoices.length > 0" class="bg-light-primary p-3 rounded">
+                              <div v-for="invoice in payment.invoices" :key="invoice.id" class="mb-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                  <div class="flex-grow-1">
+                                    <div class="fw-bold text-gray-800 fs-6">
+                                      <template v-if="invoice.invoice_type === 'no_invoice'">
+                                        <i class="ki-outline ki-cross-circle text-danger me-1"></i>不開發票
+                                      </template>
+                                      <template v-else-if="invoice.invoice_type === 'pending'">
+                                        <i class="ki-outline ki-time text-warning me-1"></i>發票待開
+                                      </template>
+                                      <template v-else>
+                                        <i class="ki-outline ki-document text-primary me-1"></i>[[ invoice.invoice_number ]]
+                                      </template>
+                                    </div>
+                                    <div v-if="invoice.amount" class="text-gray-600 fs-7">
+                                      金額: NT$ [[ formatAmount(invoice.amount) ]]
+                                    </div>
+                                    <div v-if="invoice.issue_date" class="text-gray-600 fs-7">
+                                      開立日期: [[ invoice.issue_date ]]
+                                    </div>
+                                    <div v-if="invoice.payment_method" class="text-gray-600 fs-7">
+                                      收款方式: [[ getPaymentMethodDisplay(invoice.payment_method) ]]
+                                    </div>
+                                  </div>
+                                  <span class="badge" :class="getInvoiceStatusBadgeClass(invoice.payment_status)">
+                                    [[ getInvoiceStatusDisplay(invoice.payment_status) ]]
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-else class="bg-light-secondary p-3 rounded text-center text-muted fs-7">
+                              <i class="ki-outline ki-information-5 fs-6 mb-2"></i><br>
+                              尚無關聯發票
+                            </div>
+                          </div>
+
+                          <!-- 右側：銀行帳戶資訊 -->
+                          <div class="col-md-6">
+                            <h6 class="fw-bold text-gray-800 mb-3">
+                              <i class="ki-outline ki-bank fs-6 me-2"></i>存放銀行
+                            </h6>
+                            <div v-if="payment.bank_account" class="bg-light-info p-3 rounded">
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <div class="fw-bold text-gray-800 fs-7">[[ payment.bank_account.account_name ]]</div>
+                                  <div class="text-gray-600 fs-7">戶名</div>
+                                </div>
+                                <div class="col-md-6">
+                                  <div class="fw-bold text-gray-800 fs-7">[[ payment.bank_account.account_number ]]</div>
+                                  <div class="text-gray-600 fs-7">帳號</div>
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                  <div class="fw-bold text-gray-800 fs-7">[[ payment.bank_account.bank_name ]]</div>
+                                  <div class="text-gray-600 fs-7">銀行名稱 ([[ payment.bank_account.bank_code ]])</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-else class="bg-light-secondary p-3 rounded text-center text-muted fs-7">
+                              <i class="ki-outline ki-information-5 fs-6 mb-2"></i><br>
+                              未設定銀行帳戶
                             </div>
                           </div>
                         </div>
@@ -931,6 +1063,39 @@
 .ki-information-2:hover {
   opacity: 1;
   color: #007bff !important;
+}
+
+/* 響應式佈局調整 */
+@media (min-width: 1200px) {
+  .project-layout-left {
+    width: 40% !important;
+  }
+  .project-layout-right {
+    width: 60% !important;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .project-layout-left,
+  .project-layout-right {
+    width: 100% !important;
+  }
+}
+
+/* 專案收款狀態總覽在小螢幕上的調整 */
+@media (max-width: 767.98px) {
+  .project-overview .col-md-4 {
+    margin-bottom: 1rem;
+  }
+  
+  .project-overview .col-md-8 .col-md-4 {
+    margin-bottom: 0.75rem;
+  }
+  
+  .badge.py-2.px-3 {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem !important;
+  }
 }
 </style>
 <script>
