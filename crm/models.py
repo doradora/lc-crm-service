@@ -79,6 +79,9 @@ class Project(models.Model):
     total_expenditure = models.DecimalField(
         max_digits=10, decimal_places=0, default=0
     )  # 總支出，設定預設值
+    quoted_amount = models.DecimalField(
+        max_digits=10, decimal_places=0, null=True, blank=True
+    )  # 報價金額，作為請款與收款比對基準
     is_invoiced = models.BooleanField(default=False)  # 是否請款
     invoice_date = models.DateField(null=True, blank=True)  # 請款日期
     invoice_amount = models.DecimalField(

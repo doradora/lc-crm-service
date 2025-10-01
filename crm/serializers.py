@@ -162,6 +162,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "project_number",
             "full_project_number",  # 新增完整案件編號
             "name",
+            "quoted_amount",  # 新增報價金額欄位
             "managers",
             "managers_info",
             "drawing",
@@ -309,9 +310,7 @@ class ProjectSerializer(serializers.ModelSerializer):
                 payment_amount = float(payment_project.amount)
                 remaining_amount = payment_amount - total_received
                 
-                if payment_amount == 0:
-                    payment_status = 'no_judgment'  # 不判斷
-                elif remaining_amount == 0:
+                if remaining_amount == 0:
                     payment_status = 'full'  # 全額
                 elif 0 < remaining_amount < payment_amount:
                     payment_status = 'partial'  # 部分
