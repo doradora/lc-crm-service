@@ -77,7 +77,7 @@
               <div class="d-flex align-items-center">
                 <div class="form-check form-switch form-check-custom form-check-solid">
                   <input class="form-check-input" type="checkbox" id="projectCompletedSwitch"
-                    v-model="project.is_completed" v-if="isEditMode" :disabled="!isEditMode">
+                    :checked="project.is_completed" @change="handleCompletedToggle" v-if="isEditMode" :disabled="!isEditMode">
                   <label class="form-check-label" for="projectCompletedSwitch">
                     <span class="badge" :class="getStatusBadgeClass">[[ project.is_completed ? '已完成'
                       : '進行中' ]]</span>
@@ -189,19 +189,19 @@
                             <div v-if="isEditMode">
                               <!-- 單行文字欄位 -->
                               <input v-if="field.type === 'text'" type="text" class="form-control"
-                                :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
+                                :class="{ 'is-invalid': showRequiredFieldErrors && field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                 v-model="customFieldValues[fieldName]" :required="field.required">
                               <!-- 多行文字欄位 -->
                               <textarea v-else-if="field.type === 'textarea'" class="form-control"
-                                :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
+                                :class="{ 'is-invalid': showRequiredFieldErrors && field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                 v-model="customFieldValues[fieldName]" rows="3" :required="field.required"></textarea>
                               <!-- 數字欄位 -->
                               <input v-else-if="field.type === 'number'" type="number" class="form-control"
-                                :class="{ 'is-invalid': field.required && (customFieldValues[fieldName] === null || customFieldValues[fieldName] === undefined || customFieldValues[fieldName] === '') }"
+                                :class="{ 'is-invalid': showRequiredFieldErrors && field.required && (customFieldValues[fieldName] === null || customFieldValues[fieldName] === undefined || customFieldValues[fieldName] === '') }"
                                 v-model="customFieldValues[fieldName]" :required="field.required">
                               <!-- 日期欄位 -->
                               <input v-else-if="field.type === 'date'" type="date" class="form-control" max="9999-12-31"
-                                :class="{ 'is-invalid': field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
+                                :class="{ 'is-invalid': showRequiredFieldErrors && field.required && (!customFieldValues[fieldName] || customFieldValues[fieldName].trim() === '') }"
                                 v-model="customFieldValues[fieldName]" :required="field.required">
                               <!-- 是/否欄位 -->
                               <div v-else-if="field.type === 'boolean'"

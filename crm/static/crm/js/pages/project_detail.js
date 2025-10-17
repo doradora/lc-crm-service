@@ -95,6 +95,9 @@ const projectDetail = createApp({
 
       // 新增編輯模式狀態
       isEditMode: false,
+
+      // 控制必填欄位紅框顯示
+      showRequiredFieldErrors: false,
     };
   },
   computed: {
@@ -363,16 +366,18 @@ const projectDetail = createApp({
         }
       }
 
-      // 驗證自定義欄位
-      const validationErrors = this.validateCustomFields();
-      if (validationErrors.length > 0) {
-        Swal.fire({
-          title: "欄位驗證錯誤",
-          html: "以下必填欄位不能為空：<br>" + validationErrors.join("<br>"),
-          icon: "error",
-          confirmButtonText: "確定",
-        });
-        return; // 中斷儲存流程
+      // 只有在專案標記為「已完成」時才驗證自定義欄位
+      if (this.project.is_completed) {
+        const validationErrors = this.validateCustomFields();
+        if (validationErrors.length > 0) {
+          Swal.fire({
+            title: "欄位驗證錯誤",
+            html: "專案標記為「已完成」時,以下必填欄位不能為空：<br>" + validationErrors.join("<br>"),
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+          return; // 中斷儲存流程
+        }
       }
 
       // 準備要提交的資料
@@ -433,6 +438,9 @@ const projectDetail = createApp({
             this.project.managers = data.managers;
             this.project.selected_managers = data.managers_info || [];
           }
+
+          // 儲存成功後清除錯誤提示狀態
+          this.showRequiredFieldErrors = false;
 
           Swal.fire({
             title: "成功!",
@@ -1183,11 +1191,42 @@ const projectDetail = createApp({
       }
     },
 
+    // 處理「已完成」開關切換
+    handleCompletedToggle(event) {
+      const newValue = event.target.checked;
+      
+      // 如果是從未完成切換到已完成,需要驗證必填欄位
+      if (newValue && !this.project.is_completed) {
+        const validationErrors = this.validateCustomFields();
+        
+        if (validationErrors.length > 0) {
+          // 阻止切換
+          event.target.checked = false;
+          this.showRequiredFieldErrors = true;
+          
+          Swal.fire({
+            title: "欄位驗證錯誤",
+            html: "專案標記為「已完成」前,以下必填欄位必須填寫：<br>" + validationErrors.join("<br>"),
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+          return;
+        }
+      }
+      
+      // 驗證通過或從已完成切換到未完成,更新狀態
+      this.project.is_completed = newValue;
+      
+      // 切換到已完成時顯示紅框提示,切回未完成時隱藏
+      this.showRequiredFieldErrors = newValue;
+    },
+
     // 切換編輯模式
     toggleEditMode() {
       if (this.isEditMode) {
         // 從編輯模式切換到查看模式，重新載入資料
         this.fetchProjectDetails();
+        this.showRequiredFieldErrors = false;
       }
       this.isEditMode = !this.isEditMode;
     },
