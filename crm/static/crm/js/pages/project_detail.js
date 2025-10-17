@@ -104,8 +104,8 @@ const projectDetail = createApp({
     // 獲取專案狀態顯示樣式
     getStatusBadgeClass() {
       return this.project.is_completed
-        ? "badge-light-success"
-        : "badge-light-warning";
+        ? "badge-success"
+        : "badge-warning";
     },
 
     // 獲取業主名稱

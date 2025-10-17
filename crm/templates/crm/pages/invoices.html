@@ -81,6 +81,9 @@
               </div>
             </div>
 
+            
+            <div class="border-bottom border-1 border-black border-opacity-10 mb-4"></div>
+
             <!-- 資料載入指示器 -->
             <div v-if="isLoading" class="d-flex justify-content-center py-10">
               <div class="spinner-border text-primary" role="status">
@@ -146,7 +149,7 @@
 
                     
                     <td class="text-end">
-                      <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary"
+                      <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
                         @click="toggleMenu(invoice.id)">
                         <i class="ki-outline ki-down fs-5"></i>
                       </button>

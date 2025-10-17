@@ -388,7 +388,7 @@ const companyDetail = createApp({
 
     // 獲取付款狀態樣式
     getPaymentStatusClass(payment) {
-      return payment.paid ? "badge badge-light-success" : "badge badge-light-warning";
+      return payment.paid ? "badge badge-success" : "badge badge-warning";
     },
   },
   mounted() {

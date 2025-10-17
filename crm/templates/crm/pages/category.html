@@ -48,15 +48,15 @@
                                             </td>
                                             <td class="text-center">[[ cg.projects_count ]]</td>
                                             <td class="text-center">
-                                                <span class="badge badge-light-primary" v-if="getCustomFieldsCount(cg) > 0">[[ getCustomFieldsCount(cg) ]] 個欄位</span>
-                                                <span class="badge badge-light-secondary" v-else>無自定義欄位</span>
+                                                <span class="badge badge-primary" v-if="getCustomFieldsCount(cg) > 0">[[ getCustomFieldsCount(cg) ]] 個欄位</span>
+                                                <span class="badge badge-secondary" v-else>無自定義欄位</span>
                                                 <button @click.prevent="manageCustomFields(cg)"
                                                         class="btn btn-sm btn-icon btn-light-primary ms-2">
                                                     <i class="ki-outline ki-setting-3"></i>
                                                 </button>
                                             </td>
                                             <td class="text-end">
-                                                <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary"
+                                                <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
                                                        @click="toggleMenu(cg.id)">
                                                     <i class="ki-outline ki-down fs-5"></i>
                                                 </button>
@@ -204,8 +204,8 @@
                                                         <td>[[ field.display_name ]]</td>
                                                         <td>[[ getFieldTypeDisplay(field.type) ]]</td>
                                                         <td>
-                                                            <span v-if="field.required" class="badge badge-light-primary">必填</span>
-                                                            <span v-else class="badge badge-light-secondary">選填</span>
+                                                            <span v-if="field.required" class="badge badge-primary">必填</span>
+                                                            <span v-else class="badge badge-secondary">選填</span>
                                                         </td>
                                                         <td>[[ field.order ]]</td>
                                                         <td class="text-end">

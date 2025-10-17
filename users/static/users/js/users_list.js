@@ -255,10 +255,10 @@ const userList = createApp({
       return roles;
     },
     getRoleBadgeClass(role) {
-      if (role == "管理員") return "badge-light-danger";
-      if (role == "設計師") return "badge-light-success";
-      if (role == "專案負責人") return "badge-light-primary";
-      if (role == "請款") return "badge-light-warning";
+      if (role == "管理員") return "badge-danger";
+      if (role == "設計師") return "badge-success";
+      if (role == "專案負責人") return "badge-primary";
+      if (role == "請款") return "badge-warning";
       return "badge-light-warning";
     },
     handleClickOutside(event) {

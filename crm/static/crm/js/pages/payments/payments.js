@@ -573,7 +573,7 @@ const paymentList = createApp({
 
     // 獲取狀態標籤樣式類
     getStatusBadgeClass(payment) {
-      return payment.paid ? "badge-light-success" : "badge-light-warning";
+      return payment.paid ? "badge-success" : "badge-warning";
     },
 
     // 查看付款單詳情

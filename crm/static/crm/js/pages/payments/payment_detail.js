@@ -654,7 +654,7 @@ const paymentDetail = createApp({
 
     // 獲取狀態標籤樣式
     getStatusBadgeClass() {
-      return this.payment.paid ? "badge-light-success" : "badge-light-warning";
+      return this.payment.paid ? "badge-success" : "badge-warning";
     },
 
     // 計算所有專案項目的總金額

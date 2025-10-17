@@ -111,8 +111,8 @@ const quotationsList = createApp({
     getStatusBadgeClass(quotation) {
       // 根據是否有請款單顯示不同顏色
       return quotation.has_invoice
-        ? "badge badge-light-success"
-        : "badge badge-light-warning";
+        ? "badge badge-success"
+        : "badge badge-warning";
     },
     toggleMenu(quotationId) {
       if (this.activeMenu === quotationId) {

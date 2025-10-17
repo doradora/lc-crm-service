@@ -45,7 +45,7 @@
   --bs-warning-rgb: 246, 192, 0;
   --bs-danger-rgb: 248, 40, 90;
   --bs-dark-rgb: 30, 33, 41;
-  --bs-light-primary: rgba(222, 234, 238, 1);
+  --bs-light-primary: rgba(205, 230, 238, 1);
   --bs-primary-text-emphasis: #00A261;
   --bs-secondary-text-emphasis: #606062;
   --bs-success-text-emphasis: #0b3566;
@@ -2101,7 +2101,7 @@ progress {
   --bs-table-border-color: var(--bs-border-color);
   --bs-table-accent-bg: transparent;
   --bs-table-striped-color: var(--bs-body-color);
-  --bs-table-striped-bg: rgba(var(--bs-gray-100-rgb), 0.75);
+  --bs-table-striped-bg: rgba(var(--bs-gray-200-rgb), 0.75);
   --bs-table-active-color: var(--bs-body-color);
   --bs-table-active-bg: var(--bs-gray-100);
   --bs-table-hover-color: var(--bs-body-color);
@@ -28541,7 +28541,7 @@ textarea.form-control-lg {
   --bs-warning-active: #DEAD00;
   --bs-danger-active: #D81A48;
   --bs-dark-active: #111318;
-  --bs-primary-light: #D6EAF1;
+  --bs-primary-light: #cce1e9ff;
   --bs-secondary-light: #F9F9F9;
   --bs-success-light: #E9F3FF;
   --bs-info-light: #F8F5FF;
@@ -34525,8 +34525,8 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
 
 .btn.btn-light {
   color: var(--bs-light-inverse);
-  border-color: var(--bs-light);
-  background-color: var(--bs-light);
+  border-color: var(--bs-gray-200);
+  background-color: var(--bs-gray-200);
 }
 .btn.btn-light i,
 .btn.btn-light .svg-icon {
@@ -37138,8 +37138,8 @@ code:not([class*=language-]).code-dark {
 }
 
 .form-control.form-control-solid {
-  background-color: var(--bs-gray-100);
-  border-color: var(--bs-gray-100);
+  background-color: var(--bs-gray-200);
+  border-color: var(--bs-gray-200);
   color: var(--bs-gray-700);
   transition: color 0.2s ease;
 }
@@ -48158,9 +48158,9 @@ body[data-kt-sticky-landing-header=on] {
   }
 }
 [data-bs-theme=light] {
-  --bs-app-bg-color: #FBFBFB;
+  --bs-app-bg-color: #F2F2F2;
   --bs-app-blank-bg-color: #ffffff;
-  --bs-app-header-base-bg-color: #FBFBFB;
+  --bs-app-header-base-bg-color: #F2F2F2;
   --bs-app-sidebar-base-bg-color: #ffffff;
   --bs-app-sidebar-base-box-shadow: none;
   --bs-app-sidebar-minimize-bg-color: #ffffff;

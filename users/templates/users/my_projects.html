@@ -92,6 +92,7 @@
             </div>
           </div>
           <!--end::Card header-->
+          <div class="border-bottom border-1 border-black border-opacity-10 mx-9 mb-4"></div>
           <!--begin::Card body-->
           <div class="card-body pt-0">
             <div v-if="isLoading" class="d-flex justify-content-center py-10">
@@ -131,7 +132,7 @@
                       </div>
                     </td>
                     <td class="text-end">
-                      <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary"
+                      <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
                         @click="toggleMenu(project.id)">
                         <i class="ki-outline ki-down fs-5"></i>
                       </button>
@@ -296,7 +297,7 @@
         return category ? category.code : "N";
       },
       getStatusBadgeClass(project) {
-        return project.is_completed ? "badge-light-success" : "badge-light-warning";
+        return project.is_completed ? "badge-success" : "badge-warning";
       },
       toggleMenu(projectId) {
         if (this.activeMenu === projectId) {

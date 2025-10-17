@@ -510,8 +510,8 @@ const projectList = createApp({
     },
     getStatusBadgeClass(project) {
       return project.is_completed
-        ? "badge-light-success"
-        : "badge-light-warning";
+        ? "badge-success"
+        : "badge-warning";
     },
     toggleMenu(projectId) {
       if (this.activeMenu === projectId) {

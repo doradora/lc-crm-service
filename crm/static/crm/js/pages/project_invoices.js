@@ -143,8 +143,8 @@ const invoicesList = createApp({
     getStatusBadgeClass(invoice) {
       // 根據是否已付款顯示不同顏色
       return invoice.paid
-        ? "badge badge-light-success"
-        : "badge badge-light-warning";
+        ? "badge badge-success"
+        : "badge badge-warning";
     },
     toggleMenu(invoiceId) {
       if (this.activeMenu === invoiceId) {

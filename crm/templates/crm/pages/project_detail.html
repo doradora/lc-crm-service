@@ -214,8 +214,8 @@
                             <!-- 查看模式下的顯示 -->
                             <div v-else class="form-control-plaintext">
                               <template v-if="field.type === 'boolean'">
-                                <span v-if="customFieldValues[fieldName]" class="badge badge-light-success">是</span>
-                                <span v-else class="badge badge-light-danger">否</span>
+                                <span v-if="customFieldValues[fieldName]" class="badge badge-success">是</span>
+                                <span v-else class="badge badge-danger">否</span>
                               </template>
                               <template v-else>
                                 [[ customFieldValues[fieldName] || "無資料" ]]
@@ -625,7 +625,7 @@
                             <div class="text-gray-700 fs-6">請款金額: NT$ [[ formatAmount(payment.amount) ]]</div>
                           </div>
                           <div class="text-end">
-                            <span class="badge" :class="payment.is_paid ? 'badge-light-success' : 'badge-light-warning'">
+                            <span class="badge" :class="payment.is_paid ? 'badge-success' : 'badge-warning'">
                               [[ payment.is_paid ? '已請款完成' : '未請款完成' ]]
                             </span>
                             <div v-if="payment.is_paid" class="text-gray-700 mt-1 fs-7">
