@@ -22,12 +22,12 @@
             <div class="card-title w-100">
               <div class="d-flex align-items-center position-relative my-1">
                 <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
-                <input type="text" v-model="searchQuery" class="form-control form-control-solid w-250px ps-12"
+                <input type="text" v-model="searchQuery" class="form-control form-control-solid w-250px ps-12 border border-2 border-primary bg-light-success"
                   placeholder="搜尋發票號碼/請款單號" @input="searchInvoices" @keyup.enter="fetchInvoices()" ref="searchInput" />
               </div>
               <div class="d-flex position-relative my-1 ms-3">
                 <div class="w-200 mw-150px me-2">
-                  <select class="form-select" v-model="paymentStatusFilter" @change="fetchInvoices(1)"
+                  <select class="form-select border border-2 border-primary bg-light-success" v-model="paymentStatusFilter" @change="fetchInvoices(1)"
                     data-placeholder="付款狀態">
                     <option value="">所有狀態</option>
                     <option value="paid">已付款</option>
@@ -36,7 +36,7 @@
                   </select>
                 </div>
                 <div class="w-200 mw-150px me-2">
-                  <select class="form-select" v-model="paymentMethodFilter" @change="fetchInvoices(1)"
+                  <select class="form-select border border-2 border-primary bg-light-success" v-model="paymentMethodFilter" @change="fetchInvoices(1)"
                     data-placeholder="付款方式">
                     <option value="">所有方式</option>
                     <option value="cash">現金</option>
@@ -47,7 +47,7 @@
                   </select>
                 </div>
                 <div class="w-200 mw-150px me-2">
-                  <select class="form-select" v-model="invoiceTypeFilter" @change="fetchInvoices(1)"
+                  <select class="form-select border border-2 border-primary bg-light-success" v-model="invoiceTypeFilter" @change="fetchInvoices(1)"
                     data-placeholder="發票類型">
                     <option value="">所有類型</option>
                     <option value="normal">正常開立</option>
@@ -55,11 +55,11 @@
                     <option value="pending">發票待開</option>
                   </select>
                 </div>
-                <button class="btn btn-light" @click="fetchInvoices()">搜尋</button>
+                <button class="btn border border-2 border-primary bg-light-success bg-hover-light-success" @click="fetchInvoices()">搜尋</button>
               </div>
               <div class="d-flex align-items-center gap-2 ms-auto">
                 <span class="text-muted fs-6">每頁顯示</span>
-                <select class="form-select form-select-sm w-75px" v-model.number="pageSize" @change="pageSizeChanged">
+                <select class="form-select form-select-sm w-75px border border-2 border-primary bg-light-success" v-model.number="pageSize" @change="pageSizeChanged">
                   <option value="10">10</option>
                   <option value="20">20</option>
                   <option value="50">50</option>
@@ -75,10 +75,10 @@
               <div class="col-md-6">
                 <label class="form-label">發票開立日期範圍</label>
                 <div class="d-flex gap-3 align-items-center">
-                  <input type="date" class="form-control form-control-solid" v-model="startDate"
+                  <input type="date" class="form-control form-control-solid border border-2 border-primary bg-light-success" v-model="startDate"
                     @change="fetchInvoices(1)" min="1900-01-01" max="9999-12-31" />
                   <span class="text-muted">至</span>
-                  <input type="date" class="form-control form-control-solid" v-model="endDate"
+                  <input type="date" class="form-control form-control-solid border border-2 border-primary bg-light-success" v-model="endDate"
                     @change="fetchInvoices(1)" min="1900-01-01" max="9999-12-31" />
                 </div>
               </div>
