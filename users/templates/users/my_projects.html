@@ -204,16 +204,27 @@
         activeMenu: null,
         menuTop: 0,
         menuLeft: 0,
+        availableYears: [], // 資料庫中現有的年份
+        minYear: null, // 最小年份
+        maxYear: null, // 最大年份
       };
     },
     computed: {
+      // 計算年份範圍
       yearRange() {
-        const currentYear = new Date().getFullYear();
-        const years = [];
-        for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-          years.push(i);
+        // 如果沒有設定最小或最大年份，返回可用年份列表
+        if (this.minYear === null || this.maxYear === null) {
+          return this.availableYears;
         }
-        return years;
+
+        // 創建從最小年份到最大年份的連續數組
+        const range = [];
+        for (let year = this.minYear; year <= this.maxYear; year++) {
+          range.push(year);
+        }
+
+        // 按降序排列（最近的年份在前）
+        return range.sort((a, b) => b - a);
       },
       displayedPages() {
         const pages = [];
@@ -286,6 +297,30 @@
         } catch (error) {
           console.error("Error fetching categories:", error);
         }
+      },
+      fetchYears() {
+        // 獲取所有可用的年份和年份範圍
+        fetch(`/crm/api/projects/years/`)
+          .then((response) => response.json())
+          .then((data) => {
+            this.availableYears = data.years;
+            this.minYear = data.min_year;
+            this.maxYear = data.max_year;
+
+            // 確保當前年份也包含在內
+            const currentYear = new Date().getFullYear();
+            if (currentYear > this.maxYear) {
+              this.maxYear = currentYear;
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching years:", error);
+            // 如果獲取失敗，提供當前年份作為預設值
+            const currentYear = new Date().getFullYear();
+            this.minYear = currentYear;
+            this.maxYear = currentYear;
+            this.availableYears = [currentYear];
+          });
       },
       getOwnerName(owner) {
         return owner ? owner.company_name : "-";
@@ -361,6 +396,7 @@
       } else {
         // 有權限（是本人或是管理員），載入資料
         this.fetchCategories();
+        this.fetchYears();
         this.fetchProjects();
         
         // 頁面載入後自動focus到搜尋欄位

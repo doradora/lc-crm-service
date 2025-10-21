@@ -505,7 +505,11 @@ class ProjectViewSet(BaseViewSet):
     def years(self, request):
         """獲取所有可用的專案年份"""
         years = (
-            Project.objects.values_list("year", flat=True).distinct().order_by("-year")
+            Project.objects.exclude(
+                name='其他',
+                category__code='OTHER',
+                project_number='9999'
+            ).values_list("year", flat=True).distinct().order_by("-year")
         )
 
         # 獲取最小和最大年份
