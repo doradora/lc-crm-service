@@ -18,7 +18,10 @@
     <div id="app_content_container">
       <div class="d-flex flex-column flex-column-fluid">
         <div class="card card-flush" id="payments_list">
-          <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+          <div 
+            class="card-header align-items-center m-4 p-4 py-2 " 
+            style="border-radius: 4px; border: 2px solid #b8b8b8ff !important;"
+          >
             <div class="card-title w-100">
               <div class="d-flex align-items-center position-relative my-1">
                 <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
@@ -59,7 +62,6 @@
             </div>
           </div>
           <!--end::Card header-->
-          <div class="border-bottom border-1 border-black border-opacity-10 mx-9 mb-4"></div>
           <!--begin::Card body-->
           <div class="card-body pt-0">
             <div v-if="isLoading" class="d-flex justify-content-center py-10">
