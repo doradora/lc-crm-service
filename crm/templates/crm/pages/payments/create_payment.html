@@ -296,8 +296,30 @@
                                            class="form-control"
                                            v-model="ownerModalSearchTerm"
                                            @input="searchOwners"
+                                           @keyup.enter="searchOwners"
                                            placeholder="搜尋業主公司名稱或統一編號..."
                                            ref="projectSearchInput">
+                                </div>
+                                <!-- 搜尋模式切換按鈕 -->
+                                <div class="btn-group" role="group">
+                                    <button 
+                                        type="button" 
+                                        class="btn btn-sm border border-2 border-primary"
+                                        :class="ownerSearchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
+                                        @click="ownerSearchMode = 'fuzzy'; searchOwners();"
+                                        title="模糊搜尋：可搜尋包含關鍵字的所有資料"
+                                    >
+                                        <i class="ki-outline ki-search-list fs-4"></i> 模糊
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        class="btn btn-sm border border-2 border-primary"
+                                        :class="ownerSearchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
+                                        @click="ownerSearchMode = 'exact'; searchOwners();"
+                                        title="精準搜尋：只搜尋完全符合的資料"
+                                    >
+                                        <i class="ki-outline ki-magnifier fs-4"></i> 精準
+                                    </button>
                                 </div>
                                 <button type="button" class="btn btn-light-primary" @click="showAddOwnerModal">
                                     <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主

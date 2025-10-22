@@ -41,6 +41,7 @@ const paymentsList = createApp({
       projectNameFilter: '', // 新增：專案名稱前端過濾
       // 業主選擇模態視窗相關
       ownerModalSearchTerm: "",
+      ownerSearchMode: "fuzzy", // 新增：業主搜尋模式，預設為模糊搜尋
       modalOwners: [],
       isLoadingOwners: false,
       ownerPagination: null,
@@ -259,6 +260,7 @@ const paymentsList = createApp({
         
         if (this.ownerModalSearchTerm.trim()) {
           params.append("search", this.ownerModalSearchTerm.trim());
+          params.append("search_mode", this.ownerSearchMode); // 新增：傳送搜尋模式參數
         }
         
         apiUrl += "?" + params.toString();

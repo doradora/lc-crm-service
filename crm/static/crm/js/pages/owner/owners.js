@@ -5,6 +5,7 @@ const ownerList = createApp({
       owners: [],
       isLoading: false,
       searchQuery: "",
+      searchMode: "fuzzy", // 新增：搜尋模式，預設為模糊搜尋
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
@@ -151,6 +152,7 @@ const ownerList = createApp({
 
       if (this.searchQuery) {
         url += `&search=${encodeURIComponent(this.searchQuery)}`;
+        url += `&search_mode=${this.searchMode}`; // 新增：傳送搜尋模式參數
       }
 
       fetch(url)

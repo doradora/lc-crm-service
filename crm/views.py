@@ -351,11 +351,38 @@ class OwnerViewSet(BaseViewSet):
     queryset = Owner.objects.all().order_by("tax_id")
     serializer_class = OwnerSerializer
     pagination_class = StandardResultsSetPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = ["company_name", "tax_id", "contact_person", "phone", "email"]
+    # 移除 SearchFilter，改用自訂搜尋邏輯支援精準/模糊切換
+    # filter_backends = [filters.SearchFilter]
+    # search_fields = ["company_name", "tax_id", "contact_person", "phone", "email"]
 
     def get_queryset(self):
-        return Owner.objects.all().order_by("tax_id").exclude(company_name="系統", tax_id="00000000")
+        queryset = Owner.objects.all().order_by("tax_id").exclude(company_name="系統", tax_id="00000000")
+        
+        # 取得搜尋參數
+        search_query = self.request.query_params.get("search", None)
+        search_mode = self.request.query_params.get("search_mode", "fuzzy")  # 預設為模糊搜尋
+        
+        if search_query:
+            if search_mode == "exact":
+                # 精準搜尋模式
+                queryset = queryset.filter(
+                    Q(company_name__iexact=search_query) |
+                    Q(tax_id__iexact=search_query) |
+                    Q(contact_person__iexact=search_query) |
+                    Q(phone__iexact=search_query) |
+                    Q(email__iexact=search_query)
+                )
+            else:
+                # 模糊搜尋模式（預設）
+                queryset = queryset.filter(
+                    Q(company_name__icontains=search_query) |
+                    Q(tax_id__icontains=search_query) |
+                    Q(contact_person__icontains=search_query) |
+                    Q(phone__icontains=search_query) |
+                    Q(email__icontains=search_query)
+                )
+        
+        return queryset
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

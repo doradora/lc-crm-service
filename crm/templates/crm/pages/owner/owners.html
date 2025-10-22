@@ -23,7 +23,28 @@
                 <input type="text" v-model="searchQuery" class="form-control form-control-solid w-250px ps-12 border border-2 border-primary bg-light-success"
                   placeholder="搜尋公司名稱/統編/電話" @keyup.enter="fetchOwners()" ref="searchInput" />
               </div>
-              <div class="d-flex position-relative my-1">
+              <div class="d-flex position-relative my-1 gap-2">
+                <!-- 搜尋模式切換按鈕 -->
+                <div class="btn-group" role="group">
+                  <button 
+                    type="button" 
+                    class="btn btn-sm border border-2 border-primary"
+                    :class="searchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
+                    @click="searchMode = 'fuzzy'; fetchOwners();"
+                    title="模糊搜尋：可搜尋包含關鍵字的所有資料"
+                  >
+                    <i class="ki-outline ki-search-list fs-4"></i> 模糊
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-sm border border-2 border-primary"
+                    :class="searchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
+                    @click="searchMode = 'exact'; fetchOwners();"
+                    title="精準搜尋：只搜尋完全符合的資料"
+                  >
+                    <i class="ki-outline ki-magnifier fs-4"></i> 精準
+                  </button>
+                </div>
                 <button class="btn border border-2 border-primary bg-light-success bg-hover-light-success" @click="fetchOwners()">搜尋</button>
               </div>
               <div class="d-flex align-items-center ms-auto gap-2">
