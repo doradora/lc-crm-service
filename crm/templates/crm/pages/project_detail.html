@@ -126,7 +126,7 @@
                         <div v-else class="form-control-plaintext">[[ project.project_number ]]</div>
                       </div>
                     </div>
-                    <div class="row mb-5">
+                    <div v-if="currentUser && currentUser.profile && (currentUser.profile.is_admin || currentUser.profile.can_request_payment)" class="row mb-5">
                       <div class="col-md-12">
                         <label class="form-label">報價金額</label>
                         <div v-if="isEditMode && canEditProject" class="input-group">
