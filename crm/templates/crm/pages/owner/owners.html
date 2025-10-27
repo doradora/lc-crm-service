@@ -31,18 +31,18 @@
                     class="btn btn-sm border border-2 border-primary"
                     :class="searchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
                     @click="searchMode = 'fuzzy'; fetchOwners();"
-                    title="模糊搜尋：可搜尋包含關鍵字的所有資料"
+                    title="包括搜尋：可搜尋包含關鍵字的所有資料"
                   >
-                    <i class="ki-outline ki-search-list fs-4"></i> 模糊
+                    <i class="ki-outline ki-search-list fs-4"></i> 包括
                   </button>
                   <button 
                     type="button" 
                     class="btn btn-sm border border-2 border-primary"
                     :class="searchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
                     @click="searchMode = 'exact'; fetchOwners();"
-                    title="精準搜尋：只搜尋完全符合的資料"
+                    title="相符搜尋：只搜尋完全符合的資料"
                   >
-                    <i class="ki-outline ki-magnifier fs-4"></i> 精準
+                    <i class="ki-outline ki-magnifier fs-4"></i> 相符
                   </button>
                 </div>
                 <button class="btn border border-2 border-primary bg-light-success bg-hover-light-success" @click="fetchOwners()">搜尋</button>

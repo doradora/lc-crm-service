@@ -5,7 +5,7 @@ const ownerList = createApp({
       owners: [],
       isLoading: false,
       searchQuery: "",
-      searchMode: "fuzzy", // 新增：搜尋模式，預設為模糊搜尋
+      searchMode: "fuzzy", // 新增：搜尋模式，預設為包括搜尋
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
