@@ -5,7 +5,8 @@ const ownerList = createApp({
       owners: [],
       isLoading: false,
       searchQuery: "",
-      searchMode: "fuzzy", // 新增：搜尋模式，預設為包括搜尋
+      ownerNameFilter: "", // 新增:業主名稱搜尋
+      searchMode: "fuzzy", // 新增:搜尋模式,預設為包括搜尋
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
@@ -152,7 +153,13 @@ const ownerList = createApp({
 
       if (this.searchQuery) {
         url += `&search=${encodeURIComponent(this.searchQuery)}`;
-        url += `&search_mode=${this.searchMode}`; // 新增：傳送搜尋模式參數
+        url += `&search_mode=${this.searchMode}`; // 新增:傳送搜尋模式參數
+      }
+      
+      // 新增:業主名稱搜尋
+      if (this.ownerNameFilter) {
+        url += `&owner_name=${encodeURIComponent(this.ownerNameFilter)}`;
+        url += `&search_mode=${this.searchMode}`; // 使用相同的搜尋模式
       }
 
       fetch(url)
@@ -165,6 +172,14 @@ const ownerList = createApp({
         .finally(() => {
           this.isLoading = false; // 無論成功或失敗，都將載入狀態設為 false
         });
+    },
+    // 重設篩選條件
+    resetFilters() {
+      this.searchQuery = "";
+      this.ownerNameFilter = "";
+      this.searchMode = "fuzzy";
+      this.currentPage = 1;
+      this.fetchOwners();
     },
     toggleMenu(ownerId) {
       if (this.activeMenu === ownerId) {

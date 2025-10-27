@@ -360,8 +360,10 @@ class OwnerViewSet(BaseViewSet):
         
         # 取得搜尋參數
         search_query = self.request.query_params.get("search", None)
+        owner_name_query = self.request.query_params.get("owner_name", None)  # 新增:業主名稱搜尋
         search_mode = self.request.query_params.get("search_mode", "fuzzy")  # 預設為包括搜尋
         
+        # 一般搜尋(公司名稱、統編、聯絡人、電話、Email)
         if search_query:
             if search_mode == "exact":
                 # 相符搜尋模式
@@ -373,7 +375,7 @@ class OwnerViewSet(BaseViewSet):
                     Q(email__iexact=search_query)
                 )
             else:
-                # 包括搜尋模式（預設）
+                # 包括搜尋模式(預設)
                 queryset = queryset.filter(
                     Q(company_name__icontains=search_query) |
                     Q(tax_id__icontains=search_query) |
@@ -381,6 +383,15 @@ class OwnerViewSet(BaseViewSet):
                     Q(phone__icontains=search_query) |
                     Q(email__icontains=search_query)
                 )
+        
+        # 業主名稱專屬搜尋
+        if owner_name_query:
+            if search_mode == "exact":
+                # 相符搜尋模式
+                queryset = queryset.filter(company_name__iexact=owner_name_query)
+            else:
+                # 包括搜尋模式(預設)
+                queryset = queryset.filter(company_name__icontains=owner_name_query)
         
         return queryset
 

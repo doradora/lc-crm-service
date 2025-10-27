@@ -287,43 +287,55 @@
                     <div class="modal-body">
                         <!-- 搜尋框 -->
                         <div class="row mb-5">
-                            <div class="col-md-12 d-flex justify-content-between align-items-center gap-3">
-                                <div class="input-group w-50">
-                                    <span class="input-group-text">
-                                        <i class="ki-outline ki-magnifier fs-5"></i>
-                                    </span>
-                                    <input type="text"
-                                           class="form-control"
-                                           v-model="ownerModalSearchTerm"
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                                    <div class="input-group w-50">
+                                        <span class="input-group-text">
+                                            <i class="ki-outline ki-magnifier fs-5"></i>
+                                        </span>
+                                        <input type="text"
+                                               class="form-control"
+                                               v-model="ownerModalSearchTerm"
+                                               @input="searchOwners"
+                                               @keyup.enter="searchOwners"
+                                               placeholder="搜尋業主公司名稱或統一編號..."
+                                               ref="projectSearchInput">
+                                    </div>
+                                    <!-- 搜尋模式切換按鈕 -->
+                                    <div class="btn-group" role="group">
+                                        <button 
+                                            type="button" 
+                                            class="btn btn-sm border border-2 border-primary"
+                                            :class="ownerSearchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
+                                            @click="ownerSearchMode = 'fuzzy'; searchOwners();"
+                                            title="包括搜尋：可搜尋包含關鍵字的所有資料"
+                                        >
+                                            <i class="ki-outline ki-search-list fs-4"></i> 包括
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            class="btn btn-sm border border-2 border-primary"
+                                            :class="ownerSearchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
+                                            @click="ownerSearchMode = 'exact'; searchOwners();"
+                                            title="相符搜尋：只搜尋完全符合的資料"
+                                        >
+                                            <i class="ki-outline ki-magnifier fs-4"></i> 相符
+                                        </button>
+                                    </div>
+                                    <button type="button" class="btn btn-light-primary" @click="showAddOwnerModal">
+                                        <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
+                                    </button>
+                                </div>
+                                <!-- 業主名稱搜尋 -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">業主名稱搜尋:</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           v-model="ownerNameModalFilter" 
                                            @input="searchOwners"
                                            @keyup.enter="searchOwners"
-                                           placeholder="搜尋業主公司名稱或統一編號..."
-                                           ref="projectSearchInput">
+                                           placeholder="請輸入業主名稱" />
                                 </div>
-                                <!-- 搜尋模式切換按鈕 -->
-                                <div class="btn-group" role="group">
-                                    <button 
-                                        type="button" 
-                                        class="btn btn-sm border border-2 border-primary"
-                                        :class="ownerSearchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
-                                        @click="ownerSearchMode = 'fuzzy'; searchOwners();"
-                                        title="包括搜尋：可搜尋包含關鍵字的所有資料"
-                                    >
-                                        <i class="ki-outline ki-search-list fs-4"></i> 包括
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        class="btn btn-sm border border-2 border-primary"
-                                        :class="ownerSearchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
-                                        @click="ownerSearchMode = 'exact'; searchOwners();"
-                                        title="相符搜尋：只搜尋完全符合的資料"
-                                    >
-                                        <i class="ki-outline ki-magnifier fs-4"></i> 相符
-                                    </button>
-                                </div>
-                                <button type="button" class="btn btn-light-primary" @click="showAddOwnerModal">
-                                    <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
-                                </button>
                             </div>
                         </div>
 

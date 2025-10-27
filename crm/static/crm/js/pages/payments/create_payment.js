@@ -38,10 +38,11 @@ const paymentsList = createApp({
       },
       selectAllChecked: false, // 全選狀態
       paymentItems: [], // 新增：付款項目陣列初始化
-      projectNameFilter: '', // 新增：專案名稱前端過濾
+      projectNameFilter: '', // 新增:專案名稱前端過濾
       // 業主選擇模態視窗相關
       ownerModalSearchTerm: "",
-      ownerSearchMode: "fuzzy", // 新增：業主搜尋模式，預設為包括搜尋
+      ownerNameModalFilter: "", // 新增:Modal 中的業主名稱搜尋
+      ownerSearchMode: "fuzzy", // 新增:業主搜尋模式,預設為包括搜尋
       modalOwners: [],
       isLoadingOwners: false,
       ownerPagination: null,
@@ -261,6 +262,12 @@ const paymentsList = createApp({
         if (this.ownerModalSearchTerm.trim()) {
           params.append("search", this.ownerModalSearchTerm.trim());
           params.append("search_mode", this.ownerSearchMode); // 新增：傳送搜尋模式參數
+        }
+        
+        // 新增:業主名稱搜尋
+        if (this.ownerNameModalFilter.trim()) {
+          params.append("owner_name", this.ownerNameModalFilter.trim());
+          params.append("search_mode", this.ownerSearchMode); // 使用相同的搜尋模式
         }
         
         apiUrl += "?" + params.toString();
