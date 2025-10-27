@@ -432,7 +432,6 @@ class ProjectImporter(BaseImporter):
                     manager_query = User.objects.filter(first_name=first_name, last_name=last_name)
                     if manager_query.exists():
                         manager = manager_query.first()
-                        user_created = False
                     else:
                         # Create new user if not found
                         manager = User.objects.create(
@@ -440,16 +439,17 @@ class ProjectImporter(BaseImporter):
                             last_name=last_name,
                             username=name  # We'll update this immediately after
                         )
-                        user_created = True
                         
-                    manager.username = f"manager{manager.id}"
-                    manager.set_password("password123")  # 使用 set_password 方法進行密碼哈希
-                    manager.save()
-                    managers.append(manager)
-                    
-                    # 只在創建新使用者時一併創立 UserProfile
-                    if user_created:
+                        # 只在創建新使用者時設定帳號密碼
+                        manager.username = f"manager{manager.id}"
+                        manager.set_password("password123")  # 使用 set_password 方法進行密碼哈希
+                        manager.save()
+                        
+                        # 一併創立 UserProfile
                         UserProfile.objects.create(user=manager, name=name, is_project_manager=True)
+                    
+                    # 無論是新使用者或現有使用者,都加入 managers 列表以便後續關聯專案
+                    managers.append(manager)
 
             # 檢查是否已存在專案
             if Project.objects.filter(year=year, category=category, project_number=project_number).exists():
