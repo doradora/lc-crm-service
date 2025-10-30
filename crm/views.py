@@ -396,6 +396,13 @@ class OwnerViewSet(BaseViewSet):
         return queryset
 
     def destroy(self, request, *args, **kwargs):
+        # 檢查權限：需要管理員或請款權限才能刪除業主
+        if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+            return Response(
+                {"error": "您沒有權限刪除業主，需要管理員權限或請款權限。"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
         instance = self.get_object()
         try:
             self.perform_destroy(instance)
