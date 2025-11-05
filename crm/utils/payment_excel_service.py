@@ -5,6 +5,7 @@ from io import BytesIO
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image
 from copy import copy
 from datetime import datetime
 from django.conf import settings
@@ -173,6 +174,12 @@ def generate_payment_excel(payment):
         # 計算所有專案總金額
         total_amount = sum(pp.amount or 0 for pp in payment.paymentproject_set.all())
 
+        # 準備 LOGO 圖片路徑
+        logo_path = os.path.join(settings.BASE_DIR, "crm", "excel", "logo.jpg")
+        logo_exists = os.path.exists(logo_path)
+        if not logo_exists:
+            logger.warning(f"LOGO 圖片不存在: {logo_path}")
+
         for page in range(total_pages):
             if page == 0:
                 ws = original_ws
@@ -185,6 +192,20 @@ def generate_payment_excel(payment):
                     for c in range(1, max_column + 2):
                         cell = ws.cell(row=r, column=c)
                         cell.value = None
+            
+            # 在每一頁加入 LOGO 圖片
+            if logo_exists:
+                try:
+                    img = Image(logo_path)
+                    # 調整圖片大小 (根據附圖位置，放在 B1:B3 左右區域)
+                    # 只設定圖片寬度，高度會自動等比例縮放
+                    img.width = 120
+                    img.height = 67
+                    # 將圖片錨定在 B2 儲存格
+                    ws.add_image(img, "B2")
+                except Exception as e:
+                    logger.error(f"插入 LOGO 圖片時發生錯誤: {str(e)}")
+            
             ws.print_area = "A1:C34"
             ws.page_margins.left = 0.72
             ws.page_margins.right = 0.72
