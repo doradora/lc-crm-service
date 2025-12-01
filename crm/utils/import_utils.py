@@ -277,8 +277,12 @@ class EmployeeImporter(BaseImporter):
             last_name = ""
                 
         # 檢查是否已存在相同姓名
-        if User.objects.filter(first_name=first_name, last_name=last_name).exists():
-            self.result.add_warning(row_num, f"姓名 '{name}' 已存在，跳過匯入")
+        existing_user = User.objects.filter(first_name=first_name, last_name=last_name).first()
+        if existing_user:
+            # 如果存在相同姓名，更新 username 為 "manager{employee_id}"
+            existing_user.username = f"manager{employee_id}"
+            existing_user.save(update_fields=['username'])
+            self.result.add_warning(row_num, f"姓名 '{name}' 已存在，已更新 username 為 '{existing_user.username}'")
             return
         
         # 建立使用者帳號
@@ -526,7 +530,7 @@ class ProjectImporter(BaseImporter):
                         )
                         
                         # 只在創建新使用者時設定帳號密碼
-                        manager.username = f"manager{manager.id}"
+                        manager.username = f"manager-{manager.id}"
                         manager.set_password("12345678")  # 使用 set_password 方法進行密碼哈希
                         manager.save()
                         
