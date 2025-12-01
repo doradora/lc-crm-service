@@ -217,6 +217,91 @@ class OwnerImporter(BaseImporter):
         self.result.add_success()
 
 
+class EmployeeImporter(BaseImporter):
+    """員工帳號匯入器"""
+    
+    def import_from_excel(self, file_path):
+        """從 Excel 檔案匯入員工帳號資料"""
+        try:
+            workbook = openpyxl.load_workbook(file_path)
+            
+            if not workbook.sheetnames:
+                self.result.add_error(0, "Excel 檔案中沒有工作表")
+                return self.result
+            
+            # 使用第一張工作表
+            sheet = workbook[workbook.sheetnames[0]]
+            
+            with transaction.atomic():
+                # 跳過標題列，從第二列開始
+                for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                    try:
+                        self._process_employee_row(row, row_num)
+                    except Exception as e:
+                        self.result.add_error(row_num, f"處理資料時發生錯誤: {str(e)}")
+            
+        except Exception as e:
+            self.result.add_error(0, f"讀取 Excel 檔案時發生錯誤: {str(e)}")
+        
+        return self.result
+    
+    def _process_employee_row(self, row, row_num):
+        """處理單筆員工資料"""
+        # 預期欄位：A欄=員編, B欄=姓名
+        employee_id = self.safe_get_value(row, 0)
+        name = self.safe_get_value(row, 1)
+        
+        # 轉換為字串並清理
+        employee_id = str(employee_id).strip() if employee_id else ""
+        name = str(name).strip() if name else ""
+        
+        # 驗證必要欄位（員編和姓名都不能為空）
+        if not employee_id or not name:
+            self.result.add_warning(row_num, "員編或姓名為空，跳過此筆資料")
+            return
+        
+        # 建立 username
+        username = f"manager{employee_id}"
+        
+        # 檢查是否已存在相同 username
+        if User.objects.filter(username=username).exists():
+            self.result.add_warning(row_num, f"帳號 '{username}' 已存在，跳過匯入")
+            return
+
+        # 拆分姓名為 first_name 和 last_name
+        if len(name) > 1:
+            first_name = name[0]
+            last_name = name[1:]
+        else:
+            first_name = name
+            last_name = ""
+                
+        # 檢查是否已存在相同姓名
+        if User.objects.filter(first_name=first_name, last_name=last_name).exists():
+            self.result.add_warning(row_num, f"姓名 '{name}' 已存在，跳過匯入")
+            return
+        
+        # 建立使用者帳號
+        user = User.objects.create(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+        )
+        
+        # 設定密碼
+        user.set_password("12345678")
+        user.save()
+        
+        # 建立 UserProfile
+        UserProfile.objects.create(
+            user=user,
+            name=name,
+            is_project_manager=True
+        )
+        
+        self.result.add_success()
+
+
 class ProjectImporter(BaseImporter):
     """專案資料匯入器"""
     
@@ -442,7 +527,7 @@ class ProjectImporter(BaseImporter):
                         
                         # 只在創建新使用者時設定帳號密碼
                         manager.username = f"manager{manager.id}"
-                        manager.set_password("password123")  # 使用 set_password 方法進行密碼哈希
+                        manager.set_password("12345678")  # 使用 set_password 方法進行密碼哈希
                         manager.save()
                         
                         # 一併創立 UserProfile
@@ -508,6 +593,18 @@ def import_projects_from_file(file_path, file_type='excel'):
         return importer.import_from_excel(file_path)
     elif file_type.lower() == 'csv':
         return importer.import_from_csv(file_path)
+    else:
+        result = ImportResult()
+        result.add_error(0, f"不支援的檔案類型: {file_type}")
+        return result
+
+
+def import_employees_from_file(file_path, file_type='excel'):
+    """員工帳號匯入的統一入口點"""
+    importer = EmployeeImporter()
+    
+    if file_type.lower() == 'excel':
+        return importer.import_from_excel(file_path)
     else:
         result = ImportResult()
         result.add_error(0, f"不支援的檔案類型: {file_type}")

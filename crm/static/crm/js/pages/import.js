@@ -10,6 +10,27 @@ const importApp = createApp({
   },
   methods: {
     /**
+     * 匯入員工帳號資料
+     */
+    async importEmployees() {
+      try {
+        this.isLoading = true;
+        const fileInput = await this.selectFile('選擇員工帳號檔案', '.xlsx,.xls');
+        if (fileInput) {
+          await this.uploadFile('/crm/api/import/employees/', fileInput);
+          // showImportResult 已經在 uploadFile 中呼叫
+        } else {
+          // 使用者取消檔案選取
+          this.isLoading = false;
+          return;
+        }
+      } catch (error) {
+        this.showErrorMessage('員工帳號匯入失敗', error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    /**
      * 匯入專案資料
      */
     async importProjects() {
@@ -170,46 +191,46 @@ const importApp = createApp({
         timer: 3000,
         showConfirmButton: false
       });
-    },    
+    },
     /**
      * 顯示匯入結果詳情
      */
     showImportResult(result) {
       const messages = [];
-      
+
       // 處理匯入結果 - 適應不同的資料結構
       if (result.success === false) {
         // 匯入完全失敗
         this.showErrorMessage('匯入失敗', { message: result.message || result.error || '匯入過程中發生錯誤' });
         return;
       }
-      
+
       // 支援兩種資料結構：result.data 或 result.result
       const importData = result.data || result.result;
-      
+
       if (importData && importData.success_count > 0) {
         messages.push(`成功匯入 ${importData.success_count} 筆資料`);
       }
-      
+
       if (importData && importData.error_count > 0) {
         messages.push(`失敗 ${importData.error_count} 筆資料`);
       }
-      
+
       if (importData && importData.warning_count > 0) {
         messages.push(`警告 ${importData.warning_count} 筆資料`);
       }
-      
+
       // 如果沒有任何訊息，顯示基本成功訊息
       if (messages.length === 0) {
         messages.push('匯入完成');
       }
-      
+
       let html = messages.join('<br>');
-      
+
       // 顯示錯誤和警告詳情
       if (importData && (importData.errors?.length > 0 || importData.warnings?.length > 0)) {
         html += '<hr>';
-        
+
         if (importData.errors && importData.errors.length > 0) {
           html += '<div class="text-danger"><strong>錯誤詳情：</strong><br>';
           importData.errors.forEach(error => {
@@ -217,7 +238,7 @@ const importApp = createApp({
           });
           html += '</div>';
         }
-        
+
         if (importData.warnings && importData.warnings.length > 0) {
           html += '<div class="text-warning"><strong>警告詳情：</strong><br>';
           importData.warnings.forEach(warning => {
@@ -226,17 +247,17 @@ const importApp = createApp({
           html += '</div>';
         }
       }
-      
+
       // 決定顯示的圖示
       let icon = 'success';
       if (importData && importData.error_count > 0) {
         icon = importData.success_count > 0 ? 'warning' : 'error';
       }
-      
+
       // 決定標題和按鈕文字
       let title = '匯入完成';
       let confirmButtonText = '確定';
-      
+
       if (importData) {
         if (importData.success_count > 0 && importData.error_count === 0) {
           title = '匯入成功';
@@ -244,7 +265,7 @@ const importApp = createApp({
           title = importData.success_count > 0 ? '部分匯入成功' : '匯入失敗';
         }
       }
-      
+
       Swal.fire({
         icon: icon,
         title: title,

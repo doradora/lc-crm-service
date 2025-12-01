@@ -58,7 +58,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
 from .permissions import IsAdminOrCanRequestPayment, IsAdmin
-from .utils.import_utils import import_owners_from_file, import_projects_from_file
+from .utils.import_utils import import_owners_from_file, import_projects_from_file, import_employees_from_file
 from .utils.payment_excel_service import generate_payment_excel
 import logging
 from django.db.models.functions import Concat
@@ -1737,6 +1737,58 @@ def import_projects_api(request):
         # 執行匯入
         file_type = 'excel' if file_extension in ['xlsx', 'xls'] else 'csv'
         result = import_projects_from_file(temp_file_path, file_type)
+        
+        # 清理暫存檔案
+        os.unlink(temp_file_path)
+        
+        return Response({
+            'success': True,
+            'message': f'匯入完成：成功 {result.success_count} 筆，錯誤 {result.error_count} 筆',
+            'result': result.to_dict()
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        # 清理暫存檔案（如果存在）
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        
+        return Response(
+            {'error': f'匯入過程中發生錯誤: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated, IsAdmin])
+@parser_classes([MultiPartParser, FormParser])
+def import_employees_api(request):
+    """員工帳號匯入 API"""
+    if 'file' not in request.FILES:
+        return Response(
+            {'error': '請選擇要匯入的檔案'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    uploaded_file = request.FILES['file']
+    
+    # 檢查檔案類型
+    file_extension = uploaded_file.name.lower().split('.')[-1]
+    if file_extension not in ['xlsx', 'xls']:
+        return Response(
+            {'error': '不支援的檔案格式，請使用 Excel 檔案'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # 儲存暫存檔案
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_extension}') as temp_file:
+            for chunk in uploaded_file.chunks():
+                temp_file.write(chunk)
+            temp_file_path = temp_file.name
+        
+        # 執行匯入
+        result = import_employees_from_file(temp_file_path, 'excel')
         
         # 清理暫存檔案
         os.unlink(temp_file_path)

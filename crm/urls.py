@@ -79,4 +79,5 @@ urlpatterns = [
     # 匯入 API 端點
     path("api/import/owners/", views.import_owners_api, name="import_owners_api"),
     path("api/import/projects/", views.import_projects_api, name="import_projects_api"),
+    path("api/import/employees/", views.import_employees_api, name="import_employees_api"),
 ]

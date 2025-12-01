@@ -32,6 +32,31 @@
 
             <!-- 匯入選項列表 -->
             <div class="row g-6 g-xl-9">
+              <!-- 員工帳號匯入 -->
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-bordered h-100">
+                  <div class="card-body text-center">
+                    <div class="symbol symbol-60px mb-5">
+                      <div class="symbol-label fs-2x fw-semibold text-info bg-light-info">
+                        <i class="ki-outline ki-profile-user fs-2x text-info"></i>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="text-gray-900 fs-4 fw-bold mb-1">員工帳號</div>
+                      <div class="text-gray-700 fw-semibold fs-6">批次建立員工專案負責人帳號</div>
+                      <div class="text-gray-600 fw-semibold fs-7 mt-2">
+                        <span class="badge badge-light-info">Excel格式</span>
+                        <span class="badge badge-light-warning ms-1">僅管理員</span>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-info" @click="importEmployees" :disabled="isLoading">
+                      <i class="ki-outline ki-file-up fs-3"></i>
+                      匯入員工帳號
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <!-- 專案資料匯入 -->
               <div class="col-md-6 col-lg-4">
                 <div class="card card-bordered h-100">
@@ -89,11 +114,31 @@
                       <ul class="list-unstyled">
                         <li class="d-flex align-items-center mb-2">
                           <i class="ki-outline ki-check-circle text-success fs-4 me-2"></i>
-                          <span>CSV 檔案 (.csv)</span>
+                          <span>CSV 檔案 (.csv) - 專案、業主</span>
                         </li>
                         <li class="d-flex align-items-center mb-2">
                           <i class="ki-outline ki-check-circle text-success fs-4 me-2"></i>
-                          <span>Excel 檔案 (.xlsx)</span>
+                          <span>Excel 檔案 (.xlsx) - 全部類型</span>
+                        </li>
+                      </ul>
+
+                      <h6 class="fw-bold text-gray-800 mb-3 mt-5">員工帳號匯入格式</h6>
+                      <ul class="list-unstyled">
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-info fs-4 me-2"></i>
+                          <span>A欄：員工編號（例如：1001）</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-info fs-4 me-2"></i>
+                          <span>B欄：姓名（例如：楊書瑋）</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-warning fs-4 me-2"></i>
+                          <span>帳號格式：manager+員工編號</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-warning fs-4 me-2"></i>
+                          <span>預設密碼：12345678</span>
                         </li>
                       </ul>
                     </div>
@@ -112,6 +157,14 @@
                           <i class="ki-outline ki-information text-info fs-4 me-2"></i>
                           <span>建議先備份現有資料</span>
                         </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-warning fs-4 me-2"></i>
+                          <span>員工帳號匯入僅限管理員操作</span>
+                        </li>
+                        <li class="d-flex align-items-center mb-2">
+                          <i class="ki-outline ki-information text-warning fs-4 me-2"></i>
+                          <span>員編或姓名為空的資料列會自動跳過</span>
+                        </li>
                       </ul>
                     </div>
                   </div>
@@ -129,17 +182,17 @@
 
 {% block extra_js %}
 <style>
-/* 卡片 hover 效果 */
-.card-bordered {
-  transition: all 0.3s ease-in-out;
-  border: 1px solid #e5e7eb;
-}
+  /* 卡片 hover 效果 */
+  .card-bordered {
+    transition: all 0.3s ease-in-out;
+    border: 1px solid #e5e7eb;
+  }
 
-.card-bordered:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  border-color: #035974;
-}
+  .card-bordered:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-color: #035974;
+  }
 </style>
 <script src="{% static 'crm/js/pages/import.js' %}"></script>
 {% endblock extra_js %}
