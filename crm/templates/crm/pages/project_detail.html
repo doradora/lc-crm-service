@@ -42,12 +42,14 @@
                       <li>
                         <a class="dropdown-item" :href="'/crm/payments/?project=' + project.id">查看請款</a>
                       </li>
-                      <li>
-                        <hr class="dropdown-divider">
-                      </li>
-                      <li>
-                        <a class="dropdown-item text-danger" href="#" @click.prevent="deleteProject">刪除專案</a>
-                      </li>
+                      <template v-if="currentUser && currentUser.profile && (currentUser.profile.is_admin)">
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                          <a class="dropdown-item text-danger" href="#" @click.prevent="deleteProject">刪除專案</a>
+                        </li>
+                      </template>
                     </ul>
                   </div>
                 </div>

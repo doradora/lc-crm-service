@@ -141,10 +141,12 @@
                         <div class="menu-item px-3">
                           <a class="menu-link px-3" @click.prevent="viewProjects(owner.id)">查看專案</a>
                         </div>
-                        <hr class="my-1" />
-                        <div class="menu-item px-3">
-                          <a class="menu-link px-3" @click.prevent="deleteOwner(owner.id)">刪除</a>
-                        </div>
+                        <template v-if="currentUser && currentUser.profile && (currentUser.profile.is_admin)">
+                          <hr class="my-1" />
+                          <div class="menu-item px-3">
+                            <a class="menu-link px-3" @click.prevent="deleteOwner(owner.id)">刪除</a>
+                          </div>
+                        </template>
                       </div>
                     </td>
                   </tr>

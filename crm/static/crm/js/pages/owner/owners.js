@@ -2,6 +2,7 @@ const ownerList = createApp({
   delimiters: ["[[", "]]"],
   data() {
     return {
+      currentUser: {},
       owners: [],
       isLoading: false,
       searchQuery: "",
@@ -360,6 +361,8 @@ const ownerList = createApp({
   },
   mounted() {
     this.fetchOwners();
+    this.currentUser = window.CURRENT_USER_DATA || {};
+    
     document.addEventListener("click", this.handleClickOutside);
     
     // 頁面載入後自動focus到搜尋欄位
