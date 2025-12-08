@@ -132,6 +132,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         queryset=User.objects.all(), many=True, required=False
     )
     managers_info = serializers.SerializerMethodField(read_only=True)
+    supervisors = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, required=False
+    )
+    supervisors_info = serializers.SerializerMethodField(read_only=True)
     changes = ProjectChangeSerializer(many=True, read_only=True)
     expenditures = ExpenditureSerializer(many=True, read_only=True)
     total_expenditure = serializers.DecimalField(
@@ -165,6 +169,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             "quoted_amount",  # 新增報價金額欄位
             "managers",
             "managers_info",
+            "supervisors",
+            "supervisors_info",
             "drawing",
             "contact_info",
             "changes",
@@ -245,9 +251,26 @@ class ProjectSerializer(serializers.ModelSerializer):
             managers_data.append(manager_data)
         return managers_data
 
+    # 新增 get_supervisors_info 方法
+    def get_supervisors_info(self, obj):
+        """返回監造人員的詳細資訊"""
+        supervisors_data = []
+        for supervisor in obj.supervisors.all():
+            supervisor_data = {
+                "id": supervisor.id,
+                "username": supervisor.username,
+                "name": (
+                        supervisor.profile.name if hasattr(supervisor, "profile") else None
+                    ),
+            }
+            supervisors_data.append(supervisor_data)
+        return supervisors_data
+
     def update(self, instance, validated_data):
         # 特別處理 managers 欄位
         managers_data = validated_data.pop("managers", None)
+        # 特別處理 supervisors 欄位
+        supervisors_data = validated_data.pop("supervisors", None)
 
         # 更新其他欄位
         for attr, value in validated_data.items():
@@ -256,6 +279,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         # 如果有提供 managers 欄位，更新多對多關係
         if managers_data is not None:
             instance.managers.set(managers_data)
+
+        # 如果有提供 supervisors 欄位，更新多對多關係
+        if supervisors_data is not None:
+            instance.supervisors.set(supervisors_data)
 
         instance.save()
         return instance

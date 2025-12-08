@@ -13,6 +13,8 @@ const projectDetail = createApp({
         name: "",
         managers: [], // 儲存專案負責人IDs
         selected_managers: [], // 儲存完整的專案負責人資料
+        supervisors: [], // 儲存監造人員IDs
+        selected_supervisors: [], // 儲存完整的監造人員資料
         drawing: "",
         drawing_other: "",
         contact_info: "",
@@ -48,10 +50,13 @@ const projectDetail = createApp({
       // 搜尋與下拉選單相關數據
       ownerSearchTerm: "",
       managerSearchTerm: "",
+      supervisorSearchTerm: "",
       showOwnerDropdown: false,
       showManagerDropdown: false,
+      showSupervisorDropdown: false,
       filteredOwners: [],
       filteredManagers: [],
+      filteredSupervisors: [],
 
       // 業主選擇 Modal 相關數據
       ownerModalSearchTerm: "",
@@ -223,6 +228,15 @@ const projectDetail = createApp({
             this.project.selected_managers = [];
           }
 
+          // 初始化選中的監造人員
+          if (data.supervisors) {
+            this.project.supervisors = data.supervisors;
+            this.project.selected_supervisors = data.supervisors_info || [];
+          } else {
+            this.project.supervisors = [];
+            this.project.selected_supervisors = [];
+          }
+
           // 更新相關搜尋框的內容
           this.updateSearchTerms();
         })
@@ -311,9 +325,10 @@ const projectDetail = createApp({
           this.projectManagers = this.users.filter(
             (user) => user.profile.is_project_manager
           );
-          
+
           this.updateSearchTerms()
           this.filterManagers();
+          this.filterSupervisors();
         })
         .catch((error) => console.error("Error fetching users:", error));
     },
@@ -336,6 +351,13 @@ const projectDetail = createApp({
           this.project.managers.includes(u.id)
         );
       }
+
+      // 設置監造人員資料
+      if (this.project.supervisors && this.project.supervisors.length > 0) {
+        this.project.selected_supervisors = this.users.filter((u) =>
+          this.project.supervisors.includes(u.id)
+        );
+      }
     },
 
     // 儲存專案資料
@@ -351,8 +373,8 @@ const projectDetail = createApp({
         // 找不到對應的業主
         const confirmCreate = confirm(
           `找不到名為「${this.ownerSearchTerm}」的業主。\n\n` +
-            `- 按「確定」開啟新增業主表單\n` +
-            `- 按「取消」繼續儲存但不設置業主`
+          `- 按「確定」開啟新增業主表單\n` +
+          `- 按「取消」繼續儲存但不設置業主`
         );
 
         if (confirmCreate) {
@@ -391,9 +413,19 @@ const projectDetail = createApp({
         formData.managers = [formData.managers];
       }
 
+      // 確保 supervisors 欄位存在且為陣列
+      if (!formData.supervisors) {
+        formData.supervisors = [];
+      } else if (!Array.isArray(formData.supervisors)) {
+        // 如果 supervisors 不是陣列，確保將其轉換為陣列
+        formData.supervisors = [formData.supervisors];
+      }
+
       // 移除不需要傳送給 API 的欄位
       delete formData.selected_managers; // 只傳送 ID 列表，不傳送完整物件
       delete formData.manager_info; // 如果存在此欄位也移除
+      delete formData.selected_supervisors; // 只傳送 ID 列表，不傳送完整物件
+      delete formData.supervisors_info; // 如果存在此欄位也移除
 
       // 添加自定義欄位值
       formData.custom_fields = this.customFieldValues;
@@ -489,10 +521,10 @@ const projectDetail = createApp({
 
       const currentUserId = Number(window.CURRENT_USER_DATA.id);
       const isAdmin = window.CURRENT_USER_DATA.profile.is_admin;
-      
+
       // 檢查是否為該專案的經理
       const isProjectManager = this.project && this.project.managers && this.project.managers.includes(currentUserId);
-      
+
       // 只有管理員或該專案的經理可以刪除
       if (!isAdmin && !isProjectManager) {
         Swal.fire({
@@ -515,30 +547,30 @@ const projectDetail = createApp({
         cancelButtonText: "取消",
       }).then((result) => {
         if (result.isConfirmed) {
-        fetch(`/crm/api/projects/${this.projectId}/`, {
-          method: "DELETE",
-          headers: {
-            "X-CSRFToken": document.querySelector(
-              'input[name="csrfmiddlewaretoken"]'
-            ).value,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("刪除失敗");
-            }
-            // 刪除成功後跳轉回專案列表頁面
-            window.location.href = "/crm/projects/";
+          fetch(`/crm/api/projects/${this.projectId}/`, {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                'input[name="csrfmiddlewaretoken"]'
+              ).value,
+            },
           })
-          .catch((error) => {
-            console.error("Error deleting project:", error);
-            Swal.fire({
-              title: "失敗!",
-              text: `刪除失敗: ${error.message}`,
-              icon: "error",
-              confirmButtonText: "確定",
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("刪除失敗");
+              }
+              // 刪除成功後跳轉回專案列表頁面
+              window.location.href = "/crm/projects/";
+            })
+            .catch((error) => {
+              console.error("Error deleting project:", error);
+              Swal.fire({
+                title: "失敗!",
+                text: `刪除失敗: ${error.message}`,
+                icon: "error",
+                confirmButtonText: "確定",
+              });
             });
-          });
         }
       });
     },
@@ -631,18 +663,57 @@ const projectDetail = createApp({
       this.showManagerDropdown = false;
     },
 
+    // 監造人員搜尋和選擇
+    filterSupervisors() {
+      if (!this.supervisorSearchTerm) {
+        this.filteredSupervisors = this.projectManagers.slice(0, 10);
+        return;
+      }
+
+      const searchTerm = this.supervisorSearchTerm.toLowerCase();
+      this.filteredSupervisors = this.projectManagers
+        .filter(
+          (user) =>
+            (user.profile.name &&
+              user.profile.name.toLowerCase().includes(searchTerm)) ||
+            user.username.toLowerCase().includes(searchTerm)
+        )
+        .slice(0, 10);
+    },
+
+    addSupervisor(supervisor) {
+      // 檢查是否已存在
+      if (!this.project.supervisors.includes(supervisor.id)) {
+        this.project.supervisors.push(supervisor.id);
+        console.log("Supervisors after add:", [...this.project.supervisors]);
+        this.project.selected_supervisors.push(supervisor);
+      }
+      this.supervisorSearchTerm = "";
+      this.showSupervisorDropdown = false;
+    },
+
+    removeSupervisor(index) {
+      const supervisorId = this.project.selected_supervisors[index].id;
+      this.project.supervisors.splice(this.project.supervisors.indexOf(supervisorId), 1);
+      this.project.selected_supervisors.splice(index, 1);
+    },
+
+    closeSupervisorDropdown() {
+      this.showSupervisorDropdown = false;
+    },
+
     // 顯示業主選擇Modal
     showOwnerSelectionModal() {
       // 重置搜尋條件
       this.ownerModalSearchTerm = "";
       this.currentOwnerPage = 1;
-      
+
       // 顯示Modal
       const modal = new bootstrap.Modal(
         document.getElementById("selectOwnerModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到搜尋欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -651,7 +722,7 @@ const projectDetail = createApp({
           }
         });
       }, { once: true });
-      
+
       // 載入初始資料
       this.loadOwners();
     },
@@ -669,19 +740,19 @@ const projectDetail = createApp({
     // 載入業主資料（支援分頁和搜尋）
     loadOwners(url = null) {
       this.isLoadingOwners = true;
-      
+
       // 建構 API URL
       let apiUrl = url || "/crm/api/owners/";
       const params = new URLSearchParams();
-      
+
       if (!url) {
         params.append("page_size", "10");
         params.append("page", this.currentOwnerPage.toString());
-        
+
         if (this.ownerModalSearchTerm.trim()) {
           params.append("search", this.ownerModalSearchTerm.trim());
         }
-        
+
         apiUrl += "?" + params.toString();
       }
 
@@ -699,7 +770,7 @@ const projectDetail = createApp({
             next: data.next,
             previous: data.previous
           };
-          
+
           // 從URL中提取當前頁碼
           if (data.next || data.previous) {
             const urlObj = new URL(data.next || data.previous, window.location.origin);
@@ -733,7 +804,7 @@ const projectDetail = createApp({
       if (this.searchTimeout) {
         clearTimeout(this.searchTimeout);
       }
-      
+
       // 設置新的計時器，300ms後執行搜尋
       this.searchTimeout = setTimeout(() => {
         this.currentOwnerPage = 1;
@@ -760,11 +831,11 @@ const projectDetail = createApp({
       if (!this.ownerPagination || this.ownerPagination.count === 0) {
         return [];
       }
-      
+
       const totalPages = Math.ceil(this.ownerPagination.count / 10);
       const currentPage = this.currentOwnerPage;
       const maxVisiblePages = 5;
-      
+
       if (totalPages <= maxVisiblePages) {
         // 如果總頁數小於等於最大顯示頁數，顯示所有頁面
         const pages = [];
@@ -773,17 +844,17 @@ const projectDetail = createApp({
         }
         return pages;
       }
-      
+
       let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
       let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
+
       // 調整起始頁，確保顯示的頁面數量正確
       if (endPage - startPage + 1 < maxVisiblePages) {
         startPage = Math.max(1, endPage - maxVisiblePages + 1);
       }
-      
+
       const pages = [];
-      
+
       // 添加第一頁和省略號
       if (startPage > 1) {
         pages.push(1);
@@ -791,12 +862,12 @@ const projectDetail = createApp({
           pages.push('...');
         }
       }
-      
+
       // 添加中間頁面
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
-      
+
       // 添加省略號和最後一頁
       if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
@@ -804,7 +875,7 @@ const projectDetail = createApp({
         }
         pages.push(totalPages);
       }
-      
+
       return pages;
     },
 
@@ -812,7 +883,7 @@ const projectDetail = createApp({
     showAddOwnerModal() {
       // 如果從業主選擇Modal來的，先關閉選擇Modal
       this.hideOwnerSelectionModal();
-      
+
       // 重置新業主表單
       this.newOwner = {
         company_name: this.ownerModalSearchTerm || "",
@@ -996,9 +1067,8 @@ const projectDetail = createApp({
           console.error("Error:", error);
           Swal.fire({
             title: "錯誤!",
-            text: `${
-              this.isEditingExpenditure ? "更新" : "新增"
-            }支出記錄失敗：${error.message}`,
+            text: `${this.isEditingExpenditure ? "更新" : "新增"
+              }支出記錄失敗：${error.message}`,
             icon: "error",
             confirmButtonText: "確認",
           });
@@ -1143,9 +1213,8 @@ const projectDetail = createApp({
           console.error("Error:", error);
           Swal.fire({
             title: "失敗!",
-            text: `${this.isEditingChange ? "更新" : "新增"}變更記錄失敗：${
-              error.message
-            }`,
+            text: `${this.isEditingChange ? "更新" : "新增"}變更記錄失敗：${error.message
+              }`,
             icon: "error",
             confirmButtonText: "確定",
           });
@@ -1194,16 +1263,16 @@ const projectDetail = createApp({
     // 處理「已完成」開關切換
     handleCompletedToggle(event) {
       const newValue = event.target.checked;
-      
+
       // 如果是從未完成切換到已完成,需要驗證必填欄位
       if (newValue && !this.project.is_completed) {
         const validationErrors = this.validateCustomFields();
-        
+
         if (validationErrors.length > 0) {
           // 阻止切換
           event.target.checked = false;
           this.showRequiredFieldErrors = true;
-          
+
           Swal.fire({
             title: "欄位驗證錯誤",
             html: "專案標記為「已完成」前,以下必填欄位必須填寫：<br>" + validationErrors.join("<br>"),
@@ -1213,10 +1282,10 @@ const projectDetail = createApp({
           return;
         }
       }
-      
+
       // 驗證通過或從已完成切換到未完成,更新狀態
       this.project.is_completed = newValue;
-      
+
       // 切換到已完成時顯示紅框提示,切回未完成時隱藏
       this.showRequiredFieldErrors = newValue;
     },
@@ -1245,7 +1314,7 @@ const projectDetail = createApp({
       Object.entries(this.categoryFields).forEach(([fieldName, field]) => {
         if (field.required) {
           const value = this.customFieldValues[fieldName];
-          
+
           // 根據欄位類型進行驗證
           if (field.type === 'boolean') {
             // boolean 類型不需要驗證，因為總是有值（true 或 false）

@@ -67,6 +67,9 @@ class Project(models.Model):
     managers = models.ManyToManyField(
         User, related_name="managed_projects", blank=True, verbose_name="專案負責人"
     )
+    supervisors = models.ManyToManyField(
+        User, related_name="supervised_projects", blank=True, verbose_name="監造人員"
+    )
     drawing = models.CharField(
         max_length=255, blank=True, null=True
     )  # 繪圖，設為非必填
