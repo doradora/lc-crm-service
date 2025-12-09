@@ -11,16 +11,15 @@
     <div id="app_content_container">
       <div class="d-flex flex-column flex-column-fluid">
         <div class="card card-flush" id="projects_list">
-          <div 
-            class="card-header align-items-center m-4 p-4 py-2 " 
-            style="border-radius: 4px; border: 2px solid #b8b8b8ff !important;"
-          >
+          <div class="card-header align-items-center m-4 p-4 py-2 "
+            style="border-radius: 4px; border: 2px solid #b8b8b8ff !important;">
             <div class="card-title w-100">
               <!-- 搜尋列 -->
               <div class="d-flex flex-column flex-md-row gap-2">
                 <div class="d-flex align-items-center position-relative flex-grow-1">
                   <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
-                  <input type="text" v-model="searchQuery" class="form-control form-control-solid ps-12 border border-2 border-primary bg-light-success"
+                  <input type="text" v-model="searchQuery"
+                    class="form-control form-control-solid ps-12 border border-2 border-primary bg-light-success"
                     placeholder="搜尋專案/業主" ref="searchInput" />
                 </div>
                 <!-- 篩選按鈕 -->
@@ -28,13 +27,16 @@
                   <!--begin::Menu wrapper-->
                   <div class="m-0">
                     <!--begin::Menu toggle-->
-                    <button type="button" class="btn border border-2 border-primary bg-light-success bg-hover-light-success" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-start" data-kt-menu-offset="0,5">
+                    <button type="button"
+                      class="btn border border-2 border-primary bg-light-success bg-hover-light-success"
+                      data-kt-menu-trigger="click" data-kt-menu-placement="bottom-start" data-kt-menu-offset="0,5">
                       <i class="ki-outline ki-filter fs-5"></i>篩選條件
                       <i class="ki-duotone ki-down fs-3 rotate-180 pe-0"></i>
                     </button>
                     <!--end::Menu toggle-->
                     <!--begin::Menu dropdown-->
-                    <div class="menu menu-sub menu-sub-dropdown w-350px" data-kt-menu="true" id="kt_menu_my_project_filter">
+                    <div class="menu menu-sub menu-sub-dropdown w-350px" data-kt-menu="true"
+                      id="kt_menu_my_project_filter">
                       <div class="px-7 py-5">
                         <div class="fs-5 text-gray-900 fw-bold">篩選條件</div>
                       </div>
@@ -53,8 +55,10 @@
                           <label class="form-label fw-semibold">專案狀態:</label>
                           <select class="form-select" v-model="completedFilter" data-placeholder="專案狀態">
                             <option value="">所有狀態</option>
-                            <option value="completed">已完成</option>
                             <option value="in_progress">進行中</option>
+                            <option value="paused">暫停</option>
+                            <option value="completed">已完成</option>
+                            <option value="cancelled">撤案</option>
                           </select>
                         </div>
                         <div class="mb-5">
@@ -72,20 +76,24 @@
                           </select>
                         </div>
                         <div class="d-flex justify-content-end">
-                          <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2" data-kt-menu-dismiss="true" @click="resetFilters">重設</button>
-                          <button type="button" class="btn btn-sm btn-primary" data-kt-menu-dismiss="true" @click="fetchProjects()">套用</button>
+                          <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2"
+                            data-kt-menu-dismiss="true" @click="resetFilters">重設</button>
+                          <button type="button" class="btn btn-sm btn-primary" data-kt-menu-dismiss="true"
+                            @click="fetchProjects()">套用</button>
                         </div>
                       </div>
                     </div>
                     <!--end::Menu dropdown-->
                   </div>
                   <!--end::Menu wrapper-->
-                  <button class="btn border border-2 border-primary bg-light-success bg-hover-light-success" @click="fetchProjects()">搜尋</button>
+                  <button class="btn border border-2 border-primary bg-light-success bg-hover-light-success"
+                    @click="fetchProjects()">搜尋</button>
                 </div>
               </div>
               <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
                 <span class="text-muted fs-6">每頁顯示</span>
-                <select class="form-select form-select-sm w-75px border border-2 border-primary bg-light-success" v-model.number="pageSize" @change="pageSizeChanged">
+                <select class="form-select form-select-sm w-75px border border-2 border-primary bg-light-success"
+                  v-model.number="pageSize" @change="pageSizeChanged">
                   <option value="10">10</option>
                   <option value="20">20</option>
                   <option value="50">50</option>
@@ -130,11 +138,12 @@
                     <td>[[ project.owner_name ]]</td>
                     <td>[[ getCategoryName(project.category) ]]</td>
                     <td>
-                      <div class="badge" :class="getStatusBadgeClass(project)">[[ project.is_completed ? '已完成' : '進行中' ]]
+                      <div class="badge" :class="getStatusBadgeClass(project)">[[ getStatusText(project) ]]
                       </div>
                     </td>
                     <td class="text-end">
-                      <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
+                      <button
+                        class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
                         @click="toggleMenu(project.id)">
                         <i class="ki-outline ki-down fs-5"></i>
                       </button>
@@ -334,7 +343,22 @@
         return category ? category.code : "N";
       },
       getStatusBadgeClass(project) {
-        return project.is_completed ? "badge-success" : "badge-warning";
+        const statusMap = {
+          'in_progress': 'badge-warning',   // 黃色
+          'paused': 'badge-info',            // 藍色
+          'completed': 'badge-success',      // 綠色
+          'cancelled': 'badge-danger'        // 紅色
+        };
+        return statusMap[project.status] || 'badge-secondary';
+      },
+      getStatusText(project) {
+        const textMap = {
+          'in_progress': '進行中',
+          'paused': '暫停',
+          'completed': '已完成',
+          'cancelled': '撤案'
+        };
+        return textMap[project.status] || '未知';
       },
       toggleMenu(projectId) {
         if (this.activeMenu === projectId) {
@@ -398,7 +422,7 @@
         this.fetchCategories();
         this.fetchYears();
         this.fetchProjects();
-        
+
         // 頁面載入後自動focus到搜尋欄位
         this.$nextTick(() => {
           if (this.$refs.searchInput) {

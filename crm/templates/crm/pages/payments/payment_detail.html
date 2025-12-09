@@ -137,14 +137,16 @@
                 </div>
                 <div class="mb-5">
                   <label class="form-label fw-semibold">請款日期</label>
-                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.date_issued" max="9999-12-31"/>
+                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.date_issued"
+                    max="9999-12-31" />
                   <div v-else class="form-control-plaintext">
                     [[ formatDate(payment.date_issued) ]]
                   </div>
                 </div>
                 <div class="mb-5">
                   <label class="form-label fw-semibold">到期日</label>
-                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.due_date" max="9999-12-31"/>
+                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.due_date"
+                    max="9999-12-31" />
                   <div v-else class="form-control-plaintext">
                     [[ formatDate(payment.due_date) ]]
                   </div>
@@ -157,7 +159,8 @@
                 </div>
                 <div class="mb-5" v-if="payment.paid">
                   <label class="form-label fw-semibold">請款完成日期</label>
-                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.payment_date" max="9999-12-31"/>
+                  <input v-if="isEditing" type="date" class="form-control" v-model="payment.payment_date"
+                    max="9999-12-31" />
                   <div v-else class="form-control-plaintext">
                     [[ formatDate(payment.payment_date) ]]
                   </div>
@@ -228,14 +231,18 @@
                         <tr v-for="(projectItem, index) in payment.payment_projects" :key="projectItem.id || index">
                           <td>
                             <div v-if="isEditing">
-                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[ projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]</div>
+                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[
+                                projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]
+                              </div>
                               <div class="form-control-plaintext pt-0">[[ projectItem.project_name ]]</div>
                               <input type="text" class="form-control" :value="getProjectReportName(projectItem)"
-                                @input="updateProjectReportName(projectItem.project, $event.target.value)" 
+                                @input="updateProjectReportName(projectItem.project, $event.target.value)"
                                 placeholder="請輸入報告書名稱" />
                             </div>
                             <div v-else>
-                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[ projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]</div>
+                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[
+                                projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]
+                              </div>
                               <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
                               <div class="text-muted small">[[ getProjectReportName(projectItem) || '尚未設定報告書名稱' ]]</div>
                             </div>
@@ -262,7 +269,7 @@
                             </div>
                           </td>
                           <td v-if="isEditing" class="align-bottom">
-                            <button class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectItem(index)" >
+                            <button class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectItem(index)">
                               <i class="ki-outline ki-trash fs-2"></i>
                             </button>
                           </td>
@@ -293,7 +300,8 @@
                     </div>
                   </div>
                   <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-gray-200" :style="isEditing ? 'min-width:940px;' : 'min-width:790px;'">
+                    <table class="table table-row-bordered table-row-gray-200"
+                      :style="isEditing ? 'min-width:940px;' : 'min-width:790px;'">
                       <thead>
                         <tr class="fw-bold fs-6 text-gray-800">
                           <th v-if="isEditing">操作</th>
@@ -370,12 +378,13 @@
                       </tfoot>
                     </table>
                   </div>
-                </div> 
+                </div>
                 <!-- 內存請款單 Tab -->
                 <div class="tab-pane fade" id="saved_payment_tab" role="tabpanel">
                   <div v-if="isEditing" class="card-toolbar mb-5">
                     <div class="d-flex justify-content-between align-items-center">
-                      <button class="btn btn-sm btn-light-primary" @click="triggerFileUpload" :disabled="isUploadingDocument">
+                      <button class="btn btn-sm btn-light-primary" @click="triggerFileUpload"
+                        :disabled="isUploadingDocument">
                         <i class="ki-outline ki-file-up fs-6"></i>
                         [[ isUploadingDocument ? '上傳中...' : '上傳檔案' ]]
                       </button>
@@ -404,15 +413,15 @@
                               <span>[[ document.original_filename ]]</span>
                             </div>
                           </td>
-                            <td class="align-middle">[[ formatFileSize(document.file_size) ]]</td>
-                            <td class="align-middle">[[ formatDateTime(document.uploaded_at) ]]</td>
+                          <td class="align-middle">[[ formatFileSize(document.file_size) ]]</td>
+                          <td class="align-middle">[[ formatDateTime(document.uploaded_at) ]]</td>
                           <td class="d-flex justify-content-end gap-2">
                             <button class="btn btn-sm btn-icon btn-light-primary"
                               @click="downloadDocument(document.id, document.original_filename)" title="下載檔案">
                               <i class="ki-outline ki-file-down fs-4"></i>
                             </button>
-                            <button v-if="isEditing" class="btn btn-sm btn-icon btn-light-danger" @click="deleteDocument(document.id, document.original_filename)"
-                              title="刪除檔案">
+                            <button v-if="isEditing" class="btn btn-sm btn-icon btn-light-danger"
+                              @click="deleteDocument(document.id, document.original_filename)" title="刪除檔案">
                               <i class="ki-outline ki-trash fs-4"></i>
                             </button>
                           </td>
@@ -443,13 +452,16 @@
                       </thead>
                       <tbody>
                         <template v-for="project in payment.payment_projects">
-                          <tr v-for="(paymentRecord, index) in getProjectPayments(project.project)" :key="paymentRecord.id">
+                          <tr v-for="(paymentRecord, index) in getProjectPayments(project.project)"
+                            :key="paymentRecord.id">
                             <td v-if="isEditing" class="">
                               <div class="d-flex justify-content-end gap-2">
-                                <button class="btn btn-sm btn-icon btn-light-primary" @click="editProjectPayment(paymentRecord.id)" title="編輯">
+                                <button class="btn btn-sm btn-icon btn-light-primary"
+                                  @click="editProjectPayment(paymentRecord.id)" title="編輯">
                                   <i class="ki-outline ki-pencil fs-4"></i>
                                 </button>
-                                <button class="btn btn-sm btn-icon btn-light-danger" @click="deleteProjectPayment(paymentRecord.id)" title="刪除">
+                                <button class="btn btn-sm btn-icon btn-light-danger"
+                                  @click="deleteProjectPayment(paymentRecord.id)" title="刪除">
                                   <i class="ki-outline ki-trash fs-4"></i>
                                 </button>
 
@@ -458,11 +470,15 @@
                             <td v-if="paymentRecord && index === 0">
                               <div class="">
                                 <div class="fw-bold">[[ project.project_name ]]
-                                  <span v-if="project.project_info" class="text-muted">([[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
+                                  <span v-if="project.project_info" class="text-muted">([[ project.project_info.year
+                                    ]][[ project.project_info.category_code ]][[ project.project_info.project_number
+                                    ]])</span>
                                 </div>
                                 <div class="small">請款金額：[[ formatCurrency(project.amount) ]]</div>
-                                <div class="small">發票金額：[[ formatCurrency(getProjectReceivableAmount(project.project)) ]]</div>
-                                <div class="small">收款總計：[[ formatCurrency(getProjectPaymentTotal(project.project)) ]]</div>
+                                <div class="small">發票金額：[[ formatCurrency(getProjectReceivableAmount(project.project))
+                                  ]]</div>
+                                <div class="small">收款總計：[[ formatCurrency(getProjectPaymentTotal(project.project)) ]]
+                                </div>
                               </div>
                             </td>
                             <td v-else-if="paymentRecord && index > 0"></td>
@@ -475,11 +491,15 @@
                             <td>
                               <div class="">
                                 <div class="fw-bold">[[ project.project_name ]]
-                                  <span v-if="project.project_info" class="text-muted">([[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
+                                  <span v-if="project.project_info" class="text-muted">([[ project.project_info.year
+                                    ]][[ project.project_info.category_code ]][[ project.project_info.project_number
+                                    ]])</span>
                                 </div>
                                 <div class="small">請款金額：[[ formatCurrency(project.amount) ]]</div>
-                                <div class="small">發票金額：[[ formatCurrency(getProjectReceivableAmount(project.project)) ]]</div>
-                                <div class="small">收款總計：[[ formatCurrency(getProjectPaymentTotal(project.project)) ]]</div>
+                                <div class="small">發票金額：[[ formatCurrency(getProjectReceivableAmount(project.project))
+                                  ]]</div>
+                                <div class="small">收款總計：[[ formatCurrency(getProjectPaymentTotal(project.project)) ]]
+                                </div>
                               </div>
                             </td>
                             <td colspan="4" class="text-center text-muted py-3">尚無收款記錄</td>
@@ -527,8 +547,8 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label required">發票類型</label>
-                <select class="form-select" v-model="newInvoice.invoice_type" @change="handleInvoiceTypeChange" 
-                        :class="{ 'is-invalid': validationErrors.invoice_type }">
+                <select class="form-select" v-model="newInvoice.invoice_type" @change="handleInvoiceTypeChange"
+                  :class="{ 'is-invalid': validationErrors.invoice_type }">
                   <option value="normal">正常開立</option>
                   <option value="no_invoice">不開發票</option>
                   <option value="pending">發票待開</option>
@@ -544,21 +564,21 @@
                 <label class="form-label">付款狀態</label>
                 <div class="d-flex gap-4">
                   <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_status" value="unpaid" 
+                    <input class="form-check-input" type="radio" name="payment_status" value="unpaid"
                       v-model="newInvoice.payment_status" id="unpaidRadio">
                     <label class="form-check-label" for="unpaidRadio">
                       未付款
                     </label>
                   </div>
                   <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_status" value="partially_paid" 
+                    <input class="form-check-input" type="radio" name="payment_status" value="partially_paid"
                       v-model="newInvoice.payment_status" id="partiallyPaidRadio">
                     <label class="form-check-label" for="partiallyPaidRadio">
                       付款未完成
                     </label>
                   </div>
                   <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_status" value="paid" 
+                    <input class="form-check-input" type="radio" name="payment_status" value="paid"
                       v-model="newInvoice.payment_status" id="paidRadio">
                     <label class="form-check-label" for="paidRadio">
                       已付款
@@ -568,17 +588,17 @@
               </div>
             </div>
 
-            
+
           </div>
-          
+
           <!-- 發票號碼和開立日期 -->
           <div class="row mb-5">
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">發票號碼</label>
-                <input type="text" class="form-control" v-model="newInvoice.invoice_number" 
-                       :class="{ 'is-invalid': validationErrors.invoice_number }"
-                       :disabled="newInvoice.invoice_type !== 'normal'" />
+                <input type="text" class="form-control" v-model="newInvoice.invoice_number"
+                  :class="{ 'is-invalid': validationErrors.invoice_number }"
+                  :disabled="newInvoice.invoice_type !== 'normal'" />
                 <div v-if="validationErrors.invoice_number" class="invalid-feedback">
                   請輸入發票號碼
                 </div>
@@ -587,11 +607,9 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label" :class="{ 'required': newInvoice.invoice_type === 'normal' }">開立日期</label>
-                <input type="date" class="form-control" max="9999-12-31"
-                       v-model="newInvoice.issue_date" 
-                       :class="{ 'is-invalid': validationErrors.issue_date || dateErrors.issue_date }"
-                       @input="handleInvoiceDateValidation('issue_date')"
-                       :disabled="newInvoice.invoice_type !== 'normal'" />
+                <input type="date" class="form-control" max="9999-12-31" v-model="newInvoice.issue_date"
+                  :class="{ 'is-invalid': validationErrors.issue_date || dateErrors.issue_date }"
+                  @input="handleInvoiceDateValidation('issue_date')" :disabled="newInvoice.invoice_type !== 'normal'" />
                 <div v-if="validationErrors.issue_date" class="invalid-feedback">
                   請選擇開立日期
                 </div>
@@ -601,7 +619,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 專案應收金額（可多筆） -->
           <div class="form-group mb-5">
             <label class="form-label">專案應收金額(含稅)</label>
@@ -609,7 +627,9 @@
               <div class="col-md-8">
                 <select class="form-select" v-model="item.project_id">
                   <option v-for="project in payment.payment_projects" :key="project.project" :value="project.project">
-                    <span v-if="project.project_info">[[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]] - </span>[[ project.project_name ]]
+                    <span v-if="project.project_info">[[ project.project_info.year ]][[
+                      project.project_info.category_code ]][[ project.project_info.project_number ]] - </span>[[
+                    project.project_name ]]
                   </option>
                 </select>
               </div>
@@ -617,31 +637,34 @@
                 <input type="number" class="form-control text-end" v-model="item.amount" placeholder="金額" />
               </div>
               <div class="col-md-1">
-                <button type="button" class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectAmount(idx)" v-if="newInvoice.project_amounts.length > 1">
+                <button type="button" class="btn btn-sm btn-icon btn-light-danger" @click="removeProjectAmount(idx)"
+                  v-if="newInvoice.project_amounts.length > 1">
                   <i class="ki-outline ki-trash fs-2"></i>
                 </button>
               </div>
-              <div class="col-8 gap-2 mt-1" v-if="item.project_id" >
+              <div class="col-8 gap-2 mt-1" v-if="item.project_id">
                 <div class="d-flex gap-2">
-                  <span class="text-gray-700 fs-7">請款金額: [[ formatCurrency(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount) ]]</span>
-                  <span class="text-primary fs-7">發票總共金額: [[ formatCurrency(getProjectInvoiceReceivedAmount(item.project_id)) ]]</span>
+                  <span class="text-gray-700 fs-7">請款金額: [[
+                    formatCurrency(payment.payment_projects.filter(payment_project => payment_project.project_info.id
+                    === item.project_id)[0].amount) ]]</span>
+                  <span class="text-primary fs-7">發票總共金額: [[
+                    formatCurrency(getProjectInvoiceReceivedAmount(item.project_id)) ]]</span>
                 </div>
 
                 <div class="text-warning fs-7 ml-auto"
-                      v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
+                  v-if="Number(item.amount) !== Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
                   請款金額與應收金額不符!
                 </div>
 
                 <div class="text-danger fs-7 ml-auto"
-                      v-if="Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount) > 0 && (getProjectInvoiceReceivedAmount(item.project_id)) > Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
+                  v-if="Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount) > 0 && (getProjectInvoiceReceivedAmount(item.project_id)) > Number(payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount)">
                   ⚠️ 發票總共金額超出請款金額! 請修改專案請款金額
                 </div>
 
               </div>
-              <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id" >
-                <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end" 
-                     @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount"
-                >
+              <div class="col-3 d-flex gap-2 mt-1 justify-content-end" v-if="item.project_id">
+                <div class="cursor-pointer fs-7 px-2 py-1 badge-primary badge fw-normal text-end"
+                  @click="item.amount = payment.payment_projects.filter(payment_project => payment_project.project_info.id === item.project_id)[0].amount">
                   帶入請款金額
                 </div>
               </div>
@@ -657,16 +680,16 @@
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label required text-end">發票金額(含稅)</label>
-                <input type="number" class="form-control" v-model="newInvoice.gross_amount" @input="handleGrossAmountChange" required 
-                       :disabled="newInvoice.invoice_type !== 'normal'"/>
+                <input type="number" class="form-control" v-model="newInvoice.gross_amount"
+                  @input="handleGrossAmountChange" required :disabled="newInvoice.invoice_type !== 'normal'" />
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label required text-end">發票金額(未稅)</label>
-                <input type="number" class="form-control" v-model="newInvoice.amount" @input="handleAmountChange" 
-                       :class="{ 'is-invalid': validationErrors.amount }" required 
-                       :disabled="newInvoice.invoice_type !== 'normal'"/>
+                <input type="number" class="form-control" v-model="newInvoice.amount" @input="handleAmountChange"
+                  :class="{ 'is-invalid': validationErrors.amount }" required
+                  :disabled="newInvoice.invoice_type !== 'normal'" />
                 <div v-if="validationErrors.amount" class="invalid-feedback">
                   請輸入發票金額
                 </div>
@@ -675,9 +698,9 @@
             <div class="col-md-4">
               <div class="form-group mb-2">
                 <label class="form-label">稅額</label>
-                <input type="number" class="form-control text-end" v-model="newInvoice.tax_amount" @input="handleTaxAmountChange" 
-                       :class="{ 'is-invalid': validationErrors.tax_amount }" 
-                       :disabled="newInvoice.invoice_type !== 'normal'"/>
+                <input type="number" class="form-control text-end" v-model="newInvoice.tax_amount"
+                  @input="handleTaxAmountChange" :class="{ 'is-invalid': validationErrors.tax_amount }"
+                  :disabled="newInvoice.invoice_type !== 'normal'" />
                 <div v-if="validationErrors.tax_amount" class="invalid-feedback">
                   請輸入稅額
                 </div>
@@ -688,7 +711,7 @@
               <span class="text-gray-700 fs-7">若不需自動計算稅額，亦可自行輸入未稅金額或稅額。</span>
             </div>
           </div>
-          
+
           <!-- 收款相關欄位 -->
           <div class="form-group mb-5">
             <label class="form-label">收款方式</label>
@@ -703,15 +726,14 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">收款日</label>
-                <input type="date" class="form-control" max="9999-12-31"
-                       v-model="newInvoice.payment_received_date" 
-                       :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
-                       @input="handleInvoiceDateValidation('payment_received_date')" />
+                <input type="date" class="form-control" max="9999-12-31" v-model="newInvoice.payment_received_date"
+                  :class="{ 'is-invalid': validationErrors.payment_received_date || dateErrors.payment_received_date }"
+                  @input="handleInvoiceDateValidation('payment_received_date')" />
                 <div v-if="validationErrors.payment_received_date" class="invalid-feedback">
                   [[ validationErrors.payment_received_date ]]
                 </div>
-                <div v-if="dateErrors.payment_received_date" class="invalid-feedback" 
-                     style="color: #e74c3c; font-weight: bold;">
+                <div v-if="dateErrors.payment_received_date" class="invalid-feedback"
+                  style="color: #e74c3c; font-weight: bold;">
                   [[ dateErrors.payment_received_date ]]
                 </div>
                 <div v-if="dateWarning.payment_received_date" class="text-warning fs-7 mt-1">
@@ -722,15 +744,14 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">入帳日</label>
-                <input type="date" class="form-control" max="9999-12-31"
-                       v-model="newInvoice.account_entry_date" 
-                       :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
-                       @input="handleInvoiceDateValidation('account_entry_date')" />
+                <input type="date" class="form-control" max="9999-12-31" v-model="newInvoice.account_entry_date"
+                  :class="{ 'is-invalid': validationErrors.account_entry_date || dateErrors.account_entry_date }"
+                  @input="handleInvoiceDateValidation('account_entry_date')" />
                 <div v-if="validationErrors.account_entry_date" class="invalid-feedback">
                   [[ validationErrors.account_entry_date ]]
                 </div>
-                <div v-if="dateErrors.account_entry_date" class="invalid-feedback" 
-                     style="color: #e74c3c; font-weight: bold;">
+                <div v-if="dateErrors.account_entry_date" class="invalid-feedback"
+                  style="color: #e74c3c; font-weight: bold;">
                   [[ dateErrors.account_entry_date ]]
                 </div>
                 <div v-if="dateWarning.account_entry_date" class="text-warning fs-7 mt-1">
@@ -739,13 +760,13 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 備註 -->
           <div class="form-group mb-5">
             <label class="form-label">備註</label>
             <textarea class="form-control" rows="3" v-model="newInvoice.notes"></textarea>
           </div>
-          
+
           <!-- 按鈕 -->
           <div class="text-center">
             <button type="button" class="btn btn-light me-3" @click="hideAddInvoiceModal">
@@ -780,31 +801,24 @@
                     <span class="input-group-text">
                       <i class="ki-outline ki-magnifier fs-3"></i>
                     </span>
-                    <input type="text"
-                           class="form-control"
-                           v-model="projectModalSearchTerm"
-                           @input="searchModalProjects"
-                           placeholder="搜尋專案名稱、負責人..."
-                           ref="modalProjectSearchInput">
-                    <button class="btn btn-light" 
-                            v-if="projectModalSearchTerm" 
-                            @click="projectModalSearchTerm = ''; searchModalProjects()">
+                    <input type="text" class="form-control" v-model="projectModalSearchTerm"
+                      @input="searchModalProjects" placeholder="搜尋專案名稱、負責人..." ref="modalProjectSearchInput">
+                    <button class="btn btn-light" v-if="projectModalSearchTerm"
+                      @click="projectModalSearchTerm = ''; searchModalProjects()">
                       <i class="ki-outline ki-cross"></i>
                     </button>
                   </div>
                 </div>
-                
+
                 <div class="col-md-3">
                   <select class="form-select" v-model="modalCategoryFilter" @change="loadModalProjects()">
                     <option value="">全部類別</option>
-                    <option v-for="category in categories" 
-                            :key="category.id" 
-                            :value="category.id">
+                    <option v-for="category in categories" :key="category.id" :value="category.id">
                       [[ category.code ]]: [[ category.description ]]
                     </option>
                   </select>
                 </div>
-                
+
                 <div class="col-md-3">
                   <div class="d-flex align-items-center justify-content-end gap-2">
                     <button class="btn btn-light btn-sm" @click="resetModalFilters(); loadModalProjects()">
@@ -813,7 +827,7 @@
                   </div>
                 </div>
               </div>
-              
+
               <!-- 年份篩選 -->
               <div class="row mb-3">
                 <div class="col-md-3">
@@ -857,9 +871,7 @@
               <thead>
                 <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
                   <th class="min-w-50px">
-                    <input type="checkbox" 
-                           @change="selectAllModalProjects" 
-                           :checked="selectAllChecked">
+                    <input type="checkbox" @change="selectAllModalProjects" :checked="selectAllChecked">
                   </th>
                   <th class="min-w-100px">專案編號</th>
                   <th class="min-w-200px">專案名稱</th>
@@ -872,10 +884,8 @@
               <tbody class="fw-semibold text-gray-600">
                 <tr v-for="project in modalProjects" :key="project.id">
                   <td>
-                    <input type="checkbox" 
-                           :value="project.id" 
-                           @change="toggleModalProjectSelection(project)"
-                           :checked="isModalProjectSelected(project.id)">
+                    <input type="checkbox" :value="project.id" @change="toggleModalProjectSelection(project)"
+                      :checked="isModalProjectSelected(project.id)">
                   </td>
                   <td>
                     <span class="badge badge-light">
@@ -917,8 +927,8 @@
                     <span v-else>N/A</span>
                   </td>
                   <td>
-                    <span v-if="project.is_completed" class="badge badge-success">已完成</span>
-                    <span v-else class="badge badge-secondary">進行中</span>
+                    <span class="badge" :class="getProjectStatusBadgeClass(project)">[[ getProjectStatusText(project)
+                      ]]</span>
                   </td>
                 </tr>
               </tbody>
@@ -935,7 +945,8 @@
           </div>
 
           <!-- 分頁控制 -->
-          <div v-if="projectPagination && projectPagination.count > 10" class="d-flex justify-content-center align-items-center flex-wrap mt-5">
+          <div v-if="projectPagination && projectPagination.count > 10"
+            class="d-flex justify-content-center align-items-center flex-wrap mt-5">
             <div class="d-flex align-items-center me-3">
               <span class="text-muted">
                 共 [[ projectPagination.count ]] 筆資料，第 [[ currentProjectPage ]] 頁
@@ -943,9 +954,8 @@
             </div>
             <ul class="pagination mb-0">
               <li class="page-item previous" :class="{ 'disabled': !projectPagination.previous }">
-                <a class="page-link" 
-                   @click.prevent="projectPagination.previous && goToModalProjectPage(currentProjectPage - 1)"
-                   href="#">
+                <a class="page-link"
+                  @click.prevent="projectPagination.previous && goToModalProjectPage(currentProjectPage - 1)" href="#">
                   <i class="previous"></i>
                 </a>
               </li>
@@ -954,23 +964,20 @@
                   <span class="page-link">...</span>
                 </li>
                 <li v-else class="page-item" :class="{ 'active': page === currentProjectPage }">
-                  <a class="page-link" 
-                     @click.prevent="goToModalProjectPage(page)"
-                     href="#">
+                  <a class="page-link" @click.prevent="goToModalProjectPage(page)" href="#">
                     [[ page ]]
                   </a>
                 </li>
               </template>
               <li class="page-item next" :class="{ 'disabled': !projectPagination.next }">
-                <a class="page-link" 
-                   @click.prevent="projectPagination.next && goToModalProjectPage(currentProjectPage + 1)"
-                   href="#">
+                <a class="page-link"
+                  @click.prevent="projectPagination.next && goToModalProjectPage(currentProjectPage + 1)" href="#">
                   <i class="next"></i>
                 </a>
               </li>
             </ul>
           </div>
-          
+
           <div class="text-center mt-5">
             <button type="button" class="btn btn-light me-3" @click="hideAddProjectModal">
               取消
@@ -984,152 +991,159 @@
       </div>
     </div>
   </div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 新增匯款帳號 Modal -->
+<div class="modal fade" id="addBankAccountModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered mw-600px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新增匯款帳號</h5>
+        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="closeBankAccountModal">
+          <i class="ki-outline ki-cross fs-2"></i>
+        </div>
+      </div>
+      <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+        <div class="form-group mb-5">
+          <label class="form-label required">帳戶名稱</label>
+          <input type="text" class="form-control" v-model="bankAccountModal.account_name" placeholder="例如：XX公司企業銀行帳戶"
+            required />
+        </div>
+        <div class="row mb-5">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label required">銀行名稱</label>
+              <input type="text" class="form-control" v-model="bankAccountModal.bank_name" placeholder="例如：台灣銀行"
+                required />
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label required">銀行代碼</label>
+              <input type="text" class="form-control" v-model="bankAccountModal.bank_code" placeholder="例如：013"
+                required />
+            </div>
+          </div>
+        </div>
+        <div class="form-group mb-5">
+          <label class="form-label required">帳號</label>
+          <input type="text" class="form-control" v-model="bankAccountModal.account_number" placeholder="請輸入完整帳號"
+            required />
+        </div>
+        <div class="text-center">
+          <button type="button" class="btn btn-light me-3" @click="closeBankAccountModal">
+            取消
+          </button>
+          <button type="button" class="btn btn-primary" @click="submitBankAccountForm">
+            確定儲存
+          </button>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- 新增匯款帳號 Modal -->
-  <div class="modal fade" id="addBankAccountModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered mw-600px">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">新增匯款帳號</h5>
-          <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="closeBankAccountModal">
-            <i class="ki-outline ki-cross fs-2"></i>
+<!-- 隱藏的檔案輸入元素 -->
+<input type="file" id="paymentDocumentFileInput" ref="fileInput" @change="handleFileSelection" style="display: none;"
+  accept="*/*">
+
+<!-- 新增收款記錄 Modal -->
+<div class="modal fade" id="addProjectReceiptModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered mw-600px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          [[ editingProjectReceipt ? '編輯' : '新增' ]]收款記錄
+        </h5>
+        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideProjectReceiptModal">
+          <i class="ki-outline ki-cross fs-2"></i>
+        </div>
+      </div>
+      <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
+        <div class="form-group mb-5">
+          <label class="form-label required">專案</label>
+          <select class="form-select" v-model="newProjectReceipt.project" required>
+            <option value="">請選擇專案</option>
+            <option v-for="project in payment.payment_projects" :key="project.project" :value="project.project">
+              [[ project.project_name ]]<span v-if="project.project_info"> ([[ project.project_info.year ]][[
+                project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
+            </option>
+          </select>
+        </div>
+        <div class="form-group mb-5">
+          <label class="form-label required">收款金額</label>
+          <input type="number" class="form-control" v-model="newProjectReceipt.amount" placeholder="請輸入收款金額" required />
+          <div class="text-gray-700 mt-2">發票金額：[[ formatCurrency(getProjectReceivableAmount(newProjectReceipt.project))
+            ]]</div>
+          <div class="text-gray-700 mt-2">已收金額：[[ formatCurrency(getExistingProjectReceived(newProjectReceipt.project))
+            ]]</div>
+
+
+          <!-- 超收警告提示 -->
+          <div
+            v-if="newProjectReceipt.project && newProjectReceipt.amount && getTotalProjectReceived(newProjectReceipt.project) > getProjectReceivableAmount(newProjectReceipt.project)"
+            class="text-danger fs-7 mt-1">
+            ⚠️ 收款金額超出發票金額！
+            <div class="small">
+              已收金額：[[ formatCurrency(getExistingProjectReceived(newProjectReceipt.project)) ]] +
+              本次收款：[[ formatCurrency(newProjectReceipt.amount) ]] =
+              總收款：[[ formatCurrency(getTotalProjectReceived(newProjectReceipt.project)) ]]
+            </div>
           </div>
         </div>
-        <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
-          <div class="form-group mb-5">
-            <label class="form-label required">帳戶名稱</label>
-            <input type="text" class="form-control" v-model="bankAccountModal.account_name" placeholder="例如：XX公司企業銀行帳戶"
-              required />
-          </div>
-          <div class="row mb-5">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label class="form-label required">銀行名稱</label>
-                <input type="text" class="form-control" v-model="bankAccountModal.bank_name" placeholder="例如：台灣銀行"
-                  required />
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label class="form-label required">銀行代碼</label>
-                <input type="text" class="form-control" v-model="bankAccountModal.bank_code" placeholder="例如：013"
-                  required />
-              </div>
-            </div>
-          </div>
-          <div class="form-group mb-5">
-            <label class="form-label required">帳號</label>
-            <input type="text" class="form-control" v-model="bankAccountModal.account_number" placeholder="請輸入完整帳號"
-              required />
-          </div>
-          <div class="text-center">
-            <button type="button" class="btn btn-light me-3" @click="closeBankAccountModal">
-              取消
-            </button>
-            <button type="button" class="btn btn-primary" @click="submitBankAccountForm">
-              確定儲存
-            </button>
-          </div>
+        <div class="form-group mb-5">
+          <label class="form-label">收款日期</label>
+          <input type="date" class="form-control" v-model="newProjectReceipt.payment_date" max="9999-12-31" />
+        </div>
+        <div class="form-group mb-5">
+          <label class="form-label">收款方式</label>
+          <select class="form-select" v-model="newProjectReceipt.payment_method">
+            <option value="">請選擇</option>
+            <option v-for="option in paymentMethodChoices" :key="option.value" :value="option.value">
+              [[ option.display ]]
+            </option>
+          </select>
+        </div>
+        <div class="text-center">
+          <button type="button" class="btn btn-light me-3" @click="hideProjectReceiptModal">
+            取消
+          </button>
+          <button type="button" class="btn btn-primary" @click="saveProjectReceipt">
+            確定儲存
+          </button>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- 隱藏的檔案輸入元素 -->
-  <input type="file" id="paymentDocumentFileInput" ref="fileInput" @change="handleFileSelection" style="display: none;"
-    accept="*/*">
+{% endblock content %}
+{% block extra_js %}
+<script>
+  // 定義此頁面專用的麵包屑資訊
+  window.pageBreadcrumbs = {
+    menu: "請款列表",
+    menuUrl: "{% url 'payments' %}",
+    submenu: "{{ page_title }}",
+    submenuUrl: "#",
+    currentPage: "請款單詳情"
+  };
 
-  <!-- 新增收款記錄 Modal -->
-  <div class="modal fade" id="addProjectReceiptModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered mw-600px">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            [[ editingProjectReceipt ? '編輯' : '新增' ]]收款記錄
-          </h5>
-          <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideProjectReceiptModal">
-            <i class="ki-outline ki-cross fs-2"></i>
-          </div>
-        </div>
-        <div class="modal-body scroll-y mx-5 mx-xl-15 my-7">
-          <div class="form-group mb-5">
-            <label class="form-label required">專案</label>
-            <select class="form-select" v-model="newProjectReceipt.project" required>
-              <option value="">請選擇專案</option>
-              <option v-for="project in payment.payment_projects" :key="project.project" :value="project.project">
-                [[ project.project_name ]]<span v-if="project.project_info"> ([[ project.project_info.year ]][[ project.project_info.category_code ]][[ project.project_info.project_number ]])</span>
-              </option>
-            </select>
-          </div>
-          <div class="form-group mb-5">
-            <label class="form-label required">收款金額</label>
-            <input type="number" class="form-control" v-model="newProjectReceipt.amount" placeholder="請輸入收款金額" required />
-            <div class="text-gray-700 mt-2">發票金額：[[ formatCurrency(getProjectReceivableAmount(newProjectReceipt.project)) ]]</div>
-            <div class="text-gray-700 mt-2">已收金額：[[ formatCurrency(getExistingProjectReceived(newProjectReceipt.project)) ]]</div>
-            
-            
-            <!-- 超收警告提示 -->
-            <div v-if="newProjectReceipt.project && newProjectReceipt.amount && getTotalProjectReceived(newProjectReceipt.project) > getProjectReceivableAmount(newProjectReceipt.project)" 
-                 class="text-danger fs-7 mt-1">
-              ⚠️ 收款金額超出發票金額！
-              <div class="small">
-                已收金額：[[ formatCurrency(getExistingProjectReceived(newProjectReceipt.project)) ]] + 
-                本次收款：[[ formatCurrency(newProjectReceipt.amount) ]] = 
-                總收款：[[ formatCurrency(getTotalProjectReceived(newProjectReceipt.project)) ]]
-              </div>
-            </div>
-          </div>
-          <div class="form-group mb-5">
-            <label class="form-label">收款日期</label>
-            <input type="date" class="form-control" v-model="newProjectReceipt.payment_date" max="9999-12-31" />
-          </div>
-          <div class="form-group mb-5">
-            <label class="form-label">收款方式</label>
-            <select class="form-select" v-model="newProjectReceipt.payment_method">
-              <option value="">請選擇</option>
-              <option v-for="option in paymentMethodChoices" :key="option.value" :value="option.value">
-                [[ option.display ]]
-              </option>
-            </select>
-          </div>
-          <div class="text-center">
-            <button type="button" class="btn btn-light me-3" @click="hideProjectReceiptModal">
-              取消
-            </button>
-            <button type="button" class="btn btn-primary" @click="saveProjectReceipt">
-              確定儲存
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% endblock content %}
-  {% block extra_js %}
-  <script>
-    // 定義此頁面專用的麵包屑資訊
-    window.pageBreadcrumbs = {
-      menu: "請款列表",
-      menuUrl: "{% url 'payments' %}",
-      submenu: "{{ page_title }}",
-      submenuUrl: "#",
-      currentPage: "請款單詳情"
-    };
-
-    // 如果 breadcrumbApp 已經掛載，則更新它
-    if (typeof breadcrumbApp !== 'undefined') {
-      breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
-      breadcrumbApp.updateBreadcrumb();
-    }
-  </script>
-  <script src="{% static 'crm/js/pages/payments/payment_detail.js' %}"></script>
-  {% endblock extra_js %}
+  // 如果 breadcrumbApp 已經掛載，則更新它
+  if (typeof breadcrumbApp !== 'undefined') {
+    breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
+    breadcrumbApp.updateBreadcrumb();
+  }
+</script>
+<script src="{% static 'crm/js/pages/payments/payment_detail.js' %}"></script>
+{% endblock extra_js %}
 <style>
   /* 讓表格欄位不自動換行，避免壓縮 */
-  .table-responsive th, .table-responsive td { white-space: nowrap; }
+  .table-responsive th,
+  .table-responsive td {
+    white-space: nowrap;
+  }
 </style>

@@ -40,7 +40,7 @@ const paymentList = createApp({
       projectMap: {}, // 專案 ID 到專案名稱的映射
       showProjectCode: false, // 控制顯示專案編號或名稱
     };
-  },  
+  },
   directives: {
     // 點擊元素外部時觸發的自定義指令
     clickOutside: {
@@ -235,7 +235,7 @@ const paymentList = createApp({
             existingPopover.dispose();
           }
         });
-        
+
         // 初始化新的 popovers
         document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
           new bootstrap.Popover(el, {
@@ -288,7 +288,7 @@ const paymentList = createApp({
       const months = this.getMonthOptions();
       const yearOptions = years.map(y => `<option value='${y}'>${y}</option>`).join('');
       const monthOptions = months.map(m => `<option value='${m.value}'>${m.text}</option>`).join('');
-      
+
       const { value: formValues } = await Swal.fire({
         title: '選擇請款年月區間',
         html:
@@ -336,14 +336,14 @@ const paymentList = createApp({
           const monthStartSelect = document.getElementById('swal-month-start');
           const yearEndSelect = document.getElementById('swal-year-end');
           const monthEndSelect = document.getElementById('swal-month-end');
-          
-          selectAllCheckbox.addEventListener('change', function() {
+
+          selectAllCheckbox.addEventListener('change', function () {
             const isDisabled = this.checked;
             yearStartSelect.disabled = isDisabled;
             monthStartSelect.disabled = isDisabled;
             yearEndSelect.disabled = isDisabled;
             monthEndSelect.disabled = isDisabled;
-            
+
             if (isDisabled) {
               yearStartSelect.value = '';
               monthStartSelect.value = '';
@@ -354,30 +354,30 @@ const paymentList = createApp({
         },
         preConfirm: () => {
           const select_all = document.getElementById('swal-select-all').checked;
-          
+
           if (select_all) {
             return { select_all: true };
           }
-          
+
           const year_start = document.getElementById('swal-year-start').value;
           const month_start = document.getElementById('swal-month-start').value;
           const year_end = document.getElementById('swal-year-end').value;
           const month_end = document.getElementById('swal-month-end').value;
-          
+
           if (!year_start && !month_start && !year_end && !month_end) {
             return { select_all: true };
           }
-          
+
           if ((year_start && !month_start) || (!year_start && month_start)) {
             Swal.showValidationMessage('請同時選擇開始年份和月份');
             return false;
           }
-          
+
           if ((year_end && !month_end) || (!year_end && month_end)) {
             Swal.showValidationMessage('請同時選擇結束年份和月份');
             return false;
           }
-          
+
           if (year_start && month_start && year_end && month_end) {
             const startDate = new Date(parseInt(year_start), parseInt(month_start) - 1);
             const endDate = new Date(parseInt(year_end), parseInt(month_end) - 1);
@@ -386,7 +386,7 @@ const paymentList = createApp({
               return false;
             }
           }
-          
+
           return {
             select_all: false,
             year_month_start: year_start && month_start ? `${year_start}-${month_start}` : '',
@@ -394,7 +394,7 @@ const paymentList = createApp({
           };
         }
       });
-      
+
       if (!formValues) return null;
       return formValues;
     },
@@ -406,13 +406,13 @@ const paymentList = createApp({
       try {
         const dateRange = await this.selectPaymentDateRange();
         if (dateRange === null) return;
-        
+
         this.isExporting = true;
-        
+
         // 構建匯出 URL
         let url = '/crm/export/payment-invoices/excel/';
         const params = new URLSearchParams();
-        
+
         // 添加日期範圍參數（使用日期格式而非年月格式）
         if (!dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
           if (dateRange.year_month_start) {
@@ -428,7 +428,7 @@ const paymentList = createApp({
             params.append('date_end', endDate);
           }
         }
-        
+
         // 添加當前頁面的篩選條件（可選，如果需要的話）
         // if (this.searchQuery) {
         //   params.append('search', this.searchQuery);
@@ -441,14 +441,14 @@ const paymentList = createApp({
         // if (this.projectFilter) {
         //   params.append('project', this.projectFilter);
         // }
-        
+
         if (params.toString()) {
           url += '?' + params.toString();
         }
-        
+
         await this.downloadFile(url);
         this.showSuccessMessage('請款單發票資料匯出成功');
-        
+
       } catch (error) {
         this.showErrorMessage('請款單發票資料匯出失敗', error);
       } finally {
@@ -475,7 +475,7 @@ const paymentList = createApp({
         // 取得檔案名稱（如果有的話）
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = `export_${new Date().toISOString().split('T')[0]}.xlsx`; // 預設為 xlsx 格式
-        
+
         if (contentDisposition) {
           // 首先嘗試解析 UTF-8 編碼的檔案名稱
           const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -495,7 +495,7 @@ const paymentList = createApp({
         }
 
         const blob = await response.blob();
-        
+
         // 創建下載連結
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -503,7 +503,7 @@ const paymentList = createApp({
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
+
         // 清理
         document.body.removeChild(link);
         window.URL.revokeObjectURL(downloadUrl);
@@ -538,7 +538,7 @@ const paymentList = createApp({
     showErrorMessage(message, error) {
       console.error(message, error);
       const errorText = error?.message || error || '未知錯誤';
-      
+
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',
@@ -613,7 +613,7 @@ const paymentList = createApp({
                         errorMsg = errorData.error;
                       }
                     }
-                  } catch (e) {}
+                  } catch (e) { }
                   Swal.fire({
                     icon: 'error',
                     title: '刪除失敗',
@@ -657,7 +657,7 @@ const paymentList = createApp({
                       errorMsg = errorData.error;
                     }
                   }
-                } catch (e) {}
+                } catch (e) { }
                 alert(errorMsg);
                 throw new Error(errorMsg);
               }
@@ -763,7 +763,7 @@ const paymentList = createApp({
       if (this.searchProjectTimeout) {
         clearTimeout(this.searchProjectTimeout);
       }
-      
+
       // 設置新的計時器，300ms後執行搜尋
       this.searchProjectTimeout = setTimeout(() => {
         this.currentProjectPage = 1;
@@ -789,13 +789,13 @@ const paymentList = createApp({
       // 重置搜尋條件
       this.projectModalSearchTerm = "";
       this.currentProjectPage = 1;
-      
+
       // 顯示Modal
       const modal = new bootstrap.Modal(
         document.getElementById("selectProjectModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到搜尋欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -804,7 +804,7 @@ const paymentList = createApp({
           }
         });
       }, { once: true });
-      
+
       // 載入初始資料
       this.loadProjects();
     },
@@ -834,16 +834,16 @@ const paymentList = createApp({
     // 載入專案資料（支援分頁和搜尋）
     loadProjects(url = null) {
       this.isLoadingProjects = true;
-      
+
       // 建構 API URL
       let apiUrl = url || "/crm/api/projects/";
       const params = new URLSearchParams();
-      
+
       if (!url) {
         params.append("format", "json");
         params.append("page_size", "10");
         params.append("page", this.currentProjectPage.toString());
-        
+
         if (this.projectModalSearchTerm.trim()) {
           params.append("search", this.projectModalSearchTerm.trim());
         }
@@ -857,10 +857,9 @@ const paymentList = createApp({
           params.append("category", this.modalCategoryFilter);
         }
 
-        if (this.modalCompletedFilter === "completed") {
-          params.append("is_completed", "true");
-        } else if (this.modalCompletedFilter === "incomplete") {
-          params.append("is_completed", "false");
+        // 新的狀態篩選，支援四種狀態
+        if (this.modalCompletedFilter) {
+          params.append("status", this.modalCompletedFilter);
         }
 
         // 使用年份區間過濾
@@ -871,7 +870,7 @@ const paymentList = createApp({
         if (this.modalEndYearFilter) {
           params.append("year_end", this.modalEndYearFilter);
         }
-        
+
         apiUrl += "?" + params.toString();
       }
 
@@ -894,13 +893,13 @@ const paymentList = createApp({
             }
             return project;
           }) : [];
-          
+
           this.projectPagination = {
             count: data.count,
             next: data.next,
             previous: data.previous,
           };
-          
+
           // 更新當前頁面
           if (url) {
             const urlObj = new URL(url);
@@ -931,11 +930,11 @@ const paymentList = createApp({
       if (!this.projectPagination || this.projectPagination.count === 0) {
         return [];
       }
-      
+
       const totalPages = Math.ceil(this.projectPagination.count / 10);
       const currentPage = this.currentProjectPage;
       const pages = [];
-      
+
       // 如果總頁數 <= 7，顯示所有頁碼
       if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) {
@@ -968,7 +967,7 @@ const paymentList = createApp({
           pages.push(totalPages);
         }
       }
-      
+
       return pages;
     },
 
@@ -1027,6 +1026,26 @@ const paymentList = createApp({
           this.availableYears = [currentYear];
         });
     },
+
+    // 專案狀態相關方法
+    getProjectStatusBadgeClass(project) {
+      const statusMap = {
+        'in_progress': 'badge-warning',
+        'paused': 'badge-info',
+        'completed': 'badge-success',
+        'cancelled': 'badge-danger'
+      };
+      return statusMap[project.status] || 'badge-secondary';
+    },
+    getProjectStatusText(project) {
+      const textMap = {
+        'in_progress': '進行中',
+        'paused': '暫停',
+        'completed': '已完成',
+        'cancelled': '撤案'
+      };
+      return textMap[project.status] || '未知';
+    },
   },
   mounted() {
     // 檢查URL參數中的專案篩選
@@ -1042,13 +1061,13 @@ const paymentList = createApp({
           this.projectSearchText = `${data.year}${categoryCode}${data.project_number} - ${data.name}`;
         });
     }
-    
+
     // 載入基本資料
     this.fetchPayments();
     this.fetchOwners();
     this.fetchCategories();
     this.fetchYears();
-    
+
     // 頁面載入後自動focus到搜尋欄位並初始化 popovers
     this.$nextTick(() => {
       if (this.$refs.searchInput) {

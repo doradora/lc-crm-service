@@ -71,10 +71,10 @@ const projectList = createApp({
       filteredOwners: [],
       filteredManagers: [],
       filteredDesigners: [],
-      
+
       // 新增：動態載入相關的狀態
       loadingOwnerIds: new Set(), // 正在載入的業主ID集合
-      
+
       // 業主選擇modal相關資料
       selectedOwner: null, // 選中的業主
       modalOwners: [], // modal中的業主列表
@@ -82,11 +82,11 @@ const projectList = createApp({
       isLoadingOwners: false, // 載入狀態
       ownerPagination: null, // 分頁資訊
       currentOwnerPage: 1, // 目前頁數
-      
+
       // 錯誤處理
       projectNumberError: '', // 案件編號錯誤訊息
       formErrors: {}, // 表單其他錯誤訊息
-      
+
       // 移除重複的宣告
     };
   },
@@ -187,7 +187,7 @@ const projectList = createApp({
 
       const currentUserId = Number(window.CURRENT_USER_DATA.id);
       const isAdmin = window.CURRENT_USER_DATA.profile.is_admin;
-      
+
       // 找到要刪除的專案
       const projectToDelete = this.projects.find(p => p.id === projectId);
       if (!projectToDelete) {
@@ -225,22 +225,22 @@ const projectList = createApp({
         cancelButtonText: "取消",
       }).then((result) => {
         if (result.isConfirmed) {
-        fetch(`/crm/api/projects/${projectId}/`, {
-          method: "DELETE",
-          headers: {
-            "X-CSRFToken": document.querySelector(
-              '[name="csrfmiddlewaretoken"]'
-            ).value,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("刪除失敗");
-            }
-            this.fetchProjects(this.currentPage); // 重新獲取當前頁數據
-            this.activeMenu = null;
+          fetch(`/crm/api/projects/${projectId}/`, {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                '[name="csrfmiddlewaretoken"]'
+              ).value,
+            },
           })
-          .catch((error) => console.error("無法刪除:", error));
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("刪除失敗");
+              }
+              this.fetchProjects(this.currentPage); // 重新獲取當前頁數據
+              this.activeMenu = null;
+            })
+            .catch((error) => console.error("無法刪除:", error));
         }
       });
     },
@@ -271,7 +271,7 @@ const projectList = createApp({
         document.getElementById("addProjectModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -311,10 +311,9 @@ const projectList = createApp({
         url += `&category=${this.categoryFilter}`;
       }
 
-      if (this.completedFilter === "completed") {
-        url += `&is_completed=true`;
-      } else if (this.completedFilter === "in_progress") {
-        url += `&is_completed=false`;
+      // 新的狀態篩選，支援四種狀態
+      if (this.completedFilter) {
+        url += `&status=${this.completedFilter}`;
       }
 
       // 使用年份區間過濾
@@ -331,7 +330,7 @@ const projectList = createApp({
         .then((data) => {
           this.projects = data.results;
           this.totalPages = Math.ceil(data.count / this.pageSize);
-          
+
           // 動態載入缺失的業主資訊
           this.loadMissingOwners();
         })
@@ -349,7 +348,7 @@ const projectList = createApp({
         })
         .catch((error) => console.error("Error fetching owners:", error));
     },
-    
+
     // 新增方法：動態載入缺失的業主資訊
     loadMissingOwners() {
       // 收集當前頁面中缺失的業主ID（考慮 owner_name 為空的情況）
@@ -360,13 +359,13 @@ const projectList = createApp({
           missingOwnerIds.push(project.owner);
         }
       });
-      
+
       // 去重
       const uniqueMissingIds = [...new Set(missingOwnerIds)];
-      
+
       if (uniqueMissingIds.length > 0) {
         console.log(`正在載入 ${uniqueMissingIds.length} 個缺失的業主資訊...`);
-        
+
         // 批量獲取業主資訊
         fetch(`/crm/api/owners/batch_info/?ids=${uniqueMissingIds.join(',')}`)
           .then(response => {
@@ -410,14 +409,14 @@ const projectList = createApp({
       if (this.loadingOwnerIds && this.loadingOwnerIds.has(ownerId)) {
         return;
       }
-      
+
       // 初始化載入中的ID集合
       if (!this.loadingOwnerIds) {
         this.loadingOwnerIds = new Set();
       }
-      
+
       this.loadingOwnerIds.add(ownerId);
-      
+
       fetch(`/crm/api/owners/batch_info/?ids=${ownerId}`)
         .then(response => response.json())
         .then(ownerData => {
@@ -487,10 +486,10 @@ const projectList = createApp({
       if (this.ownerMap[ownerId]) {
         return this.ownerMap[ownerId].company_name;
       }
-      
+
       // 如果沒有，觸發動態載入
       this.loadOwnerById(ownerId);
-      
+
       // 暫時返回載入中的提示
       return "載入中...";
     },
@@ -509,9 +508,22 @@ const projectList = createApp({
       return manager ? manager.profile.name || manager.username : "未指派";
     },
     getStatusBadgeClass(project) {
-      return project.is_completed
-        ? "badge-success"
-        : "badge-warning";
+      const statusMap = {
+        'in_progress': 'badge-warning',   // 黃色
+        'paused': 'badge-info',            // 藍色
+        'completed': 'badge-success',      // 綠色
+        'cancelled': 'badge-danger'        // 紅色
+      };
+      return statusMap[project.status] || 'badge-secondary';
+    },
+    getStatusText(project) {
+      const textMap = {
+        'in_progress': '進行中',
+        'paused': '暫停',
+        'completed': '已完成',
+        'cancelled': '撤案'
+      };
+      return textMap[project.status] || '未知';
     },
     toggleMenu(projectId) {
       if (this.activeMenu === projectId) {
@@ -544,7 +556,7 @@ const projectList = createApp({
 
       // 清空業主選擇
       this.selectedOwner = null;
-      
+
       // 清除錯誤訊息
       this.clearErrors();
 
@@ -553,7 +565,7 @@ const projectList = createApp({
         document.getElementById("addProjectModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -592,7 +604,7 @@ const projectList = createApp({
     },
     hideAddProjectModal() {
       this.showModal = false;
-      
+
       // 清除錯誤訊息
       this.clearErrors();
 
@@ -605,7 +617,7 @@ const projectList = createApp({
       // 清除之前的錯誤訊息
       this.projectNumberError = '';
       this.formErrors = {};
-      
+
       // 如果未選擇業主，顯示錯誤訊息
       if (!this.selectedOwner) {
         Swal.fire({
@@ -677,38 +689,38 @@ const projectList = createApp({
         })
         .catch((error) => {
           console.error("Error:", error);
-          
+
           // 處理唯一性約束錯誤 (年份、分類、案件編號的組合必須唯一)
           if (error.non_field_errors) {
-            const nonFieldError = Array.isArray(error.non_field_errors) 
-              ? error.non_field_errors[0] 
+            const nonFieldError = Array.isArray(error.non_field_errors)
+              ? error.non_field_errors[0]
               : error.non_field_errors;
-            
+
             if (nonFieldError.includes("The fields year, category, project_number must make a unique set")) {
               this.projectNumberError = "此案件編號在相同年份和分類下已存在，請使用不同的案件編號";
               return;
             }
-            
+
             // 其他 non_field_errors
             this.projectNumberError = this.translateErrorMessage(nonFieldError);
             return;
           }
-          
+
           // 處理案件編號重複錯誤
           if (error.project_number) {
-            const projectNumberError = Array.isArray(error.project_number) 
-              ? error.project_number[0] 
+            const projectNumberError = Array.isArray(error.project_number)
+              ? error.project_number[0]
               : error.project_number;
             this.projectNumberError = this.translateErrorMessage(projectNumberError);
             return; // 不顯示 SweetAlert，只顯示表單內的錯誤訊息
           }
-          
+
           // 處理一般錯誤訊息
           if (error.error) {
             this.projectNumberError = this.translateErrorMessage(error.error);
             return;
           }
-          
+
           // 處理其他錯誤
           let errorMessage = "未知錯誤";
           if (error.message) {
@@ -718,7 +730,7 @@ const projectList = createApp({
           } else if (error.detail) {
             errorMessage = this.translateErrorMessage(error.detail);
           }
-          
+
           Swal.fire({
             title: "錯誤!",
             text: this.isEditMode
@@ -729,13 +741,13 @@ const projectList = createApp({
           });
         });
     },
-    
+
     // 清除錯誤訊息
     clearErrors() {
       this.projectNumberError = '';
       this.formErrors = {};
     },
-    
+
     // 清除案件編號錯誤訊息
     clearProjectNumberError() {
       this.projectNumberError = '';
@@ -744,68 +756,68 @@ const projectList = createApp({
     // 翻譯錯誤訊息為中文
     translateErrorMessage(message) {
       if (!message) return "未知錯誤";
-      
+
       const errorTranslations = {
         // 唯一性約束錯誤
         "The fields year, category, project_number must make a unique set.": "此案件編號在相同年份和分類下已存在，請使用不同的案件編號",
         "Project with this Year, Category and Project number already exists.": "此案件編號在相同年份和分類下已存在，請使用不同的案件編號",
-        
+
         // 案件編號相關錯誤
         "Project number already exists for this year and category.": "此案件編號在相同年份和分類下已存在",
         "This field must be unique.": "此欄位必須是唯一的",
         "Duplicate entry": "重複項目",
-        
+
         // 表單驗證錯誤
         "This field is required.": "此欄位為必填",
         "This field may not be blank.": "此欄位不能為空",
         "Ensure this field has no more than": "請確保此欄位不超過",
         "characters.": "個字元",
-        
+
         // 權限錯誤
         "You do not have permission to perform this action.": "您沒有權限執行此操作",
         "Authentication credentials were not provided.": "未提供身份驗證憑證",
-        
+
         // 網路錯誤
         "Network error": "網路錯誤",
         "Server error": "伺服器錯誤",
         "Connection failed": "連線失敗",
-        
+
         // 一般錯誤
         "Invalid input": "輸入無效",
         "Bad request": "請求錯誤",
         "Not found": "找不到資源",
         "Internal server error": "內部伺服器錯誤"
       };
-      
+
       // 完全匹配
       if (errorTranslations[message]) {
         return errorTranslations[message];
       }
-      
+
       // 部分匹配檢查
       for (const [englishText, chineseText] of Object.entries(errorTranslations)) {
         if (message.toLowerCase().includes(englishText.toLowerCase())) {
           return chineseText;
         }
       }
-      
+
       // 檢查是否包含特定關鍵字
       if (message.toLowerCase().includes("unique") && message.toLowerCase().includes("already exists")) {
         return "此項目已存在，請使用不同的值";
       }
-      
+
       if (message.toLowerCase().includes("duplicate")) {
         return "重複的項目，請檢查輸入的值";
       }
-      
+
       if (message.toLowerCase().includes("required")) {
         return "必填欄位不能為空";
       }
-      
+
       if (message.toLowerCase().includes("invalid")) {
         return "輸入的資料格式不正確";
       }
-      
+
       // 如果沒有找到匹配的翻譯，返回原始訊息
       return message;
     },
@@ -958,7 +970,7 @@ const projectList = createApp({
         document.getElementById("addOwnerModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -1044,10 +1056,10 @@ const projectList = createApp({
         document.getElementById("selectOwnerModal")
       );
       modal.show();
-      
+
       // 載入業主列表
       this.loadOwners();
-      
+
       // modal 顯示後自動focus到搜尋欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -1069,17 +1081,17 @@ const projectList = createApp({
 
     loadOwners(url = null) {
       this.isLoadingOwners = true;
-      
+
       // 如果沒有提供URL，則構建預設的API URL
       if (!url) {
         url = `/crm/api/owners/?format=json&page=${this.currentOwnerPage}&page_size=10`;
-        
+
         // 添加搜尋條件
         if (this.ownerModalSearchTerm) {
           url += `&search=${encodeURIComponent(this.ownerModalSearchTerm)}`;
         }
       }
-      
+
       fetch(url)
         .then((response) => response.json())
         .then((data) => {
@@ -1089,7 +1101,7 @@ const projectList = createApp({
             next: data.next,
             previous: data.previous
           };
-          
+
           // 從URL中解析當前頁碼
           if (url.includes('page=')) {
             const pageMatch = url.match(/page=(\d+)/);
@@ -1117,14 +1129,14 @@ const projectList = createApp({
       // 選擇業主並設定到selectedOwner
       this.selectedOwner = owner;
       this.newProject.owner = owner.id;
-      
+
       // 關閉modal
       this.hideOwnerSelectionModal();
     },
 
     getOwnerPageNumbers() {
       if (!this.ownerPagination) return [];
-      
+
       const totalPages = Math.ceil(this.ownerPagination.count / 10);
       const current = this.currentOwnerPage;
       const delta = 2;
@@ -1154,7 +1166,7 @@ const projectList = createApp({
 
     goToOwnerPage(page) {
       if (page === '...' || page === this.currentOwnerPage) return;
-      
+
       this.currentOwnerPage = page;
       this.loadOwners();
     },
@@ -1162,24 +1174,24 @@ const projectList = createApp({
   mounted() {
     const urlParams = new URLSearchParams(window.location.search);
     const searchQuery = urlParams.get('search');
-    
+
     if (searchQuery) {
       this.searchQuery = decodeURIComponent(searchQuery);
       this.fetchProjects(); // 使用搜尋條件獲取專案列表
     }
-    
+
     this.fetchProjects();
     this.fetchOwners();
     this.fetchCategories();
     this.fetchUsers();
     this.fetchYears();
     document.addEventListener("click", this.handleClickOutside);
-    
+
     // 頁面載入後自動focus到搜尋欄位
     this.$nextTick(() => {
       this.$refs.searchInput.focus();
       console.log("自動focus到搜尋欄位");
-        
+
     });
   },
   unmounted() {

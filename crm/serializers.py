@@ -177,7 +177,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             "expenditures",
             "total_expenditure",
             "notes",
-            "is_completed",
+            "status",  # 新增專案狀態欄位
+            "is_completed",  # 保留向後相容
             "is_invoiced",
             "invoice_date",
             "invoice_amount",

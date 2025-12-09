@@ -53,6 +53,13 @@ class Category(models.Model):
 
 
 class Project(models.Model):
+    STATUS_CHOICES = [
+        ('in_progress', '進行中'),
+        ('paused', '暫停'),
+        ('completed', '已完成'),
+        ('cancelled', '撤案'),
+    ]
+    
     owner = models.ForeignKey(Owner, on_delete=models.PROTECT)  # 所屬業主
     year = models.IntegerField()  # 年份
     project_number = models.CharField(
@@ -75,7 +82,13 @@ class Project(models.Model):
     )  # 繪圖，設為非必填
     contact_info = models.TextField(blank=True)  # 聯絡方式，設為非必填
     notes = models.TextField(blank=True)  # 備註，設為非必填
-    is_completed = models.BooleanField(default=False)  # 是否完成
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='in_progress',
+        verbose_name='專案狀態'
+    )  # 專案狀態
+    is_completed = models.BooleanField(default=False)  # 是否完成 (保留作為向後相容)
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True
     )  # 案件類別
@@ -105,6 +118,21 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+    
+    @property
+    def is_completed(self):
+        """向後相容屬性：當狀態為 completed 時返回 True"""
+        return self.status == 'completed'
+    
+    @is_completed.setter
+    def is_completed(self, value):
+        """向後相容屬性：設置 is_completed 時自動轉換為 status"""
+        if value:
+            self.status = 'completed'
+        else:
+            # 如果設為 False，預設為進行中
+            if self.status == 'completed':
+                self.status = 'in_progress'
 
     def save(self, *args, **kwargs):
         from django.core.exceptions import ValidationError

@@ -39,7 +39,7 @@ const paymentDetail = createApp({
         gross_amount: 0, // 含稅金額
         payment_status: "unpaid", // 新的付款狀態
         is_paid: false, // 保留舊欄位以保持相容性
-        project_amounts: [ { project_id: '', amount: '' } ], // 初始化為一筆
+        project_amounts: [{ project_id: '', amount: '' }], // 初始化為一筆
       },
       editingInvoice: false,
       editingInvoiceId: null,
@@ -73,14 +73,14 @@ const paymentDetail = createApp({
       currentProjectPage: 1, // 當前專案頁面
       projectModalSearchTerm: "", // Modal 搜尋關鍵字
       projectSearchTimeout: null, // 搜尋防抖計時器
-      
+
       // Modal 篩選條件
       modalOwnerFilter: "", // Modal 業主篩選
       modalCategoryFilter: "", // Modal 類別篩選
       modalStartYearFilter: "", // Modal 開始年份篩選
       modalEndYearFilter: "", // Modal 結束年份篩選
       modalCompletedFilter: "", // Modal 完成狀態篩選
-      
+
       // 基礎資料
       categories: [], // 類別列表
       availableYears: [], // 可用年份
@@ -118,7 +118,7 @@ const paymentDetail = createApp({
       // 內存請款單相關資料
       paymentDocuments: [], // 內存請款單文件列表
       isUploadingDocument: false, // 上傳狀態
-      
+
       // 收款記錄相關資料
       projectReceipts: [], // 收款記錄列表
       newProjectReceipt: {
@@ -166,7 +166,7 @@ const paymentDetail = createApp({
         return total + Number(invoice.actual_received_amount || 0);
       }, 0);
     },
-    
+
     // 計算年份範圍
     yearRange() {
       // 如果沒有設定最小或最大年份，返回可用年份列表
@@ -279,7 +279,7 @@ const paymentDetail = createApp({
     fetchProjectsForSelection() {
       // 只有在需要新增專案時才載入專案列表
       if (this.projects.length > 0) return Promise.resolve();
-      
+
       return fetch("/crm/api/projects/?format=json&page_size=1000")
         .then((response) => response.json())
         .then((data) => {
@@ -295,8 +295,8 @@ const paymentDetail = createApp({
     // 獲取專案的報告書名稱 - 直接從 payment_projects 中取得
     getProjectReportName(projectItem) {
       return projectItem.report_name || '';
-    },    
-    
+    },
+
     // 更新專案的報告書名稱 - 僅更新本地數據，保存時再傳送到後端
     updateProjectReportName(projectId, reportName) {
       // 更新本地 payment_projects 中的 report_name
@@ -304,7 +304,7 @@ const paymentDetail = createApp({
       if (projectItem) {
         projectItem.report_name = reportName;
       }
-      
+
       // 移除即時更新到後端的邏輯，改為在保存時統一處理
     },
 
@@ -317,7 +317,7 @@ const paymentDetail = createApp({
         item.report_name !== undefined &&
         item.report_name !== null &&
         item.report_name !== ""
-      );      
+      );
 
       // 更新有填寫報告書名稱的專案的報告書名稱
       modifiedProjects.forEach((projectItem) => {
@@ -485,7 +485,7 @@ const paymentDetail = createApp({
     // 上傳檔案
     uploadDocument(file) {
       this.isUploadingDocument = true;
-      
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('payment', this.paymentId);
@@ -506,42 +506,42 @@ const paymentDetail = createApp({
         },
         body: formData
       })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(err => {
-            throw new Error(err.error || '上傳失敗');
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(err => {
+              throw new Error(err.error || '上傳失敗');
+            });
+          }
+          return response.json();
+        })
+        .then(_data => {
+          Swal.fire({
+            icon: 'success',
+            title: '上傳成功',
+            text: '檔案已成功上傳',
+            timer: 1500,
           });
-        }
-        return response.json();
-      })      
-      .then(_data => {
-        Swal.fire({
-          icon: 'success',
-          title: '上傳成功',
-          text: '檔案已成功上傳',
-          timer: 1500,
+
+          // 重新獲取檔案列表
+          this.fetchPaymentDocuments(); // TODO
+
+          // 清空檔案輸入
+          const fileInput = document.getElementById('paymentDocumentFileInput');
+          if (fileInput) {
+            fileInput.value = '';
+          }
+        })
+        .catch(error => {
+          console.error('Upload error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: '上傳失敗',
+            text: error.message || '檔案上傳失敗，請重試',
+          });
+        })
+        .finally(() => {
+          this.isUploadingDocument = false;
         });
-        
-        // 重新獲取檔案列表
-        this.fetchPaymentDocuments(); // TODO
-        
-        // 清空檔案輸入
-        const fileInput = document.getElementById('paymentDocumentFileInput');
-        if (fileInput) {
-          fileInput.value = '';
-        }
-      })
-      .catch(error => {
-        console.error('Upload error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: '上傳失敗',
-          text: error.message || '檔案上傳失敗，請重試',
-        });
-      })
-      .finally(() => {
-        this.isUploadingDocument = false;
-      });
     },
 
     // 獲取檔案列表
@@ -578,29 +578,29 @@ const paymentDetail = createApp({
               'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
             }
           })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('刪除失敗');
-            }
-            
-            Swal.fire({
-              icon: 'success',
-              title: '刪除成功',
-              text: '檔案已成功刪除',
-              timer: 1500,
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('刪除失敗');
+              }
+
+              Swal.fire({
+                icon: 'success',
+                title: '刪除成功',
+                text: '檔案已成功刪除',
+                timer: 1500,
+              });
+
+              // 重新獲取檔案列表
+              this.fetchPaymentDocuments();
+            })
+            .catch(error => {
+              console.error('Delete error:', error);
+              Swal.fire({
+                icon: 'error',
+                title: '刪除失敗',
+                text: '檔案刪除失敗，請重試',
+              });
             });
-            
-            // 重新獲取檔案列表
-            this.fetchPaymentDocuments();
-          })
-          .catch(error => {
-            console.error('Delete error:', error);
-            Swal.fire({
-              icon: 'error',
-              title: '刪除失敗',
-              text: '檔案刪除失敗，請重試',
-            });
-          });
         }
       });
     },
@@ -864,7 +864,7 @@ const paymentDetail = createApp({
       this.projectDescriptions = {};
       this.selectAllChecked = false;
       this.currentProjectPage = 1;
-      
+
       // 重置篩選條件
       this.resetModalFilters();
 
@@ -873,7 +873,7 @@ const paymentDetail = createApp({
         document.getElementById("addProjectModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動載入資料並 focus 到搜尋欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -959,11 +959,11 @@ const paymentDetail = createApp({
     // 載入 Modal 專案資料（支援分頁和搜尋）
     loadModalProjects(url = null) {
       this.isLoadingModalProjects = true;
-      
+
       // 建構 API URL
       let apiUrl = url || "/crm/api/projects/";
       const params = new URLSearchParams();
-      
+
       if (!url) {
         params.append("format", "json");
         params.append("page_size", "10"); // 每頁顯示10筆
@@ -998,9 +998,9 @@ const paymentDetail = createApp({
           params.append("year_end", this.modalEndYearFilter);
         }
 
-        // 完成狀態篩選
+        // 狀態篩選 - 新的四種狀態
         if (this.modalCompletedFilter) {
-          params.append("is_completed", this.modalCompletedFilter);
+          params.append("status", this.modalCompletedFilter);
         }
 
         // 排除已經在當前請款單中的專案
@@ -1012,7 +1012,7 @@ const paymentDetail = createApp({
             params.append("exclude_projects", existingProjectIds.join(','));
           }
         }
-        
+
         apiUrl += "?" + params.toString();
       }
 
@@ -1025,14 +1025,14 @@ const paymentDetail = createApp({
         })
         .then((data) => {
           this.modalProjects = data.results || [];
-          
+
           // 更新分頁資訊
           this.projectPagination = {
             count: data.count,
             next: data.next,
             previous: data.previous,
           };
-          
+
           // 更新當前頁面
           if (url) {
             const urlObj = new URL(url);
@@ -1061,7 +1061,7 @@ const paymentDetail = createApp({
       if (this.projectSearchTimeout) {
         clearTimeout(this.projectSearchTimeout);
       }
-      
+
       // 設置新的計時器，300ms後執行搜尋
       this.projectSearchTimeout = setTimeout(() => {
         this.currentProjectPage = 1;
@@ -1080,11 +1080,11 @@ const paymentDetail = createApp({
       if (!this.projectPagination || this.projectPagination.count === 0) {
         return [];
       }
-      
+
       const totalPages = Math.ceil(this.projectPagination.count / 10);
       const currentPage = this.currentProjectPage;
       const pages = [];
-      
+
       // 如果總頁數 <= 7，顯示所有頁碼
       if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) {
@@ -1111,7 +1111,7 @@ const paymentDetail = createApp({
           pages.push(totalPages);
         }
       }
-      
+
       return pages;
     },
 
@@ -1369,13 +1369,13 @@ const paymentDetail = createApp({
         gross_amount: 0,
         payment_status: "unpaid",
         is_paid: false,
-        project_amounts: [ { project_id: firstProjectId, amount: 0 } ], // 預設為第一個專案id，金額0
+        project_amounts: [{ project_id: firstProjectId, amount: 0 }], // 預設為第一個專案id，金額0
       };
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -1412,14 +1412,14 @@ const paymentDetail = createApp({
           gross_amount: gross,
           payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"),
           is_paid: invoice.is_paid || false,
-          project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [ { project_id: '', amount: 0 } ],
+          project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [{ project_id: '', amount: 0 }],
         };
       }
       const modal = new bootstrap.Modal(
         document.getElementById("addInvoiceModal")
       );
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -1462,7 +1462,7 @@ const paymentDetail = createApp({
         gross_amount: 0,
         payment_status: "unpaid",
         is_paid: false,
-        project_amounts: [ { project_id: '', amount: '' } ],
+        project_amounts: [{ project_id: '', amount: '' }],
       };
       this.validationErrors = {};
       this.dateErrors = {};
@@ -1495,7 +1495,7 @@ const paymentDetail = createApp({
         });
         return;
       }
-      
+
       // 驗證 project_amounts 金額
       for (let i = 0; i < this.newInvoice.project_amounts.length; i++) {
         const item = this.newInvoice.project_amounts[i];
@@ -1516,17 +1516,17 @@ const paymentDetail = createApp({
           const project = this.payment.payment_projects.find(
             p => p.project === item.project_id
           );
-          
+
           if (project) {
             // 計算總已收金額（包含當前輸入的金額）
             const totalReceived = this.getProjectInvoiceReceivedAmount(item.project_id);
             const requestAmount = Number(project.amount);
-            
+
             // 如果請款金額為0，跳過檢查
             if (requestAmount > 0 && totalReceived > requestAmount) {
               hasExceededAmount = true;
               // 彈出警告提示
-                Swal.fire({
+              Swal.fire({
                 icon: 'error',
                 title: '無法儲存發票',
                 html: `
@@ -1540,13 +1540,13 @@ const paymentDetail = createApp({
                 `,
                 confirmButtonText: '我知道了',
                 width: '500px',
-                });
+              });
               break;
             }
           }
         }
       }
-      
+
       // 如果有超出金額，阻止表單送出
       if (hasExceededAmount) {
         return;
@@ -1558,11 +1558,11 @@ const paymentDetail = createApp({
         .reduce((sum, item) => sum + Number(item.amount), 0);
 
       const filtered_project_amounts = this.newInvoice.project_amounts
-        .filter(item => 
-          item.project_id !== '' 
-          && item.project_id !== null 
-          && item.project_id !== undefined 
-          && item.amount !== null 
+        .filter(item =>
+          item.project_id !== ''
+          && item.project_id !== null
+          && item.project_id !== undefined
+          && item.amount !== null
           && item.amount !== undefined
         )
 
@@ -1982,9 +1982,9 @@ const paymentDetail = createApp({
       // 檢查是否為有效日期
       const date = new Date(dateString + 'T00:00:00');
       const inputDateStr = dateString;
-      const validDateStr = date.getFullYear() + '-' + 
-                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                          String(date.getDate()).padStart(2, '0');
+      const validDateStr = date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+        String(date.getDate()).padStart(2, '0');
 
       if (inputDateStr !== validDateStr || isNaN(date.getTime())) {
         this.dateErrors[fieldName] = '請輸入有效的日期 (例如: 2025-02-31 不是有效日期)';
@@ -1999,7 +1999,7 @@ const paymentDetail = createApp({
     handleInvoiceDateValidation(fieldName) {
       this.dateWarning[fieldName] = null; // 清除警告訊息
       const value = this.newInvoice[fieldName];
-      
+
       // 先驗證單個日期格式
       if (!this.validateDateInput(value, fieldName)) {
         return;
@@ -2009,7 +2009,7 @@ const paymentDetail = createApp({
       if (fieldName === 'payment_received_date' && value) {
         const paymentDate = new Date(value + 'T00:00:00');
         const issueDate = new Date(this.newInvoice.issue_date + 'T00:00:00');
-        
+
         if (this.newInvoice.issue_date && paymentDate < issueDate) {
           this.dateWarning[fieldName] = '收款日期不能早於發票開立日期';
         }
@@ -2017,7 +2017,7 @@ const paymentDetail = createApp({
 
       if (fieldName === 'account_entry_date' && value) {
         const entryDate = new Date(value + 'T00:00:00');
-        
+
         if (this.newInvoice.payment_received_date) {
           const paymentDate = new Date(this.newInvoice.payment_received_date + 'T00:00:00');
           if (entryDate < paymentDate) {
@@ -2048,7 +2048,7 @@ const paymentDetail = createApp({
           this.newInvoice.invoice_number = "";
         }
       }
-      
+
       // 清空驗證錯誤
       this.validationErrors = {};
       this.dateErrors = {};
@@ -2087,7 +2087,7 @@ const paymentDetail = createApp({
     getPaymentStatusBadgeClass(invoice) {
       // 使用新的 payment_status 欄位，若沒有則使用 is_paid 作為備用
       const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
-      
+
       switch (status) {
         case 'paid':
           return 'badge badge-success';
@@ -2103,7 +2103,7 @@ const paymentDetail = createApp({
     // 取得付款狀態文字
     getPaymentStatusText(invoice) {
       const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
-      
+
       switch (status) {
         case 'paid':
           return '已付款';
@@ -2138,7 +2138,7 @@ const paymentDetail = createApp({
           text: "已標記為已付款",
           timer: 1500,
         });
-        
+
         this.fetchInvoicesForCurrentPayment();
 
       } catch (error) {
@@ -2174,7 +2174,7 @@ const paymentDetail = createApp({
           text: "已標記為未付款",
           timer: 1500,
         });
-        
+
         this.fetchInvoicesForCurrentPayment();
 
       } catch (error) {
@@ -2210,7 +2210,7 @@ const paymentDetail = createApp({
           text: "已標記為付款未完成",
           timer: 1500,
         });
-        
+
         this.fetchInvoicesForCurrentPayment();
 
       } catch (error) {
@@ -2234,7 +2234,7 @@ const paymentDetail = createApp({
       if (!this.payment.invoices || this.payment.invoices.length === 0) {
         return 0;
       }
-      
+
       let totalAmount = 0;
       this.payment.invoices.forEach(invoice => {
         if (invoice.project_amounts && invoice.project_amounts.length > 0) {
@@ -2245,7 +2245,7 @@ const paymentDetail = createApp({
           });
         }
       });
-      
+
       return totalAmount;
     },
 
@@ -2255,14 +2255,14 @@ const paymentDetail = createApp({
       if (!this.projectReceipts || this.projectReceipts.length === 0) {
         return 0;
       }
-      
+
       let totalAmount = 0;
       this.projectReceipts.forEach(receipt => {
         if (receipt.project === projectId) {
           totalAmount += Number(receipt.amount || 0);
         }
       });
-      
+
       return totalAmount;
     },
 
@@ -2271,7 +2271,7 @@ const paymentDetail = createApp({
       if (!projectId || !this.projectReceipts) {
         return 0;
       }
-      
+
       return this.projectReceipts
         .filter(receipt => receipt.project === projectId && (!this.editingProjectReceipt || receipt.id !== this.editingProjectReceiptId))
         .reduce((sum, receipt) => sum + Number(receipt.amount || 0), 0);
@@ -2282,10 +2282,10 @@ const paymentDetail = createApp({
       if (!projectId) {
         return 0;
       }
-      
+
       const existingAmount = this.getExistingProjectReceived(projectId);
       const currentAmount = Number(this.newProjectReceipt.amount || 0);
-      
+
       return existingAmount + currentAmount;
     },
 
@@ -2295,16 +2295,16 @@ const paymentDetail = createApp({
       if (!item.project_id) {
         return;
       }
-      
+
       const project = this.payment.payment_projects.find(
         p => p.project === item.project_id
       );
-      
+
       if (project) {
         // 計算總已收金額（包含當前輸入的金額）
         const totalReceived = this.getProjectInvoiceReceivedAmount(item.project_id) + Number(item.amount || 0);
         const requestAmount = Number(project.amount);
-        
+
         if (totalReceived > requestAmount) {
           // 彈出警告提示
           Swal.fire({
@@ -2331,7 +2331,7 @@ const paymentDetail = createApp({
     // 計算特定專案在當前請款單所有發票中的已收金額總和
     getProjectInvoiceReceivedAmount(projectId) {
       let totalReceivedAmount = 0;
-      
+
       // 計算已存在發票中的金額
       if (this.payment.invoices && this.payment.invoices.length > 0) {
         this.payment.invoices.forEach(invoice => {
@@ -2345,7 +2345,7 @@ const paymentDetail = createApp({
           }
         });
       }
-      
+
       // 如果是新增發票模式且不是編輯狀態，加上正在輸入的發票金額
       if (!this.editingInvoice && this.newInvoice.project_amounts && this.newInvoice.project_amounts.length > 0) {
         this.newInvoice.project_amounts.forEach(projectAmount => {
@@ -2354,7 +2354,7 @@ const paymentDetail = createApp({
           }
         });
       }
-      
+
       return totalReceivedAmount;
     },
 
@@ -2367,7 +2367,7 @@ const paymentDetail = createApp({
       // 顯示新增收款記錄對話框
       this.resetProjectReceiptForm();
       this.editingProjectReceipt = false;
-      
+
       const modal = new bootstrap.Modal(document.getElementById('addProjectReceiptModal'));
       modal.show();
     },
@@ -2387,7 +2387,7 @@ const paymentDetail = createApp({
         this.newProjectReceipt = { ...receipt };
         this.editingProjectReceipt = true;
         this.editingProjectReceiptId = receiptId;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('addProjectReceiptModal'));
         modal.show();
       }
@@ -2418,10 +2418,10 @@ const paymentDetail = createApp({
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
+
           // 從本地列表移除
           this.projectReceipts = this.projectReceipts.filter(r => r.id !== receiptId);
-          
+
           Swal.fire({
             icon: "success",
             title: "刪除成功",
@@ -2463,9 +2463,9 @@ const paymentDetail = createApp({
         // 檢查是否超收
         const projectReceivableAmount = this.getProjectReceivableAmount(this.newProjectReceipt.project);
         const totalReceived = this.getTotalProjectReceived(this.newProjectReceipt.project);
-        
+
         if (totalReceived > projectReceivableAmount) {
-          
+
           Swal.fire({
             icon: 'error',
             title: '無法儲存收款記錄',
@@ -2511,13 +2511,13 @@ const paymentDetail = createApp({
           if (index !== -1) {
             this.projectReceipts[index] = data;
           }
-          
+
           // 暫存檢查結果，稍後處理
           const completionCheck = data.payment_completion_check;
-          
+
           this.resetProjectReceiptForm();
           this.hideProjectReceiptModal();
-          
+
           Swal.fire({
             icon: "success",
             title: "更新成功",
@@ -2547,13 +2547,13 @@ const paymentDetail = createApp({
 
           const data = await response.json();
           this.projectReceipts.push(data);
-          
+
           // 暫存檢查結果，稍後處理
           const completionCheck = data.payment_completion_check;
-          
+
           this.resetProjectReceiptForm();
           this.hideProjectReceiptModal();
-          
+
           Swal.fire({
             icon: "success",
             title: "新增成功",
@@ -2618,7 +2618,7 @@ const paymentDetail = createApp({
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         this.handlePaymentCompletionCheck(data);
       } catch (error) {
@@ -2634,7 +2634,7 @@ const paymentDetail = createApp({
       console.log('is_completed:', checkResult.is_completed);
       console.log('already_marked:', checkResult.already_marked);
       console.log('Condition result:', checkResult.is_completed && !checkResult.already_marked);
-      
+
       if (checkResult.is_completed && !checkResult.already_marked) {
         // 請款已完成但尚未標記，顯示確認對話框
         console.log('Showing payment completion modal');
@@ -2684,11 +2684,11 @@ const paymentDetail = createApp({
         }
 
         const data = await response.json();
-        
+
         // 更新本地資料
         this.payment.paid = true;
         this.payment.payment_date = data.payment_date;
-        
+
         Swal.fire({
           icon: 'success',
           title: '請款單已完成',
@@ -2705,6 +2705,26 @@ const paymentDetail = createApp({
         });
       }
     },
+
+    // 專案狀態相關方法
+    getProjectStatusBadgeClass(project) {
+      const statusMap = {
+        'in_progress': 'badge-warning',
+        'paused': 'badge-info',
+        'completed': 'badge-success',
+        'cancelled': 'badge-danger'
+      };
+      return statusMap[project.status] || 'badge-secondary';
+    },
+    getProjectStatusText(project) {
+      const textMap = {
+        'in_progress': '進行中',
+        'paused': '暫停',
+        'completed': '已完成',
+        'cancelled': '撤案'
+      };
+      return textMap[project.status] || '未知';
+    },
   },
   mounted() {
     // 初始化陣列確保不會有 undefined 錯誤
@@ -2720,27 +2740,27 @@ const paymentDetail = createApp({
 
     // 從URL獲取payment ID
     const pathParts = window.location.pathname.split("/");
-    this.paymentId = pathParts[pathParts.indexOf("payment") + 1]; 
-    
+    this.paymentId = pathParts[pathParts.indexOf("payment") + 1];
+
     // 獲取基本資料 - 移除專案列表的載入
     this.fetchPaymentDetails().then(() => {
       // 頁面載入完成後檢查請款完成狀態
       this.checkPaymentCompletion();
     });
-    
+
     this.fetchOwners(); // 新增：獲取業主列表
     this.fetchCompanys(); // 新增：獲取公司列表
     this.fetchPaymentDocuments(); // 新增：獲取內存請款單檔案列表
     this.fetchCategories(); // 新增：獲取類別列表
     this.fetchYears(); // 新增：獲取可用年份
-    
+
     // 頁面載入後自動focus到搜尋欄位
     this.$nextTick(() => {
       if (this.$refs.projectSearchInput) {
         this.$refs.projectSearchInput.focus();
       }
     });
-    
+
     // 初始化 Bootstrap tabs
     this.$nextTick(() => {
       // 確保元素已經渲染完成
@@ -2757,7 +2777,7 @@ const paymentDetail = createApp({
       });
     });
   },
-  
+
   unmounted() {
     // 清理計時器
     if (this.projectSearchTimeout) {

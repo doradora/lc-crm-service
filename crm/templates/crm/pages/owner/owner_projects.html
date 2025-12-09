@@ -1,367 +1,372 @@
 {% extends "crm/base.html" %}
 {% load static %}
 {% block content %}
-    <div class="app-main flex-column flex-row-fluid" id="app_main">
-        <div id="app_toolbar" class="app-toolbar">
-            <div id="app_toolbar_container" class="d-flex align-items-stretch w-100">
-                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap justify-content-end gap-4 w-100">
-                    <button class="btn btn-primary" @click.prevent="showAddProjectModal">新增專案</button>
+<div class="app-main flex-column flex-row-fluid" id="app_main">
+    <div id="app_toolbar" class="app-toolbar">
+        <div id="app_toolbar_container" class="d-flex align-items-stretch w-100">
+            <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap justify-content-end gap-4 w-100">
+                <button class="btn btn-primary" @click.prevent="showAddProjectModal">新增專案</button>
             </div>
         </div>
-        </div>
-        <div id="app_content" class="app-content flex-column-fluid">
-            <div id="app_content_container">
-                <div class="d-flex flex-column flex-column-fluid">
-                    <div class="card card-flush" id="projects_list">
-                        <div 
-                            class="card-header align-items-center m-4 p-4 py-2 " 
-                            style="border-radius: 4px; border: 2px solid #b8b8b8ff !important;"
-                        >
-                            <div class="card-title w-100">
-                                <!-- 搜尋列 -->
-                                <div class="d-flex flex-column flex-md-row gap-2">
-                                    <div class="d-flex align-items-center position-relative flex-grow-1">
-                                        <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
-                                        <input type="text" v-model="searchQuery" class="form-control form-control-solid ps-12 border border-2 border-primary bg-light-success"
-                                               placeholder="搜尋專案名稱" />
-                                    </div>
-                                    <!-- 篩選按鈕 -->
-                                    <div class="d-flex gap-2">
-                                        <!--begin::Menu wrapper-->
-                                        <div class="m-0">
-                                            <!--begin::Menu toggle-->
-                                            <button type="button" class="btn border border-2 border-primary bg-light-success bg-hover-light-success" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-start" data-kt-menu-offset="0,5">
-                                              <i class="ki-outline ki-filter fs-5"></i>篩選條件
-                                              <i class="ki-duotone ki-down fs-3 rotate-180 pe-0"></i>
-                                            </button>
-                                            <!--end::Menu toggle-->
-                                            <!--begin::Menu dropdown-->
-                                            <div class="menu menu-sub menu-sub-dropdown w-350px" data-kt-menu="true" id="kt_menu_owner_project_filter">
-                                              <div class="px-7 py-5">
+    </div>
+    <div id="app_content" class="app-content flex-column-fluid">
+        <div id="app_content_container">
+            <div class="d-flex flex-column flex-column-fluid">
+                <div class="card card-flush" id="projects_list">
+                    <div class="card-header align-items-center m-4 p-4 py-2 "
+                        style="border-radius: 4px; border: 2px solid #b8b8b8ff !important;">
+                        <div class="card-title w-100">
+                            <!-- 搜尋列 -->
+                            <div class="d-flex flex-column flex-md-row gap-2">
+                                <div class="d-flex align-items-center position-relative flex-grow-1">
+                                    <i class="ki-outline ki-magnifier fs-3 position-absolute ms-5"></i>
+                                    <input type="text" v-model="searchQuery"
+                                        class="form-control form-control-solid ps-12 border border-2 border-primary bg-light-success"
+                                        placeholder="搜尋專案名稱" />
+                                </div>
+                                <!-- 篩選按鈕 -->
+                                <div class="d-flex gap-2">
+                                    <!--begin::Menu wrapper-->
+                                    <div class="m-0">
+                                        <!--begin::Menu toggle-->
+                                        <button type="button"
+                                            class="btn border border-2 border-primary bg-light-success bg-hover-light-success"
+                                            data-kt-menu-trigger="click" data-kt-menu-placement="bottom-start"
+                                            data-kt-menu-offset="0,5">
+                                            <i class="ki-outline ki-filter fs-5"></i>篩選條件
+                                            <i class="ki-duotone ki-down fs-3 rotate-180 pe-0"></i>
+                                        </button>
+                                        <!--end::Menu toggle-->
+                                        <!--begin::Menu dropdown-->
+                                        <div class="menu menu-sub menu-sub-dropdown w-350px" data-kt-menu="true"
+                                            id="kt_menu_owner_project_filter">
+                                            <div class="px-7 py-5">
                                                 <div class="fs-5 text-gray-900 fw-bold">篩選條件</div>
-                                              </div>
-                                              <div class="separator border-gray-200"></div>
-                                              <div class="px-7 py-5">
-                                                <div class="mb-5">
-                                                  <label class="form-label fw-semibold">專案類別:</label>
-                                                  <select class="form-select" v-model="categoryFilter" data-placeholder="所有類別">
-                                                    <option value="">所有類別</option>
-                                                    <option v-for="category in categories" :key="category.id" :value="category.id">
-                                                      [[ category.code ]]: [[ category.description ]]
-                                                    </option>
-                                                  </select>
-                                                </div>
-                                                <div class="mb-5">
-                                                  <label class="form-label fw-semibold">專案狀態:</label>
-                                                  <select class="form-select" v-model="completedFilter" data-placeholder="專案狀態">
-                                                    <option value="">所有狀態</option>
-                                                    <option value="completed">已完成</option>
-                                                    <option value="in_progress">進行中</option>
-                                                  </select>
-                                                </div>
-                                                <div class="mb-5">
-                                                  <label class="form-label fw-semibold">年份:</label>
-                                                  <select class="form-select" v-model="yearFilter" data-placeholder="年份">
-                                                    <option value="">所有年份</option>
-                                                    <option v-for="year in availableYears" :key="year" :value="year">[[ year ]]</option>
-                                                  </select>
-                                                </div>
-                                                <div class="d-flex justify-content-end">
-                                                  <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2" data-kt-menu-dismiss="true" @click="resetFilters">重設</button>
-                                                  <button type="button" class="btn btn-sm btn-primary" data-kt-menu-dismiss="true" @click="fetchOwnerProjects()">套用</button>
-                                                </div>
-                                              </div>
                                             </div>
-                                            <!--end::Menu dropdown-->
-                                          </div>
-                                          <!--end::Menu wrapper-->
-                                        <button class="btn border border-2 border-primary bg-light-success bg-hover-light-success" @click="fetchOwnerProjects()">搜尋</button>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
-                                    <span class="text-muted me-2">每頁顯示</span>
-                                    <select class="form-select form-select-sm w-75px border border-2 border-primary bg-light-success" v-model.number="pageSize" @change="pageSizeChanged">
-                                        <option value="10">10</option>
-                                        <option value="20">20</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body pt-0">
-                            <!-- 資料載入指示器 -->
-                            <div v-if="isLoading" class="d-flex justify-content-center py-10">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">載入中...</span>
-                                </div>
-                            </div>
-                            <!-- 專案資料表格 -->
-                            <div class="table-responsive" v-if="!isLoading">
-                                <table class="table align-middle table-row-dashed table-hover table-striped fs-6 gy-5 gs-7">
-                                    <thead>
-                                        <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
-                                            <th class="min-w-100px">年度-編號</th>
-                                            <th class="min-w-200px">專案名稱</th>
-                                            <th class="min-w-100px">類別</th>
-                                            <th class="min-w-100px">專案負責人</th>
-                                            <th class="min-w-100px">狀態</th>
-                                            <th class="text-end min-w-70px">操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="fw-semibold text-gray-600">
-                                        <tr v-for="project in projects" :key="project.id">
-                                            <td>
-                                                <span class="badge badge-secondary">[[ project.year ]][[project.category ?
-                                                    getCategoryCode(project.category) : 'N']][[ project.project_number ]]</span>
-                                            </td>
-                                            <td>
-                                                <a :href="`/crm/project/${project.id}/details/`"
-                                                   class="text-gray-800 text-hover-primary fs-5 fw-bold hover-underline">[[ project.name ]]</a>
-                                            </td>
-                                            <td>[[ getCategoryName(project.category) ]]</td>
-                                            <td>
-                                                <span v-if="project.managers_info && project.managers_info.length > 0">
-                                                    <span v-for="(mgr, index) in project.managers_info" :key="mgr.id || index">
-                                                        [[ mgr.name ]]<span v-if="index < project.managers_info.length - 1">, </span>
-                                                    </span>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="badge" :class="getStatusBadgeClass(project)">[[ project.is_completed ? '已完成' : '進行中' ]]</div>
-                                            </td>
-                                            <td class="text-end">
-                                                <button class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
-                                                   @click="toggleMenu(project.id)">
-                                                    <i class="ki-outline ki-down fs-5"></i>
-                                                </button>
-                                                <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-125px py-4"
-                                                     data-kt-menu="true"
-                                                     :style="getMenuStyle(project.id)"
-                                                     :class="{'show': activeMenu === project.id}">
-                                                    <div class="menu-item px-3">
-                                                        <a class="menu-link px-3"
-                                                           @click.prevent="viewProjectDetails(project.id)">編輯詳細資料</a>
-                                                    </div>
-                                                    <div class="menu-item px-3">
-                                                        <a class="menu-link px-3" @click.prevent="viewInvoices(project.id)">查看請款</a>
-                                                    </div>
-                                                    <hr class="my-1" />
-                                                    <div class="menu-item px-3">
-                                                        <a class="menu-link px-3 text-danger"
-                                                           @click.prevent="deleteProject(project.id)">刪除</a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <!-- 無資料提示 -->
-                                        <tr v-if="projects.length === 0">
-                                            <td colspan="6" class="text-center py-5">
-                                                <div class="text-gray-500">此業主尚未有專案</div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <!-- 分頁控制 - 使用與 payments.html 相同的方式 -->
-                            <div class="d-flex justify-content-center align-items-center flex-wrap"
-                                 v-if="projects.length > 0">
-                                <ul class="pagination">
-                                    <li class="page-item previous"
-                                        :class="currentPage === 1 ? 'disabled' : ''"
-                                        @click="currentPage > 1 && fetchOwnerProjects(currentPage - 1)">
-                                        <a href="#" class="page-link"><i class="previous"></i></a>
-                                    </li>
-                                    <template v-for="page in displayedPages" :key="page">
-                                        <li v-if="page === '...'" class="page-item disabled">
-                                            <span class="page-link">...</span>
-                                        </li>
-                                        <li v-else
-                                            class="page-item"
-                                            :class="currentPage === page ? 'active' : ''"
-                                            @click="fetchOwnerProjects(page)">
-                                            <a href="#" class="page-link">[[ page ]]</a>
-                                        </li>
-                                    </template>
-                                    <li class="page-item next"
-                                        :class="currentPage === totalPages ? 'disabled' : ''"
-                                        @click="currentPage < totalPages && fetchOwnerProjects(currentPage + 1)">
-                                        <a href="#" class="page-link"><i class="next"></i></a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        <!-- 新增/編輯專案的 Modal -->
-                        <div class="modal fade"
-                             tabindex="-1"
-                             id="addProjectModal"
-                             aria-labelledby="addProjectModalLabel"
-                             aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="addProjectModalLabel">[[ isEditMode ? '編輯專案' : '新增專案' ]]</h5>
-                                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                                             @click="hideAddProjectModal"
-                                             aria-label="Close">
-                                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
-                                        </div>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form @submit.prevent="submitProjectForm" ref="projectForm">
-                                            <div class="row mb-5">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        業主<span class="text-danger">*</span>
-                                                    </label>
-                                                    <input type="text"
-                                                           class="form-control"
-                                                           :value="'{{ owner.company_name }}'"
-                                                           readonly
-                                                           disabled>
-                                                    <input type="hidden" v-model="newProject.owner">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        專案類別<span class="text-danger">*</span>
-                                                    </label>
-                                                    <select class="form-select" v-model="newProject.category" required>
-                                                        <option value="">選擇專案類別</option>
-                                                        <option v-for="category in categories"
-                                                                :key="category.id"
-                                                                :value="category.id">
+                                            <div class="separator border-gray-200"></div>
+                                            <div class="px-7 py-5">
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold">專案類別:</label>
+                                                    <select class="form-select" v-model="categoryFilter"
+                                                        data-placeholder="所有類別">
+                                                        <option value="">所有類別</option>
+                                                        <option v-for="category in categories" :key="category.id"
+                                                            :value="category.id">
                                                             [[ category.code ]]: [[ category.description ]]
                                                         </option>
                                                     </select>
                                                 </div>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-3">
-                                                    <label class="form-label">
-                                                        年份<span class="text-danger">*</span>
-                                                    </label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="newProject.year"
-                                                           min="2000"
-                                                           max="2099"
-                                                           required>
-                                                </div>
-                                                <div class="col-md-3" v-if="isEditMode">
-                                                    <label class="form-label">編號</label>
-                                                    <input type="text"
-                                                           class="form-control"
-                                                           v-model="newProject.project_number"
-                                                           readonly>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        專案名稱<span class="text-danger">*</span>
-                                                    </label>
-                                                    <input type="text" class="form-control" v-model="newProject.name" required>
-                                                </div>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">
-                                                        專案負責人<span class="text-danger">*</span>
-                                                    </label>
-                                                    <select class="form-select" v-model="newProject.manager" required>
-                                                        <option value="">選擇負責人</option>
-                                                        <option v-for="user in projectManagers" :key="user.id" :value="user.id">
-                                                            [[ user.profile.name || user.username ]]
-                                                        </option>
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold">專案狀態:</label>
+                                                    <select class="form-select" v-model="completedFilter"
+                                                        data-placeholder="專案狀態">
+                                                        <option value="">所有狀態</option>
+                                                        <option value="in_progress">進行中</option>
+                                                        <option value="paused">暫停</option>
+                                                        <option value="completed">已完成</option>
+                                                        <option value="cancelled">撤案</option>
                                                     </select>
                                                 </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">繪圖設計師</label>
-                                                    <select class="form-select" v-model="newProject.drawing">
-                                                        <option value="">選擇設計師</option>
-                                                        <option v-for="user in designers" :key="user.id" :value="user.id">[[ user.profile.name || user.username ]]</option>
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold">年份:</label>
+                                                    <select class="form-select" v-model="yearFilter"
+                                                        data-placeholder="年份">
+                                                        <option value="">所有年份</option>
+                                                        <option v-for="year in availableYears" :key="year"
+                                                            :value="year">[[ year ]]</option>
                                                     </select>
                                                 </div>
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">繪圖其他人員</label>
-                                                <input type="text"
-                                                       class="form-control"
-                                                       v-model="newProject.drawing_other"
-                                                       placeholder="其他協助繪圖人員名稱">
-                                            </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">聯絡方式</label>
-                                                <textarea class="form-control" v-model="newProject.contact_info" rows="2"></textarea>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-4">
-                                                    <label class="form-label">變更次數</label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="newProject.change_count"
-                                                           min="0"
-                                                           value="0">
+                                                <div class="d-flex justify-content-end">
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-light btn-active-light-primary me-2"
+                                                        data-kt-menu-dismiss="true" @click="resetFilters">重設</button>
+                                                    <button type="button" class="btn btn-sm btn-primary"
+                                                        data-kt-menu-dismiss="true"
+                                                        @click="fetchOwnerProjects()">套用</button>
                                                 </div>
-                                                <div class="col-md-8">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">狀態</label>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input"
-                                                                   type="radio"
-                                                                   id="inProgressOption"
-                                                                   :value="false"
-                                                                   v-model="newProject.is_completed">
-                                                            <label class="form-check-label" for="inProgressOption">進行中</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input"
-                                                                   type="radio"
-                                                                   id="completedOption"
-                                                                   :value="true"
-                                                                   v-model="newProject.is_completed">
-                                                            <label class="form-check-label" for="completedOption">已完成</label>
-                                                        </div>
+                                            </div>
+                                        </div>
+                                        <!--end::Menu dropdown-->
+                                    </div>
+                                    <!--end::Menu wrapper-->
+                                    <button
+                                        class="btn border border-2 border-primary bg-light-success bg-hover-light-success"
+                                        @click="fetchOwnerProjects()">搜尋</button>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
+                                <span class="text-muted me-2">每頁顯示</span>
+                                <select
+                                    class="form-select form-select-sm w-75px border border-2 border-primary bg-light-success"
+                                    v-model.number="pageSize" @change="pageSizeChanged">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <!-- 資料載入指示器 -->
+                        <div v-if="isLoading" class="d-flex justify-content-center py-10">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">載入中...</span>
+                            </div>
+                        </div>
+                        <!-- 專案資料表格 -->
+                        <div class="table-responsive" v-if="!isLoading">
+                            <table class="table align-middle table-row-dashed table-hover table-striped fs-6 gy-5 gs-7">
+                                <thead>
+                                    <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                                        <th class="min-w-100px">年度-編號</th>
+                                        <th class="min-w-200px">專案名稱</th>
+                                        <th class="min-w-100px">類別</th>
+                                        <th class="min-w-100px">專案負責人</th>
+                                        <th class="min-w-100px">狀態</th>
+                                        <th class="text-end min-w-70px">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="fw-semibold text-gray-600">
+                                    <tr v-for="project in projects" :key="project.id">
+                                        <td>
+                                            <span class="badge badge-secondary">[[ project.year ]][[project.category ?
+                                                getCategoryCode(project.category) : 'N']][[ project.project_number
+                                                ]]</span>
+                                        </td>
+                                        <td>
+                                            <a :href="`/crm/project/${project.id}/details/`"
+                                                class="text-gray-800 text-hover-primary fs-5 fw-bold hover-underline">[[
+                                                project.name ]]</a>
+                                        </td>
+                                        <td>[[ getCategoryName(project.category) ]]</td>
+                                        <td>
+                                            <span v-if="project.managers_info && project.managers_info.length > 0">
+                                                <span v-for="(mgr, index) in project.managers_info"
+                                                    :key="mgr.id || index">
+                                                    [[ mgr.name ]]<span
+                                                        v-if="index < project.managers_info.length - 1">, </span>
+                                                </span>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="badge" :class="getStatusBadgeClass(project)">[[
+                                                getStatusText(project) ]]</div>
+                                        </td>
+                                        <td class="text-end">
+                                            <button
+                                                class="btn btn-icon btn-sm btn-secondary btn-active-light-primary btn-outline border-gray-400 border-2"
+                                                @click="toggleMenu(project.id)">
+                                                <i class="ki-outline ki-down fs-5"></i>
+                                            </button>
+                                            <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-125px py-4"
+                                                data-kt-menu="true" :style="getMenuStyle(project.id)"
+                                                :class="{'show': activeMenu === project.id}">
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3"
+                                                        @click.prevent="viewProjectDetails(project.id)">編輯詳細資料</a>
+                                                </div>
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3"
+                                                        @click.prevent="viewInvoices(project.id)">查看請款</a>
+                                                </div>
+                                                <hr class="my-1" />
+                                                <div class="menu-item px-3">
+                                                    <a class="menu-link px-3 text-danger"
+                                                        @click.prevent="deleteProject(project.id)">刪除</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- 無資料提示 -->
+                                    <tr v-if="projects.length === 0">
+                                        <td colspan="6" class="text-center py-5">
+                                            <div class="text-gray-500">此業主尚未有專案</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- 分頁控制 - 使用與 payments.html 相同的方式 -->
+                        <div class="d-flex justify-content-center align-items-center flex-wrap"
+                            v-if="projects.length > 0">
+                            <ul class="pagination">
+                                <li class="page-item previous" :class="currentPage === 1 ? 'disabled' : ''"
+                                    @click="currentPage > 1 && fetchOwnerProjects(currentPage - 1)">
+                                    <a href="#" class="page-link"><i class="previous"></i></a>
+                                </li>
+                                <template v-for="page in displayedPages" :key="page">
+                                    <li v-if="page === '...'" class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    <li v-else class="page-item" :class="currentPage === page ? 'active' : ''"
+                                        @click="fetchOwnerProjects(page)">
+                                        <a href="#" class="page-link">[[ page ]]</a>
+                                    </li>
+                                </template>
+                                <li class="page-item next" :class="currentPage === totalPages ? 'disabled' : ''"
+                                    @click="currentPage < totalPages && fetchOwnerProjects(currentPage + 1)">
+                                    <a href="#" class="page-link"><i class="next"></i></a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- 新增/編輯專案的 Modal -->
+                    <div class="modal fade" tabindex="-1" id="addProjectModal" aria-labelledby="addProjectModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="addProjectModalLabel">[[ isEditMode ? '編輯專案' : '新增專案' ]]
+                                    </h5>
+                                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
+                                        @click="hideAddProjectModal" aria-label="Close">
+                                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span
+                                                class="path2"></span></i>
+                                    </div>
+                                </div>
+                                <div class="modal-body">
+                                    <form @submit.prevent="submitProjectForm" ref="projectForm">
+                                        <div class="row mb-5">
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    業主<span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control"
+                                                    :value="'{{ owner.company_name }}'" readonly disabled>
+                                                <input type="hidden" v-model="newProject.owner">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    專案類別<span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" v-model="newProject.category" required>
+                                                    <option value="">選擇專案類別</option>
+                                                    <option v-for="category in categories" :key="category.id"
+                                                        :value="category.id">
+                                                        [[ category.code ]]: [[ category.description ]]
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-5">
+                                            <div class="col-md-3">
+                                                <label class="form-label">
+                                                    年份<span class="text-danger">*</span>
+                                                </label>
+                                                <input type="number" class="form-control" v-model="newProject.year"
+                                                    min="2000" max="2099" required>
+                                            </div>
+                                            <div class="col-md-3" v-if="isEditMode">
+                                                <label class="form-label">編號</label>
+                                                <input type="text" class="form-control"
+                                                    v-model="newProject.project_number" readonly>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    專案名稱<span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" v-model="newProject.name"
+                                                    required>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-5">
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    專案負責人<span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" v-model="newProject.manager" required>
+                                                    <option value="">選擇負責人</option>
+                                                    <option v-for="user in projectManagers" :key="user.id"
+                                                        :value="user.id">
+                                                        [[ user.profile.name || user.username ]]
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">繪圖設計師</label>
+                                                <select class="form-select" v-model="newProject.drawing">
+                                                    <option value="">選擇設計師</option>
+                                                    <option v-for="user in designers" :key="user.id" :value="user.id">[[
+                                                        user.profile.name || user.username ]]</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label">繪圖其他人員</label>
+                                            <input type="text" class="form-control" v-model="newProject.drawing_other"
+                                                placeholder="其他協助繪圖人員名稱">
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label">聯絡方式</label>
+                                            <textarea class="form-control" v-model="newProject.contact_info"
+                                                rows="2"></textarea>
+                                        </div>
+                                        <div class="row mb-5">
+                                            <div class="col-md-4">
+                                                <label class="form-label">變更次數</label>
+                                                <input type="number" class="form-control"
+                                                    v-model="newProject.change_count" min="0" value="0">
+                                            </div>
+                                            <div class="col-md-8">
+                                                <div class="mb-3">
+                                                    <label class="form-label">狀態</label>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio"
+                                                            id="inProgressOption" :value="false"
+                                                            v-model="newProject.is_completed">
+                                                        <label class="form-check-label"
+                                                            for="inProgressOption">進行中</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio"
+                                                            id="completedOption" :value="true"
+                                                            v-model="newProject.is_completed">
+                                                        <label class="form-check-label"
+                                                            for="completedOption">已完成</label>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">變更說明</label>
-                                                <textarea class="form-control" v-model="newProject.change_description" rows="3"></textarea>
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label">變更說明</label>
+                                            <textarea class="form-control" v-model="newProject.change_description"
+                                                rows="3"></textarea>
+                                        </div>
+                                        <div class="mb-5">
+                                            <label class="form-label">備註</label>
+                                            <textarea class="form-control" v-model="newProject.notes"
+                                                rows="3"></textarea>
+                                        </div>
+                                        <div class="row mb-5">
+                                            <div class="col-md-6">
+                                                <label class="form-label">支出金額</label>
+                                                <input type="number" class="form-control"
+                                                    v-model="newProject.expenditure" step="0.01" min="0">
                                             </div>
-                                            <div class="mb-5">
-                                                <label class="form-label">備註</label>
-                                                <textarea class="form-control" v-model="newProject.notes" rows="3"></textarea>
-                                            </div>
-                                            <div class="row mb-5">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">支出金額</label>
-                                                    <input type="number"
-                                                           class="form-control"
-                                                           v-model="newProject.expenditure"
-                                                           step="0.01"
-                                                           min="0">
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-light" @click="hideAddProjectModal">關閉</button>
-                                                <button type="submit" class="btn btn-primary">送出</button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-light"
+                                                @click="hideAddProjectModal">關閉</button>
+                                            <button type="submit" class="btn btn-primary">送出</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-                        <!-- 結束 Modal -->
                     </div>
+                    <!-- 結束 Modal -->
                 </div>
             </div>
         </div>
     </div>
+</div>
 {% endblock content %}
 {% block extra_js %}
-    <script>
+<script>
     // 設定業主ID給 Vue 使用
     const OWNER_ID = {{ owner.id }};
-    
+
     // 定義此頁面專用的麵包屑資訊
     window.pageBreadcrumbs = {
         menu: "業主管理",
@@ -370,12 +375,12 @@
         submenuUrl: "#",
         currentPage: "專案列表"
     };
-    
+
     // 如果 breadcrumbApp 已經掛載，則更新它
     if (typeof breadcrumbApp !== 'undefined') {
         breadcrumbApp.pageBreadcrumbs = window.pageBreadcrumbs;
         breadcrumbApp.updateBreadcrumb();
     }
-    </script>
-    <script src="{% static 'crm/js/pages/owner/owner_projects.js' %}"></script>
+</script>
+<script src="{% static 'crm/js/pages/owner/owner_projects.js' %}"></script>
 {% endblock extra_js %}

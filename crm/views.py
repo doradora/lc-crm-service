@@ -503,11 +503,20 @@ class ProjectViewSet(BaseViewSet):
         if category_id:
             queryset = queryset.filter(category_id=category_id)
 
-        # 完成狀態過濾
-        is_completed = self.request.query_params.get("is_completed", None)
-        if is_completed is not None:
-            is_completed_bool = is_completed.lower() == "true"
-            queryset = queryset.filter(is_completed=is_completed_bool)
+        # 完成狀態過濾 (支援新舊兩種方式)
+        status = self.request.query_params.get("status", None)
+        if status:
+            # 新的狀態過濾
+            queryset = queryset.filter(status=status)
+        else:
+            # 向後相容：舊的 is_completed 過濾
+            is_completed = self.request.query_params.get("is_completed", None)
+            if is_completed is not None:
+                is_completed_bool = is_completed.lower() == "true"
+                if is_completed_bool:
+                    queryset = queryset.filter(status='completed')
+                else:
+                    queryset = queryset.exclude(status='completed')
 
         # 發票狀態過濾
         is_invoiced = self.request.query_params.get("is_invoiced", None)
@@ -576,8 +585,10 @@ class ProjectViewSet(BaseViewSet):
         """獲取專案儀表板所需的統計數據"""
         # 獲取基本統計數據
         total_projects = Project.objects.count()
-        active_projects = Project.objects.filter(is_completed=False).count()
-        completed_projects = Project.objects.filter(is_completed=True).count()
+        active_projects = Project.objects.filter(status='in_progress').count()
+        completed_projects = Project.objects.filter(status='completed').count()
+        paused_projects = Project.objects.filter(status='paused').count()
+        cancelled_projects = Project.objects.filter(status='cancelled').count()
 
         # 計算百分比
         completion_rate = (

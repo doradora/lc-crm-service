@@ -105,10 +105,9 @@ const ownerProjectsApp = createApp({
         url += `&year=${this.yearFilter}`;
       }
 
-      if (this.completedFilter === "completed") {
-        url += `&is_completed=true`;
-      } else if (this.completedFilter === "in_progress") {
-        url += `&is_completed=false`;
+      // 新的狀態篩選，支援四種狀態
+      if (this.completedFilter) {
+        url += `&status=${this.completedFilter}`;
       }
 
       fetch(url)
@@ -176,9 +175,22 @@ const ownerProjectsApp = createApp({
       return manager ? manager.profile.name || manager.username : "未指派";
     },
     getStatusBadgeClass(project) {
-      return project.is_completed
-        ? "badge-success"
-        : "badge-warning";
+      const statusMap = {
+        'in_progress': 'badge-warning',   // 黃色
+        'paused': 'badge-info',            // 藍色
+        'completed': 'badge-success',      // 綠色
+        'cancelled': 'badge-danger'        // 紅色
+      };
+      return statusMap[project.status] || 'badge-secondary';
+    },
+    getStatusText(project) {
+      const textMap = {
+        'in_progress': '進行中',
+        'paused': '暫停',
+        'completed': '已完成',
+        'cancelled': '撤案'
+      };
+      return textMap[project.status] || '未知';
     },
     toggleMenu(projectId) {
       if (this.activeMenu === projectId) {
@@ -336,7 +348,7 @@ const ownerProjectsApp = createApp({
             icon: "success",
             confirmButtonText: "確定",
           });
-        })        .catch((error) => {
+        }).catch((error) => {
           console.error("Error submitting project:", error);
           Swal.fire({
             title: "錯誤!",
@@ -360,7 +372,7 @@ const ownerProjectsApp = createApp({
 
       const currentUserId = Number(window.CURRENT_USER_DATA.id);
       const isAdmin = window.CURRENT_USER_DATA.profile.is_admin;
-        // 找到要刪除的專案
+      // 找到要刪除的專案
       const projectToDelete = this.projects.find(p => p.id === projectId);
       if (!projectToDelete) {
         Swal.fire({
@@ -374,7 +386,7 @@ const ownerProjectsApp = createApp({
 
       // 檢查是否為該專案的經理
       const isProjectManager = projectToDelete.managers && projectToDelete.managers.includes(currentUserId);
-      
+
       // 只有管理員或該專案的經理可以刪除
       if (!isAdmin && !isProjectManager) {
         Swal.fire({
@@ -397,21 +409,21 @@ const ownerProjectsApp = createApp({
         cancelButtonText: "取消",
       }).then((result) => {
         if (result.isConfirmed) {
-        fetch(`/crm/api/projects/${projectId}/`, {
-          method: "DELETE",
-          headers: {
-            "X-CSRFToken": document.querySelector(
-              '[name="csrfmiddlewaretoken"]'
-            ).value,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("刪除失敗");
-            }
-            this.fetchOwnerProjects(this.currentPage);
+          fetch(`/crm/api/projects/${projectId}/`, {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                '[name="csrfmiddlewaretoken"]'
+              ).value,
+            },
           })
-          .catch((error) => console.error("Error deleting project:", error));
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("刪除失敗");
+              }
+              this.fetchOwnerProjects(this.currentPage);
+            })
+            .catch((error) => console.error("Error deleting project:", error));
         }
       });
     },

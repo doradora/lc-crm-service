@@ -21,7 +21,8 @@ const projectDetail = createApp({
         change_count: 0,
         change_description: "",
         notes: "",
-        is_completed: false,
+        status: 'in_progress', // 新增狀態欄位
+        is_completed: false, // 保留向後相容
         expenditure: 0,
         is_invoiced: false,
         invoice_date: null,
@@ -108,9 +109,24 @@ const projectDetail = createApp({
   computed: {
     // 獲取專案狀態顯示樣式
     getStatusBadgeClass() {
-      return this.project.is_completed
-        ? "badge-success"
-        : "badge-warning";
+      const statusMap = {
+        'in_progress': 'badge-warning',   // 黃色
+        'paused': 'badge-info',            // 藍色
+        'completed': 'badge-success',      // 綠色
+        'cancelled': 'badge-danger'        // 紅色
+      };
+      return statusMap[this.project.status] || 'badge-secondary';
+    },
+
+    // 獲取專案狀態文字
+    getStatusText() {
+      const textMap = {
+        'in_progress': '進行中',
+        'paused': '暫停',
+        'completed': '已完成',
+        'cancelled': '撤案'
+      };
+      return textMap[this.project.status] || '未知';
     },
 
     // 獲取業主名稱
@@ -1260,12 +1276,42 @@ const projectDetail = createApp({
       }
     },
 
-    // 處理「已完成」開關切換
+    // 處理狀態變更
+    handleStatusChange(event) {
+      const newStatus = event.target.value;
+
+      // 如果切換到已完成,需要驗證必填欄位
+      if (newStatus === 'completed' && this.project.status !== 'completed') {
+        const validationErrors = this.validateCustomFields();
+
+        if (validationErrors.length > 0) {
+          // 阻止切換,恢復原狀態
+          event.target.value = this.project.status;
+          this.showRequiredFieldErrors = true;
+
+          Swal.fire({
+            title: "欄位驗證錯誤",
+            html: "專案標記為「已完成」前,以下必填欄位必須填寫：<br>" + validationErrors.join("<br>"),
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+          return;
+        }
+      }
+
+      // 驗證通過,更新狀態
+      this.project.status = newStatus;
+
+      // 切換到已完成時顯示紅框提示,其他狀態隱藏
+      this.showRequiredFieldErrors = (newStatus === 'completed');
+    },
+
+    // 處理「已完成」開關切換 (保留向後相容)
     handleCompletedToggle(event) {
       const newValue = event.target.checked;
 
       // 如果是從未完成切換到已完成,需要驗證必填欄位
-      if (newValue && !this.project.is_completed) {
+      if (newValue && this.project.status !== 'completed') {
         const validationErrors = this.validateCustomFields();
 
         if (validationErrors.length > 0) {
@@ -1284,7 +1330,7 @@ const projectDetail = createApp({
       }
 
       // 驗證通過或從已完成切換到未完成,更新狀態
-      this.project.is_completed = newValue;
+      this.project.status = newValue ? 'completed' : 'in_progress';
 
       // 切換到已完成時顯示紅框提示,切回未完成時隱藏
       this.showRequiredFieldErrors = newValue;
