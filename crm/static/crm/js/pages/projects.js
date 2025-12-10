@@ -1185,6 +1185,7 @@ const projectList = createApp({
     this.fetchCategories();
     this.fetchUsers();
     this.fetchYears();
+    this.currentUser = window.CURRENT_USER_DATA || {};
     document.addEventListener("click", this.handleClickOutside);
 
     // 頁面載入後自動focus到搜尋欄位
