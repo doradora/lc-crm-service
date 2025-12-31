@@ -124,6 +124,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# 自訂認證後端 - 支援中文姓名登入
+AUTHENTICATION_BACKENDS = [
+    'users.backends.ChineseNameAuthBackend',  # 自訂中文姓名認證
+    'django.contrib.auth.backends.ModelBackend',  # 保留預設後端作為備用
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

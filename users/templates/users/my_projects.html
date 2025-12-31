@@ -279,7 +279,7 @@
             params.append("category", this.categoryFilter);
           }
           if (this.completedFilter) {
-            params.append("completed", this.completedFilter === "completed" ? "true" : "false");
+            params.append("status", this.completedFilter);
           }
           if (this.startYearFilter) {
             params.append("year_start", this.startYearFilter);

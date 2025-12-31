@@ -260,12 +260,9 @@ class EmployeeImporter(BaseImporter):
             self.result.add_warning(row_num, "員編或姓名為空，跳過此筆資料")
             return
         
-        # 建立 username
-        username = f"{employee_id}"
-        
-        # 檢查是否已存在相同 username
-        if User.objects.filter(username=username).exists():
-            self.result.add_warning(row_num, f"帳號 '{username}' 已存在，跳過匯入")
+        # 檢查是否已存在相同姓名的使用者
+        if User.objects.filter(username=name).exists():
+            self.result.add_warning(row_num, f"帳號 '{name}' 已存在，跳過匯入")
             return
 
         # 拆分姓名為 first_name 和 last_name
@@ -275,19 +272,10 @@ class EmployeeImporter(BaseImporter):
         else:
             first_name = name
             last_name = ""
-                
-        # 檢查是否已存在相同姓名
-        existing_user = User.objects.filter(first_name=first_name, last_name=last_name).first()
-        if existing_user:
-            # 如果存在相同姓名，更新 username 為 "{employee_id}"
-            existing_user.username = f"{employee_id}"
-            existing_user.save(update_fields=['username'])
-            self.result.add_warning(row_num, f"姓名 '{name}' 已存在，已更新 username 為 '{existing_user.username}'")
-            return
         
-        # 建立使用者帳號
+        # 建立使用者帳號，username 設為完整中文姓名
         user = User.objects.create(
-            username=username,
+            username=name,  # username 改為完整中文姓名
             first_name=first_name,
             last_name=last_name,
         )
@@ -438,7 +426,9 @@ class ProjectImporter(BaseImporter):
             project_number = str(data["project_number"]).zfill(3) if data["project_number"] else None
             quotation = self.parse_decimal(data.get("quotation"))
             invoice_amount = self.parse_decimal(data.get("invoice_amount"))
-            is_completed = self.parse_boolean(data.get("is_completed"))
+            # 將 is_completed 布林值轉換為 status
+            is_completed_bool = self.parse_boolean(data.get("is_completed"))
+            status = 'completed' if is_completed_bool else 'in_progress'
             is_invoiced = self.parse_boolean(data.get("is_invoiced"))
             is_paid = self.parse_boolean(data.get("is_paid"))
             payment_date = self.parse_date(data.get("payment_date"))
@@ -509,33 +499,48 @@ class ProjectImporter(BaseImporter):
                     if not name:
                         continue
                         
-                    # Extract first character as first_name, rest as last_name
-                    if len(name) > 1:
-                        first_name = name[0]
-                        last_name = name[1:]
-                    else:
-                        first_name = name
-                        last_name = ""
+                    # 先嘗試用完整姓名(username)查找
+                    manager = User.objects.filter(username=name).first()
+                    
+                    if not manager:
+                        # 如果找不到,嘗試用 first_name + last_name 查找
+                        if len(name) > 1:
+                            first_name = name[0]
+                            last_name = name[1:]
+                        else:
+                            first_name = name
+                            last_name = ""
                         
-                    # Try to find user by first_name and last_name first
-                    manager_query = User.objects.filter(first_name=first_name, last_name=last_name)
-                    if manager_query.exists():
-                        manager = manager_query.first()
-                    else:
-                        # Create new user if not found
+                        manager = User.objects.filter(
+                            first_name=first_name, 
+                            last_name=last_name
+                        ).first()
+                    
+                    if not manager:
+                        # 如果還是找不到,創建新使用者
+                        if len(name) > 1:
+                            first_name = name[0]
+                            last_name = name[1:]
+                        else:
+                            first_name = name
+                            last_name = ""
+                        
                         manager = User.objects.create(
+                            username=name,  # username 設為完整中文姓名
                             first_name=first_name,
                             last_name=last_name,
-                            username=name  # We'll update this immediately after
                         )
                         
-                        # 只在創建新使用者時設定帳號密碼
-                        manager.username = f"manager{manager.id}"
-                        manager.set_password("12345678")  # 使用 set_password 方法進行密碼哈希
+                        # 設定密碼
+                        manager.set_password("12345678")
                         manager.save()
                         
-                        # 一併創立 UserProfile
-                        UserProfile.objects.create(user=manager, name=name, is_project_manager=True)
+                        # 創建 UserProfile
+                        UserProfile.objects.create(
+                            user=manager, 
+                            name=name, 
+                            is_project_manager=True
+                        )
                     
                     # 無論是新使用者或現有使用者,都加入 managers 列表以便後續關聯專案
                     managers.append(manager)
@@ -554,7 +559,7 @@ class ProjectImporter(BaseImporter):
                 drawing=data.get("drawing_name"),
                 contact_info=data.get("contact_info"),
                 notes=data.get("notes"),
-                is_completed=is_completed,
+                status=status,  # 使用 status 而不是 is_completed
                 category=category,
                 is_invoiced=is_invoiced,
                 invoice_date=invoice_date,

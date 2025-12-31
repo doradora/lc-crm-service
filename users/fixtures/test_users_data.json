@@ -7,7 +7,22 @@
     "last_name": "管理員",
     "profile": {
       "name": "系統管理員",
-      "phone": "0921129796",
+      "phone": "",
+      "is_admin": true,
+      "is_designer": false,
+      "is_project_manager": true,
+      "can_request_payment": true
+    }
+  },
+  {
+    "username": "justsmart",
+    "email": "justsmart@example.com",
+    "password": "a12345678",
+    "first_name": "智剛科技",
+    "last_name": "系統管理員",
+    "profile": {
+      "name": "智剛科技系統管理員",
+      "phone": "",
       "is_admin": true,
       "is_designer": false,
       "is_project_manager": true,

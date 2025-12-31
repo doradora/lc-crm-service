@@ -88,7 +88,6 @@ class Project(models.Model):
         default='in_progress',
         verbose_name='專案狀態'
     )  # 專案狀態
-    is_completed = models.BooleanField(default=False)  # 是否完成 (保留作為向後相容)
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True
     )  # 案件類別
