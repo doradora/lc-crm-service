@@ -70,7 +70,7 @@
                   <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#tab_design_info">設計變更</a>
                   </li>
-                  <li class="nav-item">
+                  <li v-if="canViewExpenditure" class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#tab_finance_info">費用支出</a>
                   </li>
                 </ul>
@@ -340,7 +340,7 @@
                     </div>
                   </div>
                   <!-- 費用支出標籤頁 -->
-                  <div class="tab-pane fade" id="tab_finance_info" role="tabpanel">
+                  <div v-if="canViewExpenditure" class="tab-pane fade" id="tab_finance_info" role="tabpanel">
                     <!-- 支出記錄列表區塊 -->
                     <div class="card-title mb-5 d-flex justify-content-between align-items-center">
                       <h4>支出記錄</h4>

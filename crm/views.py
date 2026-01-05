@@ -1081,6 +1081,12 @@ class ExpenditureViewSet(BaseViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ["description"]
 
+    def get_permissions(self):
+        """
+        費用支出相關操作只允許 admin 或 can_request_payment
+        """
+        return [permissions.IsAuthenticated(), IsAdminOrCanRequestPayment()]
+
     def get_queryset(self):
         queryset = Expenditure.objects.all().select_related("project", "created_by")
 

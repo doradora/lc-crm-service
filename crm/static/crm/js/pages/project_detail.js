@@ -170,6 +170,17 @@ const projectDetail = createApp({
       }
 
       return false;
+    },
+
+    // 新增計算屬性以檢查是否能查看費用支出
+    canViewExpenditure() {
+      // 檢查 currentUser 是否已載入
+      if (!this.currentUser || !this.currentUser.profile) {
+        return false;
+      }
+
+      // 只有 admin 或有請款權限的人可以查看費用支出
+      return this.currentUser.profile.is_admin || this.currentUser.profile.can_request_payment;
     }
   },
   directives: {

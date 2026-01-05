@@ -194,6 +194,28 @@ class ProjectSerializer(serializers.ModelSerializer):
             "total_expenditure",
         ]
 
+    def to_representation(self, instance):
+        """在序列化時檢查權限,只有 admin 或有請款權限的人才能看到費用支出"""
+        data = super().to_representation(instance)
+        
+        # 獲取當前請求的使用者
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            # 檢查使用者是否有查看費用支出的權限
+            can_view_expenditure = (
+                user.is_authenticated and 
+                hasattr(user, 'profile') and 
+                (user.profile.is_admin or user.profile.can_request_payment)
+            )
+            
+            # 如果沒有權限,移除費用支出相關資料
+            if not can_view_expenditure:
+                data.pop('expenditures', None)
+                data.pop('total_expenditure', None)
+        
+        return data
+
     def validate(self, data):
         """驗證案件編號的唯一性"""
         project_number = data.get('project_number')
