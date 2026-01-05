@@ -8,6 +8,7 @@ const companyList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
+      totalCount: 0, // 總筆數
       pageSize: 10,
       menuPosition: {
         x: 0,
@@ -132,6 +133,7 @@ const companyList = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.companys = data.results;
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
         })
         .catch((error) => console.error("Error fetching companys:", error))

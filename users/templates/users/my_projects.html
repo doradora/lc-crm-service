@@ -164,8 +164,14 @@
               </table>
             </div>
             <!-- 分頁控制 -->
-            <div class="d-flex justify-content-center align-items-center flex-wrap">
-              <ul class="pagination">
+            <div class="d-flex justify-content-between align-items-center flex-wrap mt-3">
+              <!-- 左側:總數和頁碼資訊 -->
+              <div class="d-flex align-items-center" v-if="totalCount > 0">
+                <span class="text-gray-700 fw-bold me-3">共 [[ totalCount ]] 項</span>
+                <span class="text-gray-500">第 [[ (currentPage - 1) * pageSize + 1 ]] 至 [[ Math.min(currentPage * pageSize, totalCount) ]] 筆</span>
+              </div>
+              <!-- 右側:分頁按鈕 -->
+              <ul class="pagination mb-0">
                 <li class="page-item previous" :class="currentPage === 1 ? 'disabled' : ''"
                   @click="currentPage > 1 && fetchProjects(currentPage - 1)">
                   <a href="#" class="page-link"><i class="previous"></i></a>
@@ -210,6 +216,7 @@
         pageSize: 10,
         currentPage: 1,
         totalPages: 1,
+        totalCount: 0, // 總筆數
         activeMenu: null,
         menuTop: 0,
         menuLeft: 0,
@@ -291,6 +298,7 @@
           const response = await fetch(`/crm/api/projects/?${params.toString()}`);
           const data = await response.json();
           this.projects = data.results;
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
         } catch (error) {
           console.error("Error fetching projects:", error);

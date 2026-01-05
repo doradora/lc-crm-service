@@ -12,7 +12,8 @@ const userList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
-      pageSize: 10, // 每頁顯示的項目數，可調整
+      totalCount: 0, // 總筆數
+      pageSize: 10, // 每頁顯示的項目數,可調整
       menuPosition: {
         x: 0,
         y: 0,
@@ -165,6 +166,7 @@ const userList = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.users = data.results; // 假設後端返回 { results: [], count: X }
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
         })
         .catch((error) => console.error("Error fetching users:", error))

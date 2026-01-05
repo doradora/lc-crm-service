@@ -10,7 +10,8 @@ const categoryList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
-      pageSize: 10, // 每頁顯示的項目數，可調整
+      totalCount: 0, // 總筆數
+      pageSize: 10, // 每頁顯示的項目數,可調整
       menuPosition: {
         x: 0,
         y: 0,
@@ -39,6 +40,38 @@ const categoryList = createApp({
         order: 0,
       },
     };
+  },
+  computed: {
+    // 計算需要顯示的頁碼
+    displayedPages() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      const delta = 2; // 當前頁的左右顯示頁數
+      let pages = [];
+
+      // 計算應該顯示哪些頁碼
+      for (let i = 1; i <= total; i++) {
+        if (
+          i === 1 ||
+          i === total ||
+          (i >= current - delta && i <= current + delta)
+        ) {
+          pages.push(i);
+        }
+      }
+
+      // 添加省略號
+      let result = [];
+      let prev = 0;
+      for (let page of pages) {
+        if (prev && page > prev + 1) {
+          result.push("...");
+        }
+        result.push(page);
+        prev = page;
+      }
+      return result;
+    },
   },
   methods: {
     // 處理 API 請求的共用函數
@@ -140,6 +173,7 @@ const categoryList = createApp({
       this.handleApiRequest(url, "GET")
         .then((data) => {
           this.category = data.results;
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
         })
         .catch((error) => console.error("Error fetching categories:", error))

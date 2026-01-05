@@ -149,6 +149,7 @@ const paymentList = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.payments = data.results;
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
           // 初始化 popovers
           this.$nextTick(() => {

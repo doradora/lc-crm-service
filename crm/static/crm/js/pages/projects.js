@@ -17,6 +17,7 @@ const projectList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
+      totalCount: 0, // 總筆數
       pageSize: 10, // 修改為10,與payments頁面一致
       menuPosition: {
         x: 0,
@@ -329,6 +330,7 @@ const projectList = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.projects = data.results;
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
 
           // 動態載入缺失的業主資訊

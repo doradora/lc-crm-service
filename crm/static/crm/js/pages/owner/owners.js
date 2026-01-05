@@ -11,7 +11,8 @@ const ownerList = createApp({
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
-      pageSize: 10, // 修改默認值，從5改為10
+      totalCount: 0, // 總筆數
+      pageSize: 10, // 修改預設值，從5改為10
       menuPosition: {
         x: 0,
         y: 0,
@@ -167,6 +168,7 @@ const ownerList = createApp({
         .then((response) => response.json())
         .then((data) => {
           this.owners = data.results; // 假設後端返回 { results: [], count: X }
+          this.totalCount = data.count || 0;
           this.totalPages = Math.ceil(data.count / this.pageSize);
         })
         .catch((error) => console.error("Error fetching owners:", error))
