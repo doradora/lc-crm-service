@@ -1,4 +1,5 @@
 asgiref==3.8.1
+chardet==5.2.0
 click==8.1.8
 colorama==0.4.6
 cssbeautifier==1.15.4

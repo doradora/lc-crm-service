@@ -13,6 +13,7 @@ from django.db import transaction
 from django.utils import timezone
 from crm.models import Owner, Project, Category
 from users.models import UserProfile
+import chardet
 
 
 class ImportResult:
@@ -58,6 +59,24 @@ class BaseImporter:
     
     def __init__(self):
         self.result = ImportResult()
+    
+    def detect_encoding(self, file_path):
+        """偵測檔案編碼"""
+        try:
+            with open(file_path, 'rb') as file:
+                raw_data = file.read(10000)  # 讀取前10000個位元組來偵測
+                result = chardet.detect(raw_data)
+                encoding = result['encoding']
+                # 如果偵測到BIG5或CP950,統一使用cp950(相容性更好)
+                if encoding and encoding.upper() in ['BIG5', 'CP950']:
+                    return 'cp950'
+                # 如果偵測到UTF-8 with BOM
+                if encoding and encoding.upper() in ['UTF-8-SIG', 'UTF-8']:
+                    return 'utf-8-sig'
+                return encoding if encoding else 'utf-8-sig'
+        except:
+            # 如果偵測失敗,嘗試常見的編碼順序
+            return 'utf-8-sig'
     
     def parse_date(self, date_value):
         """解析日期值"""
@@ -147,11 +166,25 @@ class OwnerImporter(BaseImporter):
         
         return self.result
     
-    def import_from_csv(self, file_path, encoding='utf-8-sig'):
+    def import_from_csv(self, file_path, encoding=None):
         """從 CSV 檔案匯入業主資料"""
         try:
-            with open(file_path, 'r', encoding=encoding) as file:
-                reader = csv.reader(file)
+            # 自動偵測編碼
+            if encoding is None:
+                encoding = self.detect_encoding(file_path)
+            
+            with open(file_path, 'r', encoding=encoding, errors='replace') as file:
+                # 使用 Sniffer 自動偵測分隔符號
+                sample = file.read(1024)
+                file.seek(0)
+                try:
+                    sniffer = csv.Sniffer()
+                    delimiter = sniffer.sniff(sample).delimiter
+                except:
+                    # 如果偵測失敗，預設使用逗號
+                    delimiter = ','
+                
+                reader = csv.reader(file, delimiter=delimiter)
                 next(reader)  # 跳過標題列
                 
                 with transaction.atomic():
@@ -326,11 +359,25 @@ class ProjectImporter(BaseImporter):
         
         return self.result
     
-    def import_from_csv(self, file_path, encoding='utf-8-sig'):
+    def import_from_csv(self, file_path, encoding=None):
         """從 CSV 檔案匯入專案資料"""
         try:
-            with open(file_path, 'r', encoding=encoding) as file:
-                reader = csv.reader(file)
+            # 自動偵測編碼
+            if encoding is None:
+                encoding = self.detect_encoding(file_path)
+            
+            with open(file_path, 'r', encoding=encoding, errors='replace') as file:
+                # 使用 Sniffer 自動偵測分隔符號
+                sample = file.read(1024)
+                file.seek(0)
+                try:
+                    sniffer = csv.Sniffer()
+                    delimiter = sniffer.sniff(sample).delimiter
+                except:
+                    # 如果偵測失敗,預設使用逗號
+                    delimiter = ','
+                
+                reader = csv.reader(file, delimiter=delimiter)
                 headers = next(reader)  # 讀取標題列
                 
                 # 映射 CSV 欄位
@@ -438,7 +485,8 @@ class ProjectImporter(BaseImporter):
             # 查找或新增類別
             # 解析類別代碼和描述
             category_data = data["category_code"]
-            match = re.match(r'^([A-Za-z]+)\s*(.*)$', category_data)
+            # 修改正規表達式,支援英文字母加數字的組合 (如 E01, A1, BC23 等)
+            match = re.match(r'^([A-Za-z]+\d*)\s*(.*)$', category_data)
             if match:
                 code = match.group(1)
                 description = match.group(2) or "此類別從excel自動新增"
@@ -555,10 +603,10 @@ class ProjectImporter(BaseImporter):
                 owner=owner,
                 year=year,
                 project_number=project_number,
-                name=data.get("project_name"),
-                drawing=data.get("drawing_name"),
-                contact_info=data.get("contact_info"),
-                notes=data.get("notes"),
+                name=data.get("project_name") or "",
+                drawing=data.get("drawing_name") or "",
+                contact_info=data.get("contact_info") or "",
+                notes=data.get("notes") or "",
                 status=status,  # 使用 status 而不是 is_completed
                 category=category,
                 is_invoiced=is_invoiced,
@@ -566,7 +614,7 @@ class ProjectImporter(BaseImporter):
                 invoice_amount=invoice_amount,
                 payment_date=payment_date,
                 invoice_issue_date=invoice_issue_date,
-                invoice_notes=data.get("invoice_notes"),
+                invoice_notes=data.get("invoice_notes") or "",
                 is_paid=is_paid,
             )
 
