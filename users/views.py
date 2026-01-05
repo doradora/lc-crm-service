@@ -93,7 +93,9 @@ class ImpersonateView(APIView):
             target_user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return JsonResponse({'error': '找不到該用戶'}, status=404)
-        # 切換 session
+        # 切換 session - 明確指定認證後端
+        # 由於有多個認證後端,必須指定 backend 參數
+        target_user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, target_user)
         return JsonResponse({'message': f'已切換為 {target_user.first_name}{target_user.last_name} 身份'})
 
