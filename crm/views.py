@@ -553,7 +553,7 @@ class ProjectViewSet(BaseViewSet):
                 project_number='9999'
             )
         
-        return queryset.order_by("-year", "project_number")
+        return queryset.order_by("-year", "category__code", "project_number")
 
     @action(detail=False, methods=["get"])
     def years(self, request):
