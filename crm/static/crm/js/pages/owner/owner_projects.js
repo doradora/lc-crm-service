@@ -12,6 +12,7 @@ const ownerProjectsApp = createApp({
       categoryFilter: "",
       yearFilter: "",
       completedFilter: "", // 新增 completedFilter 狀態欄位
+      orderBy: "category", // 排序方式:time(依時間排序) 或 category(年度->案件類別->案件編號)
       currentPage: 1,
       totalPages: 1,
       pageSize: 10,
@@ -108,6 +109,14 @@ const ownerProjectsApp = createApp({
       // 新的狀態篩選，支援四種狀態
       if (this.completedFilter) {
         url += `&status=${this.completedFilter}`;
+      }
+
+      // 添加排序參數
+      if (this.orderBy === "category") {
+        url += `&ordering=-year,category__code,project_number`;
+      } else {
+        // 預設依時間排序(依年份降冪、案件編號升冪)
+        url += `&ordering=-year,project_number`;
       }
 
       fetch(url)
@@ -441,6 +450,8 @@ const ownerProjectsApp = createApp({
     resetFilters() {
       this.categoryFilter = "";
       this.yearFilter = "";
+      this.completedFilter = "";
+      this.orderBy = "time";
       this.fetchOwnerProjects(1);
     },
   },

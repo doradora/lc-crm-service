@@ -77,6 +77,13 @@
                             <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
                           </select>
                         </div>
+                        <div class="mb-5">
+                          <label class="form-label fw-semibold">排序方式:</label>
+                          <select class="form-select" v-model="orderBy" data-placeholder="排序方式">
+                            <option value="time">依時間排序</option>
+                            <option value="category">年度→案件類別→案件編號</option>
+                          </select>
+                        </div>
                         <div class="d-flex justify-content-end">
                           <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2"
                             data-kt-menu-dismiss="true" @click="resetFilters">重設</button>
@@ -182,7 +189,8 @@
               <!-- 左側:總數和頁碼資訊 -->
               <div class="d-flex align-items-center" v-if="totalCount > 0">
                 <span class="text-gray-700 fw-bold me-3">共 [[ totalCount ]] 項</span>
-                <span class="text-gray-500">第 [[ (currentPage - 1) * pageSize + 1 ]] 至 [[ Math.min(currentPage * pageSize, totalCount) ]] 筆</span>
+                <span class="text-gray-500">第 [[ (currentPage - 1) * pageSize + 1 ]] 至 [[ Math.min(currentPage *
+                  pageSize, totalCount) ]] 筆</span>
               </div>
               <!-- 右側:分頁按鈕 -->
               <ul class="pagination">

@@ -553,7 +553,17 @@ class ProjectViewSet(BaseViewSet):
                 project_number='9999'
             )
         
-        return queryset.order_by("-year", "category__code", "project_number")
+        # 處理排序參數
+        ordering = self.request.query_params.get("ordering", None)
+        if ordering:
+            # 將逗號分隔的排序字串轉換為列表
+            order_fields = [field.strip() for field in ordering.split(',')]
+            queryset = queryset.order_by(*order_fields)
+        else:
+            # 預設排序:年度->案件類別->案件編號
+            queryset = queryset.order_by("-year", "category__code", "project_number")
+        
+        return queryset
 
     @action(detail=False, methods=["get"])
     def years(self, request):

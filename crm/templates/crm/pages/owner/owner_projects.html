@@ -76,6 +76,14 @@
                                                             :value="year">[[ year ]]</option>
                                                     </select>
                                                 </div>
+                                                <div class="mb-5">
+                                                    <label class="form-label fw-semibold">排序方式:</label>
+                                                    <select class="form-select" v-model="orderBy"
+                                                        data-placeholder="排序方式">
+                                                        <option value="time">依時間排序</option>
+                                                        <option value="category">年度→案件類別→案件編號</option>
+                                                    </select>
+                                                </div>
                                                 <div class="d-flex justify-content-end">
                                                     <button type="button"
                                                         class="btn btn-sm btn-light btn-active-light-primary me-2"

@@ -14,6 +14,7 @@ const projectList = createApp({
       completedFilter: "",
       startYearFilter: "", // 開始年份
       endYearFilter: "", // 結束年份
+      orderBy: "category", // 排序方式:time(依時間排序) 或 category(年度->案件類別->案件編號)
       activeMenu: null,
       currentPage: 1,
       totalPages: 1,
@@ -324,6 +325,14 @@ const projectList = createApp({
 
       if (this.endYearFilter) {
         url += `&year_end=${this.endYearFilter}`;
+      }
+
+      // 添加排序參數
+      if (this.orderBy === "category") {
+        url += `&ordering=-year,category__code,project_number`;
+      } else {
+        // 預設依時間排序(依年份降冪、案件編號升冪)
+        url += `&ordering=-year,project_number`;
       }
 
       fetch(url)
@@ -1048,6 +1057,7 @@ const projectList = createApp({
       this.completedFilter = "";
       this.startYearFilter = "";
       this.endYearFilter = "";
+      this.orderBy = "time";
       this.fetchProjects(1);
     },
 
