@@ -104,6 +104,24 @@ const projectDetail = createApp({
 
       // 控制必填欄位紅框顯示
       showRequiredFieldErrors: false,
+
+      // 新增請款單相關數據
+      companys: [],
+      companyFilter: "",
+      companySearchText: "",
+      filteredCompanys: [],
+      showCompanyDropdown: false,
+      selectedBankAccount: null,
+      isLoadingBankAccounts: false,
+      lastSelectedCompanyId: null,
+      companySearchTimeout: null,
+
+      newPayment: {
+        payment_number: "",
+        date_issued: new Date().toISOString().split("T")[0],
+        due_date: "",
+        notes: "",
+      },
     };
   },
   computed: {
@@ -1462,6 +1480,248 @@ const projectDetail = createApp({
       return this.project.related_payments.reduce((total, payment) => {
         return total + (payment.total_received || 0);
       }, 0);
+    },
+
+    // ========== 收款公司相關方法 ==========
+
+    // 獲取收款公司列表
+    fetchCompanys() {
+      fetch(`/crm/api/companys/?format=json&page_size=1000`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.results) {
+            this.companys = data.results;
+            this.filteredCompanys = this.companys.slice(0, 10);
+          } else {
+            this.companys = [];
+            this.filteredCompanys = [];
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching companys:", error);
+          this.companys = [];
+          this.filteredCompanys = [];
+        });
+    },
+
+    // 搜尋收款公司(防抖處理)
+    searchCompanys() {
+      if (this.companySearchTimeout) {
+        clearTimeout(this.companySearchTimeout);
+      }
+
+      this.companySearchTimeout = setTimeout(() => {
+        if (!this.companySearchText.trim()) {
+          this.filteredCompanys = this.companys.slice(0, 10);
+          return;
+        }
+
+        const searchText = this.companySearchText.toLowerCase().trim();
+        this.filteredCompanys = this.companys
+          .filter(
+            (company) =>
+              company.name.toLowerCase().includes(searchText) ||
+              (company.tax_id && company.tax_id.includes(searchText))
+          )
+          .slice(0, 10);
+
+        this.showCompanyDropdown = true;
+      }, 300);
+    },
+
+    // 選擇收款公司
+    selectCompany(company) {
+      this.companyFilter = company.id;
+      this.companySearchText = company.name;
+      this.showCompanyDropdown = false;
+
+      // 只有當選擇的公司不同時才獲取銀行帳戶資訊
+      if (this.lastSelectedCompanyId !== company.id) {
+        this.fetchCompanyBankAccounts(company.id);
+        this.lastSelectedCompanyId = company.id;
+      }
+    },
+
+    // 獲取公司的銀行帳戶資訊
+    fetchCompanyBankAccounts(companyId) {
+      if (this.isLoadingBankAccounts) {
+        return;
+      }
+
+      this.isLoadingBankAccounts = true;
+
+      fetch(`/crm/api/companys/${companyId}/`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.first_bank_account) {
+            this.selectedBankAccount = data.first_bank_account;
+            console.log("自動選擇第一個銀行帳戶:", this.selectedBankAccount);
+          } else {
+            this.selectedBankAccount = null;
+            console.log("該公司沒有銀行帳戶");
+          }
+        })
+        .catch((error) => {
+          console.error("獲取銀行帳戶失敗:", error);
+          this.selectedBankAccount = null;
+        })
+        .finally(() => {
+          this.isLoadingBankAccounts = false;
+        });
+    },
+
+    // 清除收款公司選擇
+    clearCompanySelection() {
+      this.companyFilter = "";
+      this.companySearchText = "";
+      this.filteredCompanys = [];
+      this.showCompanyDropdown = false;
+      this.selectedBankAccount = null;
+      this.lastSelectedCompanyId = null;
+    },
+
+    // 關閉收款公司下拉選單
+    closeCompanyDropdown() {
+      this.showCompanyDropdown = false;
+
+      if (this.companySearchText) {
+        const matchingCompany = this.companys.find(
+          (company) =>
+            company.name.toLowerCase() === this.companySearchText.toLowerCase()
+        );
+
+        if (matchingCompany) {
+          this.companyFilter = matchingCompany.id;
+          this.companySearchText = matchingCompany.name;
+          if (this.lastSelectedCompanyId !== matchingCompany.id) {
+            this.fetchCompanyBankAccounts(matchingCompany.id);
+            this.lastSelectedCompanyId = matchingCompany.id;
+          }
+        } else {
+          this.companyFilter = "";
+          this.selectedBankAccount = null;
+          this.lastSelectedCompanyId = null;
+        }
+      } else {
+        this.companyFilter = "";
+        this.selectedBankAccount = null;
+        this.lastSelectedCompanyId = null;
+      }
+    },
+
+    // ========== 新增請款單 Modal 相關方法 ==========
+
+    // 顯示新增請款單 Modal
+    showAddPaymentModal() {
+      // 設置今天日期為預設發行日期
+      this.newPayment.date_issued = new Date().toISOString().split("T")[0];
+
+      // 生成預設請款單號
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const random = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0");
+
+      this.newPayment.payment_number = `P${year}${month}${day}-${random}`;
+
+      // 顯示 Modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("addPaymentModal")
+      );
+      modal.show();
+    },
+
+    // 隱藏新增請款單 Modal
+    hideAddPaymentModal() {
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("addPaymentModal")
+      );
+      if (modal) {
+        modal.hide();
+      }
+    },
+
+    // 提交請款單表單
+    submitPaymentForm() {
+      // 表單驗證
+      if (!this.project.owner) {
+        Swal.fire({
+          title: "驗證失敗!",
+          text: "專案尚未指定業主",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      if (!this.companyFilter) {
+        Swal.fire({
+          title: "驗證失敗!",
+          text: "請選擇收款公司",
+          icon: "warning",
+          confirmButtonText: "確定",
+        });
+        return;
+      }
+
+      // 準備請款單資料(專案已確定，金額設為 0)
+      const paymentData = {
+        payment_number: this.newPayment.payment_number,
+        date_issued: this.newPayment.date_issued,
+        payment_projects: [
+          {
+            project: this.projectId,
+            amount: 0, // 預設金額為 0，稍後在詳情頁設定
+          },
+        ],
+        owner: this.project.owner,
+        company: this.companyFilter,
+      };
+
+      // 送出API請求創建請款單
+      fetch("/crm/api/payments/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector(
+            "input[name='csrfmiddlewaretoken']"
+          ).value,
+        },
+        body: JSON.stringify(paymentData),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((err) => {
+              throw new Error(JSON.stringify(err));
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.hideAddPaymentModal();
+
+          // 顯示成功提示並導航到請款單詳情頁面
+          Swal.fire({
+            title: "成功!",
+            text: `請款單 ${data.payment_number} 已成功建立`,
+            icon: "success",
+            confirmButtonText: "前往請款單詳情",
+          }).then(() => {
+            window.location.href = `/crm/payment/${data.id}/details/`;
+          });
+        })
+        .catch((error) => {
+          console.error("建立請款單失敗:", error);
+          Swal.fire({
+            title: "錯誤!",
+            text: "建立請款單失敗，請檢查資料後重試",
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+        });
     }
   },
   mounted() {
@@ -1486,6 +1746,7 @@ const projectDetail = createApp({
     this.fetchUsers();
     this.fetchProjectDetails();
     this.currentUser = window.CURRENT_USER_DATA || {};
+    this.fetchCompanys();
 
     // 監聴標籤頁切換事件
     document.querySelectorAll('a[data-bs-toggle="tab"]').forEach((tab) => {
@@ -1499,5 +1760,10 @@ const projectDetail = createApp({
   unmounted() {
     // 組件銷毀時，移除事件監聽器以避免記憶體洩漏
     document.removeEventListener("click", this.handleClickOutside);
+
+    // 清理計時器
+    if (this.companySearchTimeout) {
+      clearTimeout(this.companySearchTimeout);
+    }
   },
 }).mount("#app_main");

@@ -731,8 +731,11 @@
                   </div>
                 </div>
               </div>
-              <div v-else class="alert alert-light-warning">
-                此專案尚未有請款記錄
+              <div v-else class="alert alert-light-warning d-flex justify-content-between align-items-center">
+                <span>此專案尚未有請款記錄</span>
+                <button class="btn btn-sm btn-primary" @click="showAddPaymentModal">
+                  <i class="ki-outline ki-plus fs-5 me-2"></i>建立請款單
+                </button>
               </div>
             </div>
           </div>
@@ -1000,6 +1003,115 @@
     </div>
   </div>
   <!-- 結束新增業主 Modal -->
+
+  <!-- 新增請款單 Modal -->
+  <div class="modal fade" tabindex="-1" id="addPaymentModal" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addPaymentModalLabel">新增請款單</h5>
+          <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideAddPaymentModal"
+            aria-label="Close">
+            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+          </div>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitPaymentForm">
+            <div class="mb-3">
+              <label class="form-label required">業主</label>
+              <div class="input-group">
+                <input type="text" class="form-control text-muted" :value="project.owner_name || getOwnerName" readonly>
+              </div>
+              <div class="text-muted mt-1">此專案的業主已自動選擇</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">收款公司</label>
+              <div class="position-relative" v-click-outside="closeCompanyDropdown">
+                <div class="input-group">
+                  <input type="text" class="form-control" v-model="companySearchText" @input="searchCompanys"
+                    @focus="showCompanyDropdown = true" placeholder="搜尋收款公司..." required>
+                  <button class="btn btn-light" type="button" @click="clearCompanySelection" v-if="companyFilter">
+                    <i class="ki-outline ki-cross fs-2"></i>
+                  </button>
+                </div>
+                <!-- 自動完成下拉選單 -->
+                <div class="dropdown-menu w-100 position-absolute" :class="{'show': showCompanyDropdown}"
+                  style="max-height: 300px; overflow-y: auto">
+                  <div v-if="filteredCompanys.length === 0" class="dropdown-item text-muted">無符合條件的公司</div>
+                  <a v-for="company in filteredCompanys" :key="company.id" class="dropdown-item" href="#"
+                    @click.prevent="selectCompany(company)">
+                    [[company.name]]
+                    <span v-if="company.tax_id" class="text-muted">([[company.tax_id]])</span>
+                  </a>
+                </div>
+              </div>
+              <!-- 載入銀行帳戶資訊指示器 -->
+              <div v-if="isLoadingBankAccounts" class="mt-2 p-3 bg-light border rounded text-center">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                  <span class="visually-hidden">載入中...</span>
+                </div>
+                <small class="text-muted">正在載入銀行帳戶資訊...</small>
+              </div>
+              <!-- 顯示選中的銀行帳戶資訊 -->
+              <div v-else-if="selectedBankAccount" class="mt-2 p-3 bg-light-primary border border-primary rounded">
+                <h6 class="text-primary mb-2">
+                  <i class="ki-outline ki-bank fs-4 me-2"></i>預設收款帳戶(第一筆銀行帳戶)
+                </h6>
+                <div class="row">
+                  <div class="col-6">
+                    <small class="text-muted">戶名：</small><br>
+                    <span class="fw-bold">[[ selectedBankAccount.account_name ]]</span>
+                  </div>
+                  <div class="col-6">
+                    <small class="text-muted">帳號：</small><br>
+                    <span class="fw-bold">[[ selectedBankAccount.account_number ]]</span>
+                  </div>
+                  <div class="col-6 mt-2">
+                    <small class="text-muted">銀行：</small><br>
+                    <span>[[ selectedBankAccount.bank_name ]]</span>
+                  </div>
+                  <div class="col-6 mt-2">
+                    <small class="text-muted">代碼：</small><br>
+                    <span>[[ selectedBankAccount.bank_code ]]</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="companyFilter" class="mt-2 p-3 bg-light-warning border border-warning rounded">
+                <small class="text-warning">
+                  <i class="ki-outline ki-warning fs-5 me-1"></i>
+                  該收款公司尚未設定銀行帳戶，可稍後於收款公司頁面新增
+                </small>
+              </div>
+              <div v-if="selectedBankAccount" class="text-primary form-label">
+                可稍候於請款單詳情變更收款帳戶
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">請款單號</label>
+              <input type="text" class="form-control" v-model="newPayment.payment_number" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">發行日期</label>
+              <input type="date" max="9999-12-31" class="form-control" v-model="newPayment.date_issued" required>
+            </div>
+            <h5 class="mt-4 mb-3">專案資訊</h5>
+            <div class="alert alert-light-info">
+              <strong>[[ project.name ]]</strong>
+              <br>
+              <small class="text-muted">案件編號：[[ project.year ]][[ project.category_detail.code ]][[
+                project.project_number ]]</small>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light" @click="hideAddPaymentModal">取消</button>
+              <button type="submit" class="btn btn-primary">建立請款單</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 結束新增請款單 Modal -->
+
   <!-- 新增支出的 Modal -->
   <div class="modal fade" tabindex="-1" id="addExpenditureModal" aria-labelledby="addExpenditureModalLabel"
     aria-hidden="true">
