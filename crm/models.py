@@ -60,17 +60,22 @@ class Project(models.Model):
         ('cancelled', '撤案'),
     ]
     
+    # === 基本資訊 ===
     owner = models.ForeignKey(Owner, on_delete=models.PROTECT)  # 所屬業主
     year = models.IntegerField()  # 年份
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True
+    )  # 案件類別
     project_number = models.CharField(
         max_length=100, blank=True, null=True
     )  # 案件編號，隨年度自動遞增，設置為可空白和可為null
     name = models.CharField(max_length=255)  # 案件名稱
     report_name = models.CharField(max_length=255, null=True)  # 報告名稱，設為非必填
+    
+    # === 人員資訊 ===
     # manager = models.ForeignKey(
     #     User, on_delete=models.SET_NULL, null=True, blank=True
-    # )  # 案件負責人，設為非必填
-    # 新增多對多關係
+    # )  # 案件負責人，設為非必填 (已廢棄，改用 managers)
     managers = models.ManyToManyField(
         User, related_name="managed_projects", blank=True, verbose_name="專案負責人"
     )
@@ -80,33 +85,38 @@ class Project(models.Model):
     drawing = models.CharField(
         max_length=255, blank=True, null=True
     )  # 繪圖，設為非必填
-    contact_info = models.TextField(blank=True)  # 聯絡方式，設為非必填
-    notes = models.TextField(blank=True)  # 備註，設為非必填
+    
+    # === 專案狀態與其他資訊 ===
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='in_progress',
         verbose_name='專案狀態'
-    )  # 專案狀態
-    category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True
-    )  # 案件類別
-    total_expenditure = models.DecimalField(
-        max_digits=10, decimal_places=0, default=0
-    )  # 總支出，設定預設值
+    )  # 專案狀態 (進行中/暫停/已完成/撤案)
+    contact_info = models.TextField(blank=True)  # 聯絡方式，設為非必填
+    notes = models.TextField(blank=True)  # 備註，設為非必填
+    
+    # === 財務資訊 ===
     quoted_amount = models.DecimalField(
         max_digits=10, decimal_places=0, null=True, blank=True
     )  # 報價金額，作為請款與收款比對基準
-    is_invoiced = models.BooleanField(default=False)  # 是否請款
-    invoice_date = models.DateField(null=True, blank=True)  # 請款日期
+    total_expenditure = models.DecimalField(
+        max_digits=10, decimal_places=0, default=0
+    )  # 總支出，設定預設值
+    
+    # === 自定義欄位 ===
+    custom_fields = models.JSONField(default=dict, blank=True)  # 自定義欄位資料
+    
+    # === 舊系統匯入欄位 (過時資料，僅供查詢) ===
+    is_invoiced = models.BooleanField(default=False)  # [舊系統] 是否請款
+    invoice_date = models.DateField(null=True, blank=True)  # [舊系統] 請款日期
     invoice_amount = models.DecimalField(
         max_digits=10, decimal_places=0, null=True, blank=True
-    )  # 請款金額
-    payment_date = models.DateField(null=True, blank=True)  # 收款日期
-    invoice_issue_date = models.DateField(null=True, blank=True)  # 發票日期
-    invoice_notes = models.TextField(null=True, blank=True)  # 請款備註
-    is_paid = models.BooleanField(default=False)  # 是否收款
-    custom_fields = models.JSONField(default=dict, blank=True)
+    )  # [舊系統] 請款金額
+    payment_date = models.DateField(null=True, blank=True)  # [舊系統] 收款日期
+    invoice_issue_date = models.DateField(null=True, blank=True)  # [舊系統] 發票日期
+    invoice_notes = models.TextField(null=True, blank=True)  # [舊系統] 請款備註
+    is_paid = models.BooleanField(default=False)  # [舊系統] 是否收款
 
     class Meta:
         unique_together = (

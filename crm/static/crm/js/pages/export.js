@@ -4,10 +4,51 @@ const exportApp = createApp({
     return {
       isLoading: false,
       exportHistory: [],
-      activeMenu: null
+      activeMenu: null,
+      categories: []  // 儲存類別列表
     };
   },
   methods: {
+    /**
+     * 顯示載入中動畫
+     */
+    showLoadingModal(message = '資料匯出中...') {
+      Swal.fire({
+        title: message,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+    },
+
+    /**
+     * 隱藏載入中動畫
+     */
+    hideLoadingModal() {
+      Swal.close();
+    },
+
+    /**
+     * 載入所有類別
+     */
+    async loadCategories() {
+      try {
+        const response = await fetch('/crm/api/categories/?page_size=1000', {
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          },
+        });
+        const data = await response.json();
+        this.categories = data.results || [];
+      } catch (error) {
+        console.error('載入類別失敗:', error);
+        this.categories = [];
+      }
+    },
+
     /**
      * 取得年份選項（2000~今年）
      */
@@ -32,12 +73,109 @@ const exportApp = createApp({
     },
 
     /**
+     * 彈出年份區間選擇 Swal（專案專用，包含類別選擇），回傳 {year_start, year_end, category, select_all} 或 null
+     */
+    async selectYearRangeWithCategory() {
+      const years = this.getYearOptions();
+      const yearOptions = years.map(y => `<option value='${y}'>${y}</option>`).join('');
+      const categoryOptions = this.categories.map(c => `<option value='${c.id}'>${c.code} - ${c.description}</option>`).join('');
+
+      const { value: formValues } = await Swal.fire({
+        title: '選擇匯出條件',
+        html:
+          `<div class='mb-3'>\n` +
+          `<label class='form-check-label'>\n` +
+          `<input type='checkbox' id='swal-select-all' class='form-check-input me-2' checked>\n` +
+          `匯出全部資料\n` +
+          `</label>\n` +
+          `</div>\n` +
+          `<div id='filter-section'>\n` +
+          `<div class='row mb-3'>\n` +
+          `<div class='col-12'>\n` +
+          `<label class='form-label mb-2'>案件類別（選填）</label>\n` +
+          `<select id='swal-category' class='form-select' disabled><option value=''>全部類別</option>${categoryOptions}</select>\n` +
+          `</div>\n` +
+          `</div>\n` +
+          `<div class='row mb-3'>\n` +
+          `<div class='col-6'>\n` +
+          `<label class='form-label mb-2'>開始年份</label>\n` +
+          `<select id='swal-year-start' class='form-select' disabled><option value=''>選擇年份</option>${yearOptions}</select>\n` +
+          `</div>\n` +
+          `<div class='col-6'>\n` +
+          `<label class='form-label mb-2'>結束年份</label>\n` +
+          `<select id='swal-year-end' class='form-select' disabled><option value=''>選擇年份</option>${yearOptions}</select>\n` +
+          `</div>\n` +
+          `</div>\n` +
+          `</div>`,
+        width: '480px',
+        heightAuto: false,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '匯出',
+        cancelButtonText: '取消',
+        customClass: {
+          popup: 'swal-wide-popup',
+          htmlContainer: 'swal-html-container'
+        },
+        didOpen: () => {
+          const selectAllCheckbox = document.getElementById('swal-select-all');
+          const categorySelect = document.getElementById('swal-category');
+          const yearStartSelect = document.getElementById('swal-year-start');
+          const yearEndSelect = document.getElementById('swal-year-end');
+
+          selectAllCheckbox.addEventListener('change', function () {
+            const isDisabled = this.checked;
+            categorySelect.disabled = isDisabled;
+            yearStartSelect.disabled = isDisabled;
+            yearEndSelect.disabled = isDisabled;
+
+            if (isDisabled) {
+              categorySelect.value = '';
+              yearStartSelect.value = '';
+              yearEndSelect.value = '';
+            }
+          });
+        },
+        preConfirm: () => {
+          const select_all = document.getElementById('swal-select-all').checked;
+
+          if (select_all) {
+            return { select_all: true };
+          }
+
+          const category = document.getElementById('swal-category').value;
+          const year_start = document.getElementById('swal-year-start').value;
+          const year_end = document.getElementById('swal-year-end').value;
+
+          if (!category && !year_start && !year_end) {
+            return { select_all: true };
+          }
+
+          if (year_start && year_end && parseInt(year_start) > parseInt(year_end)) {
+            Swal.showValidationMessage('開始年份不能晚於結束年份');
+            return false;
+          }
+
+          return {
+            select_all: false,
+            category: category,
+            year_start: year_start,
+            year_end: year_end
+          };
+        }
+      });
+
+      if (!formValues) return null;
+      return formValues;
+    },
+
+    /**
      * 彈出年份區間選擇 Swal，回傳 {year_start, year_end, select_all} 或 null
      */
     async selectYearRange() {
       const years = this.getYearOptions();
       const yearOptions = years.map(y => `<option value='${y}'>${y}</option>`).join('');
-      
+
       const { value: formValues } = await Swal.fire({
         title: '選擇年份區間',
         html:
@@ -73,12 +211,12 @@ const exportApp = createApp({
           const selectAllCheckbox = document.getElementById('swal-select-all');
           const yearStartSelect = document.getElementById('swal-year-start');
           const yearEndSelect = document.getElementById('swal-year-end');
-          
-          selectAllCheckbox.addEventListener('change', function() {
+
+          selectAllCheckbox.addEventListener('change', function () {
             const isDisabled = this.checked;
             yearStartSelect.disabled = isDisabled;
             yearEndSelect.disabled = isDisabled;
-            
+
             if (isDisabled) {
               yearStartSelect.value = '';
               yearEndSelect.value = '';
@@ -87,23 +225,23 @@ const exportApp = createApp({
         },
         preConfirm: () => {
           const select_all = document.getElementById('swal-select-all').checked;
-          
+
           if (select_all) {
             return { select_all: true };
           }
-          
+
           const year_start = document.getElementById('swal-year-start').value;
           const year_end = document.getElementById('swal-year-end').value;
-          
+
           if (!year_start && !year_end) {
             return { select_all: true };
           }
-          
+
           if (year_start && year_end && parseInt(year_start) > parseInt(year_end)) {
             Swal.showValidationMessage('開始年份不能晚於結束年份');
             return false;
           }
-          
+
           return {
             select_all: false,
             year_start: year_start,
@@ -111,7 +249,7 @@ const exportApp = createApp({
           };
         }
       });
-      
+
       if (!formValues) return null;
       return formValues;
     },
@@ -124,7 +262,7 @@ const exportApp = createApp({
       const months = this.getMonthOptions();
       const yearOptions = years.map(y => `<option value='${y}'>${y}</option>`).join('');
       const monthOptions = months.map(m => `<option value='${m.value}'>${m.text}</option>`).join('');
-      
+
       const { value: formValues } = await Swal.fire({
         title: '選擇請款年月區間',
         html:
@@ -172,14 +310,14 @@ const exportApp = createApp({
           const monthStartSelect = document.getElementById('swal-month-start');
           const yearEndSelect = document.getElementById('swal-year-end');
           const monthEndSelect = document.getElementById('swal-month-end');
-          
-          selectAllCheckbox.addEventListener('change', function() {
+
+          selectAllCheckbox.addEventListener('change', function () {
             const isDisabled = this.checked;
             yearStartSelect.disabled = isDisabled;
             monthStartSelect.disabled = isDisabled;
             yearEndSelect.disabled = isDisabled;
             monthEndSelect.disabled = isDisabled;
-            
+
             if (isDisabled) {
               yearStartSelect.value = '';
               monthStartSelect.value = '';
@@ -190,30 +328,30 @@ const exportApp = createApp({
         },
         preConfirm: () => {
           const select_all = document.getElementById('swal-select-all').checked;
-          
+
           if (select_all) {
             return { select_all: true };
           }
-          
+
           const year_start = document.getElementById('swal-year-start').value;
           const month_start = document.getElementById('swal-month-start').value;
           const year_end = document.getElementById('swal-year-end').value;
           const month_end = document.getElementById('swal-month-end').value;
-          
+
           if (!year_start && !month_start && !year_end && !month_end) {
             return { select_all: true };
           }
-          
+
           if ((year_start && !month_start) || (!year_start && month_start)) {
             Swal.showValidationMessage('請同時選擇開始年份和月份');
             return false;
           }
-          
+
           if ((year_end && !month_end) || (!year_end && month_end)) {
             Swal.showValidationMessage('請同時選擇結束年份和月份');
             return false;
           }
-          
+
           if (year_start && month_start && year_end && month_end) {
             const startDate = new Date(parseInt(year_start), parseInt(month_start) - 1);
             const endDate = new Date(parseInt(year_end), parseInt(month_end) - 1);
@@ -222,7 +360,7 @@ const exportApp = createApp({
               return false;
             }
           }
-          
+
           return {
             select_all: false,
             year_month_start: year_start && month_start ? `${year_start}-${month_start}` : '',
@@ -230,7 +368,7 @@ const exportApp = createApp({
           };
         }
       });
-      
+
       if (!formValues) return null;
       return formValues;
     },
@@ -240,19 +378,23 @@ const exportApp = createApp({
      */
     async exportProjects() {
       try {
-        const yearRange = await this.selectYearRange();
-        if (yearRange === null) return;
+        const filters = await this.selectYearRangeWithCategory();
+        if (filters === null) return;
         this.isLoading = true;
+        this.showLoadingModal('專案資料匯出中...');
         let url = '/crm/export/projects/csv/';
-        if (!yearRange.select_all && (yearRange.year_start || yearRange.year_end)) {
+        if (!filters.select_all && (filters.category || filters.year_start || filters.year_end)) {
           const params = [];
-          if (yearRange.year_start) params.push(`year_start=${yearRange.year_start}`);
-          if (yearRange.year_end) params.push(`year_end=${yearRange.year_end}`);
+          if (filters.category) params.push(`category=${filters.category}`);
+          if (filters.year_start) params.push(`year_start=${filters.year_start}`);
+          if (filters.year_end) params.push(`year_end=${filters.year_end}`);
           url += '?' + params.join('&');
         }
         await this.downloadFile(url);
+        this.hideLoadingModal();
         this.showSuccessMessage('專案資料匯出成功');
       } catch (error) {
+        this.hideLoadingModal();
         this.showErrorMessage('專案資料匯出失敗', error);
       } finally {
         this.isLoading = false;
@@ -266,10 +408,13 @@ const exportApp = createApp({
       try {
         // 不再彈出年份選擇
         this.isLoading = true;
+        this.showLoadingModal('業主資料匯出中...');
         let url = '/crm/export/owners/csv/';
         await this.downloadFile(url);
+        this.hideLoadingModal();
         this.showSuccessMessage('業主資料匯出成功');
       } catch (error) {
+        this.hideLoadingModal();
         this.showErrorMessage('業主資料匯出失敗', error);
       } finally {
         this.isLoading = false;
@@ -284,11 +429,11 @@ const exportApp = createApp({
         const dateRange = await this.selectPaymentDateRange();
         if (dateRange === null) return;
         this.isLoading = true;
-        
+
         // 構建匯出 URL
         let url = '/crm/export/payment-invoices/excel/';
         const params = new URLSearchParams();
-        
+
         // 添加日期範圍參數（使用日期格式而非年月格式）
         if (!dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
           if (dateRange.year_month_start) {
@@ -301,14 +446,17 @@ const exportApp = createApp({
             params.append('date_end', `${year}-${month}-${lastDay}`);
           }
         }
-        
+
         if (params.toString()) {
           url += '?' + params.toString();
         }
-        
+
+        this.showLoadingModal('請款資料匯出中...');
         await this.downloadFile(url);
+        this.hideLoadingModal();
         this.showSuccessMessage('請款資料匯出成功');
       } catch (error) {
+        this.hideLoadingModal();
         this.showErrorMessage('請款資料匯出失敗', error);
       } finally {
         this.isLoading = false;
@@ -323,6 +471,7 @@ const exportApp = createApp({
         const dateRange = await this.selectPaymentDateRange();
         if (dateRange === null) return;
         this.isLoading = true;
+        this.showLoadingModal('發票資料匯出中...');
         let url = '/crm/export/invoices/csv/';
         if (!dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
           const params = [];
@@ -331,8 +480,10 @@ const exportApp = createApp({
           url += '?' + params.join('&');
         }
         await this.downloadFile(url);
+        this.hideLoadingModal();
         this.showSuccessMessage('發票資料匯出成功');
       } catch (error) {
+        this.hideLoadingModal();
         this.showErrorMessage('發票資料匯出失敗', error);
       } finally {
         this.isLoading = false;
@@ -346,10 +497,13 @@ const exportApp = createApp({
       try {
         // 不再彈出年份選擇
         this.isLoading = true;
+        this.showLoadingModal('案件類別資料匯出中...');
         let url = '/crm/export/categories/csv/';
         await this.downloadFile(url);
+        this.hideLoadingModal();
         this.showSuccessMessage('案件類別資料匯出成功');
       } catch (error) {
+        this.hideLoadingModal();
         this.showErrorMessage('案件類別資料匯出失敗', error);
       } finally {
         this.isLoading = false;
@@ -384,9 +538,9 @@ const exportApp = createApp({
             const text = document.getElementById('export-progress-text');
             for (let i = 0; i < exportTasks.length; i++) {
               const task = exportTasks[i];
-              text.innerHTML = `正在匯出：<b>${task.name}</b> (${i+1}/${exportTasks.length})`;
+              text.innerHTML = `正在匯出：<b>${task.name}</b> (${i + 1}/${exportTasks.length})`;
               let url = task.url;
-              
+
               // 專案資料使用年份篩選，其他使用年月篩選
               if (task.useYear) {
                 // 專案資料：將年月轉換為年份
@@ -404,16 +558,16 @@ const exportApp = createApp({
                 }
               } else {
                 // 其他資料使用年月篩選
-                if ([2,3].includes(i) && !dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
+                if ([2, 3].includes(i) && !dateRange.select_all && (dateRange.year_month_start || dateRange.year_month_end)) {
                   const params = [];
                   if (dateRange.year_month_start) params.push(`year_month_start=${dateRange.year_month_start}`);
                   if (dateRange.year_month_end) params.push(`year_month_end=${dateRange.year_month_end}`);
                   url += '?' + params.join('&');
                 }
               }
-              
+
               await this.downloadFile(url);
-              current = Math.round(((i+1)/exportTasks.length)*100);
+              current = Math.round(((i + 1) / exportTasks.length) * 100);
               bar.style.width = current + '%';
               bar.innerText = current + '%';
               await new Promise(resolve => setTimeout(resolve, 500));
@@ -451,7 +605,7 @@ const exportApp = createApp({
         // 取得檔案名稱（如果有的話）
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = `export_${new Date().toISOString().split('T')[0]}.csv`;
-        
+
         if (contentDisposition) {
           // 首先嘗試解析 UTF-8 編碼的檔案名稱
           const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -471,7 +625,7 @@ const exportApp = createApp({
         }
 
         const blob = await response.blob();
-        
+
         // 創建下載連結
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -479,7 +633,7 @@ const exportApp = createApp({
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
+
         // 清理
         document.body.removeChild(link);
         window.URL.revokeObjectURL(downloadUrl);
@@ -516,7 +670,7 @@ const exportApp = createApp({
     showErrorMessage(message, error) {
       console.error(message, error);
       const errorText = error?.message || error || '未知錯誤';
-      
+
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',
@@ -529,9 +683,10 @@ const exportApp = createApp({
       }
     }
   },
-
-  mounted() {
+  async mounted() {
     console.log('Export app mounted');
+    // 載入類別資料
+    await this.loadCategories();
   }
 });
 

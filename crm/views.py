@@ -1325,7 +1325,7 @@ def copy_column_and_insert(ws, source_col: int, target_col: int):
 
 @login_required(login_url="signin")
 def export_projects_csv(request):
-    """匯出所有專案資料為 CSV 格式，支援年份篩選"""
+    """匯出所有專案資料為 CSV 格式，支援年份篩選和類別篩選，並包含自定義欄位（聯集模式）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
         raise PermissionDenied
     import csv
@@ -1340,9 +1340,10 @@ def export_projects_csv(request):
     response.write('\ufeff')
     writer = csv.writer(response)
     
-    # 取得查詢參數（只保留年份篩選）
+    # 取得查詢參數
     year_start = request.GET.get('year_start')
     year_end = request.GET.get('year_end')
+    category_id = request.GET.get('category')  # 新增：類別篩選參數
     
     projects = Project.objects.all().select_related('owner', 'category').prefetch_related('managers', 'quotations')
     
@@ -1351,39 +1352,149 @@ def export_projects_csv(request):
         projects = projects.filter(year__gte=year_start)
     if year_end:
         projects = projects.filter(year__lte=year_end)
+    
+    # 類別篩選
+    if category_id:
+        projects = projects.filter(category_id=category_id)
+    
+    # 排序：年度→案件類別→案件編號，但「其他」專案排在最後
+    # 先排除「其他」專案
+    other_projects = projects.filter(
+        name='其他',
+        category__code='OTHER',
+        project_number='9999'
+    ).order_by('-year')
+    
+    # 一般專案正常排序
+    normal_projects = projects.exclude(
+        name='其他',
+        category__code='OTHER',
+        project_number='9999'
+    ).order_by('-year', 'category__code', 'project_number')
+    
+    # 合併：一般專案在前，「其他」專案在後
+    from itertools import chain
+    projects = list(chain(normal_projects, other_projects))
+    
+    # === 收集所有自定義欄位（聯集模式） ===
+    all_custom_fields = {}  # {欄位名稱: 顯示名稱}
+    
+    # 方法1：從所有相關的 Category 收集欄位定義
+    if category_id:
+        # 如果有指定類別，只收集該類別的自定義欄位
+        try:
+            category = Category.objects.get(id=category_id)
+            category_fields = category.get_custom_fields()
+            for field_name, field_config in category_fields.items():
+                all_custom_fields[field_name] = field_config.get('display_name', field_name)
+        except Category.DoesNotExist:
+            pass
+    else:
+        # 沒有指定類別，收集所有專案涉及的類別的自定義欄位
+        # 因為 projects 已經是 list，需要從原始 queryset 取得 category_id
+        category_ids = set()
+        for project in projects:
+            if project.category_id:
+                category_ids.add(project.category_id)
+        categories = Category.objects.filter(id__in=category_ids)
+        
+        for category in categories:
+            category_fields = category.get_custom_fields()
+            for field_name, field_config in category_fields.items():
+                if field_name not in all_custom_fields:
+                    all_custom_fields[field_name] = field_config.get('display_name', field_name)
+    
+    # 將自定義欄位按 order 排序（如果有的話）
+    sorted_custom_fields = []
+    if category_id:
+        try:
+            category = Category.objects.get(id=category_id)
+            category_fields = category.get_custom_fields()
+            # 按 order 排序
+            sorted_fields = sorted(
+                category_fields.items(),
+                key=lambda x: x[1].get('order', 999)
+            )
+            sorted_custom_fields = [(name, config.get('display_name', name)) for name, config in sorted_fields]
+        except Category.DoesNotExist:
+            sorted_custom_fields = sorted(all_custom_fields.items())
+    else:
+        sorted_custom_fields = sorted(all_custom_fields.items())
+    
+    # 建立標題列
     headers = [
-        '年份', '案件類別', '案件編號', '案件名稱', '業主', 
-        '負責人', '繪圖', '聯絡方式', '報價', '是否完成', 
-        '請款日期', '請款金額', '收款日期', '發票日期', 
-        '是否請款', '是否收款', '備註'
+        '年份', '案件類別', '案件編號', '案件名稱', '報告名稱', '業主', 
+        '負責人', '監造人員', '繪圖', '聯絡方式', '專案狀態', 
+        '報價金額', '總支出', '備註',
     ]
+    
+    # 加入自定義欄位標題
+    for field_name, display_name in sorted_custom_fields:
+        headers.append(display_name)
+    
+    # 加入舊系統欄位
+    headers.extend([
+        # 以下為舊系統匯入欄位(過時資料)
+        '是否請款', '請款日期', '請款金額', '收款日期', '發票日期', 
+        '是否收款', '請款備註'
+    ])
+    
     writer.writerow(headers)
+    
+    # 寫入專案資料
     for project in projects:
         managers_names = ', '.join([
             manager.profile.name if hasattr(manager, 'profile') and manager.profile.name else manager.username
             for manager in project.managers.all()
         ])
-        quotations_list = project.quotations.all()
-        quotations_text = ', '.join([f'${{q.amount}}' for q in quotations_list]) if quotations_list.exists() else ''
+        supervisors_names = ', '.join([
+            supervisor.profile.name if hasattr(supervisor, 'profile') and supervisor.profile.name else supervisor.username
+            for supervisor in project.supervisors.all()
+        ])
+        # 取得專案狀態的顯示名稱
+        status_display = dict(Project.STATUS_CHOICES).get(project.status, project.status)
+        
+        # 基本欄位
         row = [
             project.year,
             f"{project.category.code}:{project.category.description}" if project.category else '',
             str(project.project_number) if project.project_number else '',
             project.name,
+            project.report_name if project.report_name else '',
             project.owner.company_name if project.owner else '',
             managers_names,
-            project.drawing,
+            supervisors_names,
+            project.drawing if project.drawing else '',
             project.contact_info,
-            quotations_text,
-            '是' if project.is_completed else '否',
+            status_display,
+            project.quoted_amount if project.quoted_amount else '',
+            project.total_expenditure,
+            project.notes,
+        ]
+        
+        # 加入自定義欄位值
+        project_custom_fields = project.get_all_custom_fields()
+        for field_name, display_name in sorted_custom_fields:
+            field_value = project_custom_fields.get(field_name, '')
+            # 格式化值
+            if isinstance(field_value, bool):
+                field_value = '是' if field_value else '否'
+            elif field_value is None:
+                field_value = ''
+            row.append(field_value)
+        
+        # 加入舊系統欄位
+        row.extend([
+            # 以下為舊系統匯入資料(過時)
+            '是' if project.is_invoiced else '否',
             project.invoice_date.strftime('%Y-%m-%d') if project.invoice_date else '',
             project.invoice_amount if project.invoice_amount else '',
             project.payment_date.strftime('%Y-%m-%d') if project.payment_date else '',
             project.invoice_issue_date.strftime('%Y-%m-%d') if project.invoice_issue_date else '',
-            '是' if project.is_invoiced else '否',
             '是' if project.is_paid else '否',
-            project.notes
-        ]
+            project.invoice_notes if project.invoice_notes else ''
+        ])
+        
         writer.writerow(row)
     return response
 
