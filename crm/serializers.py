@@ -21,7 +21,7 @@ from django.contrib.auth.models import User
 
 class CategorySerializer(serializers.ModelSerializer):
     projects_count = serializers.IntegerField(read_only=True, default=0)
-    # name = serializers.SerializerMethodField()  # 新增：用於顯示在下拉選單的名稱
+    # name = serializers.SerializerMethodField()  # 新增:用於顯示在下拉選單的名稱
     custom_field_schema = serializers.JSONField(required=False)
 
     class Meta:
@@ -33,10 +33,11 @@ class CategorySerializer(serializers.ModelSerializer):
             "projects_count",
             # "name",
             "custom_field_schema",
+            "enforce_three_digit_number",
         ]  # 增加 custom_field_schema 欄位
 
     # def get_name(self, obj):
-    #     """返回類別代碼和描述的組合，用於顯示在下拉選單中"""
+    #     """返回類別代碼和描述的組合,用於顯示在下拉選單中"""
     #     return f"{obj.code}: {obj.description}" if obj.code else obj.description
 
 

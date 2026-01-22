@@ -24,6 +24,11 @@ class Category(models.Model):
     code = models.CharField(max_length=50, unique=True)  # 編號
     description = models.TextField()  # 說明
     custom_field_schema = models.JSONField(default=dict, blank=True)
+    enforce_three_digit_number = models.BooleanField(
+        default=True,
+        verbose_name="限制三位數字編號",
+        help_text="若啟用，此類別的專案編號必須為三位數字 (001-999)"
+    )
 
     def __str__(self):
         return self.code

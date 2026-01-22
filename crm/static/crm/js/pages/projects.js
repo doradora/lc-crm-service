@@ -157,6 +157,21 @@ const projectList = createApp({
       }
       return result;
     },
+    // 計算當前選擇的類別資訊
+    selectedCategory() {
+      if (!this.newProject.category) return null;
+      return this.categories.find(c => c.id === this.newProject.category);
+    },
+    // 計算專案編號提示訊息
+    projectNumberHint() {
+      if (!this.selectedCategory) {
+        return '請先選擇專案類別';
+      }
+      if (this.selectedCategory.enforce_three_digit_number) {
+        return '此類別限制三位數字編號 (001-999)';
+      }
+      return '此類別可自由輸入編號';
+    },
   },
   directives: {
     // 自定義指令：點擊元素外部時觸發
@@ -640,6 +655,16 @@ const projectList = createApp({
         return;
       }
 
+      // 前端驗證:如果有手動輸入編號且該類別啟用三位數字限制，檢查格式
+      const inputProjectNumber = this.newProject.project_number ? this.newProject.project_number.trim() : '';
+      if (inputProjectNumber && this.selectedCategory && this.selectedCategory.enforce_three_digit_number) {
+        const threeDigitPattern = /^\d{3}$/;
+        if (!threeDigitPattern.test(inputProjectNumber)) {
+          this.projectNumberError = '此類別的案件編號必須為三位數字 (例如:001, 002, 123)';
+          return;
+        }
+      }
+
       // 簡化的表單提交，只包含基本欄位
       const formData = {
         owner: this.selectedOwner.id,
@@ -649,8 +674,8 @@ const projectList = createApp({
       };
 
       // 加入案件編號（如果有手動輸入）
-      if (this.newProject.project_number && this.newProject.project_number.trim()) {
-        formData.project_number = this.newProject.project_number.trim();
+      if (inputProjectNumber) {
+        formData.project_number = inputProjectNumber;
       }
 
       // 如果是編輯模式且已有專案編號，則保留它
@@ -762,6 +787,31 @@ const projectList = createApp({
     // 清除案件編號錯誤訊息
     clearProjectNumberError() {
       this.projectNumberError = '';
+    },
+
+    // 驗證專案編號格式
+    validateProjectNumber() {
+      // 清除之前的錯誤訊息
+      this.projectNumberError = '';
+
+      // 如果沒有選擇類別,不進行驗證
+      if (!this.selectedCategory) {
+        return;
+      }
+
+      // 如果輸入為空,不進行驗證
+      const inputValue = this.newProject.project_number;
+      if (!inputValue || inputValue.trim() === '') {
+        return;
+      }
+
+      // 如果該類別啟用三位數字限制,驗證格式
+      if (this.selectedCategory.enforce_three_digit_number) {
+        const threeDigitPattern = /^\d{3}$/;
+        if (!threeDigitPattern.test(inputValue.trim())) {
+          this.projectNumberError = '此類別的案件編號必須為三位數字 (例如:001, 002, 123)';
+        }
+      }
     },
 
     // 翻譯錯誤訊息為中文

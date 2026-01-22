@@ -22,6 +22,7 @@ const categoryList = createApp({
       newCategory: {
         code: "",
         description: "",
+        enforce_three_digit_number: true,
       },
       sortKey: "",
       sortDirection: "asc",
@@ -135,6 +136,7 @@ const categoryList = createApp({
       this.newCategory = {
         code: category.code,
         description: category.description,
+        enforce_three_digit_number: category.enforce_three_digit_number !== undefined ? category.enforce_three_digit_number : true,
       };
 
       // 顯示模態框
@@ -154,6 +156,7 @@ const categoryList = createApp({
       this.newCategory = {
         code: "",
         description: "",
+        enforce_three_digit_number: true,
       };
       // 使用 Bootstrap 的 Modal API 顯示
       const modal = new bootstrap.Modal(
@@ -230,6 +233,7 @@ const categoryList = createApp({
       this.newCategory = {
         code: "",
         description: "",
+        enforce_three_digit_number: true,
       };
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("addCategoryModal")
@@ -240,6 +244,7 @@ const categoryList = createApp({
       const formData = {
         code: this.newCategory.code,
         description: this.newCategory.description,
+        enforce_three_digit_number: this.newCategory.enforce_three_digit_number,
       };
 
       const url = this.isEditMode
