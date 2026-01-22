@@ -565,14 +565,20 @@
                                     <tr class="fw-bold text-muted bg-light fs-7">
                                       <th class="min-w-100px">收款日期</th>
                                       <th class="min-w-120px text-end">收款金額</th>
-                                      <th class="min-w-100px">收款方式</th>
+                                      <th class="min-w-100px max-w-200px">收款方式</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     <tr v-for="receipt in payment.receipts" :key="receipt.id">
                                       <td class="fs-7">[[ receipt.payment_date ]]</td>
                                       <td class="text-end fw-bold fs-7">NT$ [[ formatAmount(receipt.amount) ]]</td>
-                                      <td class="fs-7">[[ getPaymentMethodDisplay(receipt.payment_method) ]]</td>
+                                      <td class="fs-7">
+                                        [[ getPaymentMethodDisplay(receipt.payment_method) ]]
+                                        <span v-if="receipt.payment_method === 'other' && receipt.payment_method_note"
+                                          class="text-primary">
+                                          ([[ receipt.payment_method_note ]])
+                                        </span>
+                                      </td>
                                     </tr>
                                   </tbody>
                                   <tfoot>
@@ -684,6 +690,10 @@
                                     </div>
                                     <div v-if="invoice.payment_method" class="text-gray-600 fs-7">
                                       收款方式: [[ getPaymentMethodDisplay(invoice.payment_method) ]]
+                                      <span v-if="invoice.payment_method === 'other' && invoice.payment_method_note"
+                                        class="text-primary">
+                                        ([[ invoice.payment_method_note ]])
+                                      </span>
                                     </div>
                                   </div>
                                   <span class="badge" :class="getInvoiceStatusBadgeClass(invoice.payment_status)">

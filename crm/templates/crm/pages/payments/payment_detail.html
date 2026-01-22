@@ -343,6 +343,10 @@
                             </div>
                             <div class="text-muted mt-1">
                               [[ getPaymentMethodDisplay(invoice.payment_method) ]]
+                              <span v-if="invoice.payment_method === 'other' && invoice.payment_method_note"
+                                class="text-primary ms-2">
+                                ([[ invoice.payment_method_note ]])
+                              </span>
                             </div>
                           </td>
                           <td class="text-end">[[ formatCurrency(invoice.amount) ]]</td>
@@ -484,7 +488,13 @@
                             <td v-else-if="paymentRecord && index > 0"></td>
                             <td>[[ formatCurrency(paymentRecord.amount) ]]</td>
                             <td>[[ formatDate(paymentRecord.payment_date) ]]</td>
-                            <td>[[ getPaymentMethodDisplay(paymentRecord.payment_method) ]]</td>
+                            <td>
+                              [[ getPaymentMethodDisplay(paymentRecord.payment_method) ]]
+                              <span v-if="paymentRecord.payment_method === 'other' && paymentRecord.payment_method_note"
+                                class="text-primary ms-2">
+                                ([[ paymentRecord.payment_method_note ]])
+                              </span>
+                            </td>
                           </tr>
                           <tr v-if="getProjectPayments(project.project).length === 0">
                             <td v-if="isEditing" colspan="1"></td>
@@ -721,6 +731,13 @@
                 [[ option.display ]]
               </option>
             </select>
+          </div>
+          <!-- 收款方式說明欄位(當選擇「其他」時顯示) -->
+          <div class="form-group mb-5" v-if="newInvoice.payment_method === 'other'">
+            <label class="form-label">收款方式說明</label>
+            <input type="text" class="form-control" v-model="newInvoice.payment_method_note"
+              placeholder="請說明選擇其他的原因(例如：差額)" maxlength="200" />
+            <small class="text-muted">最多200字</small>
           </div>
           <div class="row mb-5">
             <div class="col-md-6">
@@ -1106,6 +1123,13 @@
               [[ option.display ]]
             </option>
           </select>
+        </div>
+        <!-- 收款方式說明欄位(當選擇「其他」時顯示) -->
+        <div class="form-group mb-5" v-if="newProjectReceipt.payment_method === 'other'">
+          <label class="form-label">收款方式說明</label>
+          <input type="text" class="form-control" v-model="newProjectReceipt.payment_method_note"
+            placeholder="請說明選擇其他的原因(例如：差額)" maxlength="200" />
+          <small class="text-muted">最多200字</small>
         </div>
         <div class="text-center">
           <button type="button" class="btn btn-light me-3" @click="hideProjectReceiptModal">

@@ -339,6 +339,7 @@ class ProjectSerializer(serializers.ModelSerializer):
                             'issue_date': invoice.issue_date,
                             'payment_status': invoice.payment_status,
                             'payment_method': invoice.payment_method,
+                            'payment_method_note': invoice.payment_method_note,
                             'payment_received_date': invoice.payment_received_date,
                             'account_entry_date': invoice.account_entry_date,
                             'actual_received_amount': invoice.actual_received_amount,
@@ -353,6 +354,7 @@ class ProjectSerializer(serializers.ModelSerializer):
                         'amount': receipt.amount,
                         'payment_date': receipt.payment_date,
                         'payment_method': receipt.payment_method,
+                        'payment_method_note': receipt.payment_method_note,
                     })
                     if receipt.amount:
                         total_received += float(receipt.amount)
@@ -605,6 +607,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "payment_received_date", # 新增
             "account_entry_date",    # 新增
             "payment_method",        # 新增
+            "payment_method_note",   # 新增：收款方式說明
             "actual_received_amount",# 新增
             "project_amounts",       # 新增專案金額關聯
             "notes",
@@ -756,6 +759,7 @@ class ProjectReceiptSerializer(serializers.ModelSerializer):
             "amount",
             "payment_date",
             "payment_method",
+            "payment_method_note",
         ]
         
     def get_payment_number(self, obj):

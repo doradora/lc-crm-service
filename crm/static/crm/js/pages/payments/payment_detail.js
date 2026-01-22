@@ -35,6 +35,7 @@ const paymentDetail = createApp({
         payment_received_date: null, // 新增
         account_entry_date: null, // 新增
         payment_method: "", // 新增
+        payment_method_note: "", // 新增：收款方式說明
         actual_received_amount: null, // 新增
         gross_amount: 0, // 含稅金額
         payment_status: "unpaid", // 新的付款狀態
@@ -127,6 +128,7 @@ const paymentDetail = createApp({
         amount: null,
         payment_date: null,
         payment_method: "",
+        payment_method_note: "",
       },
       editingProjectReceipt: false,
       editingProjectReceiptId: null,
@@ -1407,6 +1409,7 @@ const paymentDetail = createApp({
           payment_received_date: invoice.payment_received_date || "",
           account_entry_date: invoice.account_entry_date || "",
           payment_method: invoice.payment_method || "",
+          payment_method_note: invoice.payment_method_note || "",
           actual_received_amount: invoice.actual_received_amount || "",
           notes: invoice.notes || "",
           gross_amount: gross,
@@ -1458,6 +1461,7 @@ const paymentDetail = createApp({
         payment_received_date: null,
         account_entry_date: null,
         payment_method: "",
+        payment_method_note: "",
         actual_received_amount: null,
         gross_amount: 0,
         payment_status: "unpaid",
@@ -2587,6 +2591,7 @@ const paymentDetail = createApp({
         amount: null,
         payment_date: null,
         payment_method: "",
+        payment_method_note: "",
       };
       this.editingProjectReceipt = false;
       this.editingProjectReceiptId = null;

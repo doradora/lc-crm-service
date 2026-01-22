@@ -471,6 +471,11 @@ class Invoice(models.Model):
         blank=True,
         null=True
     )  # 收款方式
+    payment_method_note = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
+    )  # 收款方式說明(當選擇「其他」時填寫)
     actual_received_amount = models.DecimalField(
         max_digits=10, decimal_places=0, null=True, blank=True
     )  # 實收金額
@@ -535,6 +540,11 @@ class ProjectReceipt(models.Model):
         blank=True,
         null=True
     )  # 收款方式
+    payment_method_note = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
+    )  # 收款方式說明(當選擇「其他」時填寫)
     
 
     def __str__(self):
