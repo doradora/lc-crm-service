@@ -22,6 +22,7 @@ createApp({
       sortField: "issue_date",
       sortOrder: "desc",
       searchTimeout: null,
+      showProjectCode: false, // 新增：控制專案顯示模式（false=名稱，true=編號）
       // Modal 相關
       isEdit: false,
       validationErrors: {},
@@ -43,7 +44,7 @@ createApp({
         gross_amount: "", // 含稅金額
         payment_status: "unpaid", // 新的付款狀態
         is_paid: false, // 保留舊欄位以保持相容性
-        project_amounts: [ { project_id: '', amount: '' } ],
+        project_amounts: [{ project_id: '', amount: '' }],
       },
       menuPosition: {
         x: 0,
@@ -94,12 +95,14 @@ createApp({
     window.addEventListener('resize', () => {
       this.activeMenu = null;
     });
-    
+
     // 頁面載入後自動focus到搜尋欄位
     this.$nextTick(() => {
       if (this.$refs.searchInput) {
         this.$refs.searchInput.focus();
       }
+      // 初始化 Popovers
+      this.initializePopovers();
     });
   },
   methods: {
@@ -146,6 +149,11 @@ createApp({
         this.totalPages = Math.ceil(data.count / this.pageSize);
         this.totalCount = data.count;
 
+        // 資料載入完成後初始化 Popovers
+        this.$nextTick(() => {
+          this.initializePopovers();
+        });
+
       } catch (error) {
         console.error('Error fetching invoices:', error);
         this.showNotification('載入發票資料時發生錯誤', 'error');
@@ -184,6 +192,90 @@ createApp({
       this.fetchInvoices(1);
     },
 
+    // 獲取專案名稱列表
+    getProjectNames(invoice) {
+      if (!invoice.project_amounts || invoice.project_amounts.length === 0) {
+        return "-";
+      }
+
+      const projectNames = invoice.project_amounts
+        .map(pa => pa.project_name || "未知專案")
+        .filter(Boolean);
+
+      return projectNames.join(", ");
+    },
+
+    // 獲取專案編號列表
+    getProjectCodes(invoice) {
+      if (!invoice.project_amounts || invoice.project_amounts.length === 0) {
+        return "-";
+      }
+
+      const projectCodes = invoice.project_amounts
+        .map(pa => {
+          if (pa.year && pa.project_number) {
+            const categoryCode = pa.category_code || 'N';
+            return `${pa.year}${categoryCode}${pa.project_number}`;
+          }
+          return "未知專案";
+        })
+        .filter(Boolean);
+
+      return projectCodes.join(", ");
+    },
+
+    // 根據顯示模式獲取專案顯示內容
+    getProjectDisplay(invoice) {
+      return this.showProjectCode ? this.getProjectCodes(invoice) : this.getProjectNames(invoice);
+    },
+
+    // 切換專案顯示模式
+    toggleProjectDisplayMode() {
+      this.showProjectCode = !this.showProjectCode;
+      // 重新初始化 popover
+      this.$nextTick(() => {
+        this.initializePopovers();
+      });
+    },
+
+    // 檢查是否需要截斷專案顯示
+    shouldTruncateProject(invoice) {
+      const projectText = this.getProjectDisplay(invoice);
+      // 簡單判斷：如果包含逗號且長度超過40字符，則需要截斷
+      return projectText.includes(',') || projectText.length > 40;
+    },
+
+    // 獲取截斷後的專案顯示內容
+    getProjectDisplayTruncated(invoice) {
+      const fullText = this.getProjectDisplay(invoice);
+      if (this.shouldTruncateProject(invoice)) {
+        return fullText; // CSS 會處理截斷顯示
+      }
+      return fullText;
+    },
+
+    // 初始化 Bootstrap Popovers
+    initializePopovers() {
+      this.$nextTick(() => {
+        // 銷毀現有的 popovers
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+          const existingPopover = bootstrap.Popover.getInstance(el);
+          if (existingPopover) {
+            existingPopover.dispose();
+          }
+        });
+
+        // 初始化新的 popovers
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+          new bootstrap.Popover(el, {
+            html: true,
+            sanitize: false,
+            container: 'body' // 確保 popover 正確顯示
+          });
+        });
+      });
+    },
+
     showAddInvoiceModal() {
       this.resetInvoiceForm();
       this.isEdit = false;
@@ -191,7 +283,7 @@ createApp({
       this.invoiceForm.gross_amount = "";
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -221,11 +313,11 @@ createApp({
         gross_amount: (Number(invoice.amount || 0) + Number(invoice.tax_amount || 0)),
         payment_status: invoice.payment_status || (invoice.is_paid ? "paid" : "unpaid"), // 新的付款狀態
         is_paid: invoice.is_paid || false, // 保留舊欄位以保持相容性
-        project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [ { project_id: '', amount: '' } ],
+        project_amounts: invoice.project_amounts && invoice.project_amounts.length > 0 ? invoice.project_amounts : [{ project_id: '', amount: '' }],
       };
       const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
       modal.show();
-      
+
       // modal 顯示後自動focus到第一個輸入欄位
       modal._element.addEventListener('shown.bs.modal', () => {
         this.$nextTick(() => {
@@ -234,7 +326,7 @@ createApp({
           }
         });
       }, { once: true });
-      
+
       this.activeMenu = null;
     },
 
@@ -302,10 +394,10 @@ createApp({
       try {
         const formData = { ...this.invoiceForm };
         delete formData.gross_amount; // gross_amount 只是前端計算用，不需要傳送到後端
-        
+
         // 同步 payment_status 到 is_paid 欄位以保持向後相容
         formData.is_paid = (formData.payment_status === 'paid');
-        
+
         Object.keys(formData).forEach(key => {
           if (formData[key] === '') {
             formData[key] = null;
@@ -374,7 +466,7 @@ createApp({
 
       this.activeMenu = null;
     },
-    
+
     async markAsUnpaid(invoiceId) {
       // 使用 showConfirmDialog 顯示確認對話框
       const confirmed = await this.showConfirmDialog('確定要標記為未付款嗎？');
@@ -405,7 +497,7 @@ createApp({
 
       this.activeMenu = null;
     },
-    
+
     async markAsPartiallyPaid(invoiceId) {
       // 使用 showConfirmDialog 顯示確認對話框
       const confirmed = await this.showConfirmDialog('確定要標記為付款未完成嗎？');
@@ -502,7 +594,7 @@ createApp({
 
     pageSizeChanged() {
       this.fetchInvoices(1);
-    }, 
+    },
     toggleMenu(invoiceId) {
       if (this.activeMenu === invoiceId) {
         this.activeMenu = null;
@@ -517,7 +609,7 @@ createApp({
         this.activeMenu = invoiceId;
       }
       event.stopPropagation();
-    }, 
+    },
     getMenuStyle(invoiceId) {
       return {
         display: this.activeMenu === invoiceId ? 'block' : 'none',
@@ -536,7 +628,7 @@ createApp({
     getPaymentStatusBadgeClass(invoice) {
       // 使用新的 payment_status 欄位，若沒有則使用 is_paid 作為備用
       const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
-      
+
       switch (status) {
         case 'paid':
           return 'badge badge-success';
@@ -552,7 +644,7 @@ createApp({
     // 取得付款狀態文字
     getPaymentStatusText(invoice) {
       const status = invoice.payment_status || (invoice.is_paid ? 'paid' : 'unpaid');
-      
+
       switch (status) {
         case 'paid':
           return '已付款';
@@ -621,7 +713,7 @@ createApp({
     getCsrfToken() {
       return document.querySelector('[name=csrfmiddlewaretoken]').value;
     },
-      // 顯示通知訊息
+    // 顯示通知訊息
     showNotification(message, type = 'info') {
       const options = {
         text: message,
@@ -647,7 +739,7 @@ createApp({
       // 顯示 SweetAlert2 通知
       return Swal.fire(options);
     },
-    
+
     // 顯示確認對話框
     async showConfirmDialog(message, title = '確認操作', type = 'question', isDanger = false) {
       const options = {
@@ -663,11 +755,11 @@ createApp({
           cancelButton: 'btn btn-secondary'
         }
       };
-      
+
       if (isDanger) {
         options.confirmButtonColor = '#d33';
       }
-      
+
       const result = await Swal.fire(options);
       return result.isConfirmed;
     },
@@ -702,9 +794,9 @@ createApp({
       // 檢查是否為有效日期
       const date = new Date(dateString + 'T00:00:00');
       const inputDateStr = dateString;
-      const validDateStr = date.getFullYear() + '-' + 
-                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                          String(date.getDate()).padStart(2, '0');
+      const validDateStr = date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+        String(date.getDate()).padStart(2, '0');
 
       if (inputDateStr !== validDateStr || isNaN(date.getTime())) {
         this.dateErrors[fieldName] = '請輸入有效的日期 (例如: 2025-02-31 不是有效日期)';
@@ -719,7 +811,7 @@ createApp({
     handleDateValidation(fieldName) {
       this.dateWarning[fieldName] = null; // 清除警告訊息
       const value = this.invoiceForm[fieldName];
-      
+
       // 先驗證單個日期格式
       if (!this.validateDateInput(value, fieldName)) {
         return;
@@ -729,7 +821,7 @@ createApp({
       if (fieldName === 'payment_received_date' && value) {
         const paymentDate = new Date(value + 'T00:00:00');
         const issueDate = new Date(this.invoiceForm.issue_date + 'T00:00:00');
-        
+
         if (this.invoiceForm.issue_date && paymentDate < issueDate) {
           this.dateWarning[fieldName] = '收款日期不能早於發票開立日期';
         }
@@ -737,7 +829,7 @@ createApp({
 
       if (fieldName === 'account_entry_date' && value) {
         const entryDate = new Date(value + 'T00:00:00');
-        
+
         if (this.invoiceForm.payment_received_date) {
           const paymentDate = new Date(this.invoiceForm.payment_received_date + 'T00:00:00');
           if (entryDate < paymentDate) {
@@ -745,8 +837,8 @@ createApp({
           }
         }
       }
-    },    
-    
+    },
+
     // 當含稅金額變動時自動計算未稅與稅額
     handleGrossAmountChange() {
       const gross = Number(this.invoiceForm.gross_amount) || 0;
@@ -769,7 +861,7 @@ createApp({
       const amount = gross - tax;
       this.invoiceForm.amount = amount;
     },
-    
+
     // 處理發票類型變更
     handleInvoiceTypeChange() {
       // 當選擇不開發票或發票待開時，設定對應的發票號碼並清空相關欄位
@@ -791,7 +883,7 @@ createApp({
           this.invoiceForm.invoice_number = "";
         }
       }
-      
+
       // 清空驗證錯誤
       this.validationErrors = {};
       this.dateErrors = {};
@@ -805,17 +897,17 @@ createApp({
       try {
         const yearRange = await this.selectYearRange();
         if (yearRange === null) return;
-        
+
         this.isExporting = true;
-        
+
         // 構建匯出 URL，包含當前的篩選條件
         let url = '/crm/export/invoices/csv/';
         const params = new URLSearchParams();
-        
+
         // 添加年份範圍參數
         if (yearRange.year_start) params.append('year_start', yearRange.year_start);
         if (yearRange.year_end) params.append('year_end', yearRange.year_end);
-        
+
         // 添加當前的篩選條件
         if (this.searchQuery) {
           params.append('search', this.searchQuery);
@@ -835,14 +927,14 @@ createApp({
         if (this.endDate) {
           params.append('issue_date__lte', this.endDate);
         }
-        
+
         if (params.toString()) {
           url += '?' + params.toString();
         }
-        
+
         await this.downloadFile(url);
         this.showSuccessMessage('發票資料匯出成功');
-        
+
       } catch (error) {
         this.showErrorMessage('發票資料匯出失敗', error);
       } finally {
@@ -917,7 +1009,7 @@ createApp({
         // 取得檔案名稱（如果有的話）
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = `invoices_export_${new Date().toISOString().split('T')[0]}.csv`;
-        
+
         if (contentDisposition) {
           // 首先嘗試解析 UTF-8 編碼的檔案名稱
           const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -937,7 +1029,7 @@ createApp({
         }
 
         const blob = await response.blob();
-        
+
         // 創建下載連結
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -945,7 +1037,7 @@ createApp({
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
+
         // 清理
         document.body.removeChild(link);
         window.URL.revokeObjectURL(downloadUrl);
@@ -980,7 +1072,7 @@ createApp({
     showErrorMessage(message, error) {
       console.error(message, error);
       const errorText = error?.message || error || '未知錯誤';
-      
+
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',

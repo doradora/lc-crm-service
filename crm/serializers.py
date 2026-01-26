@@ -589,6 +589,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     created_by_name = serializers.SerializerMethodField(read_only=True)
     payment_number = serializers.SerializerMethodField(read_only=True)
+    owner_name = serializers.SerializerMethodField(read_only=True)
     project_amounts = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -599,6 +600,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "invoice_number",
             "payment",
             "payment_number",
+            "owner_name",            # 新增請款對象(業主名稱)
             "amount",
             "issue_date",
             "tax_amount",
@@ -624,6 +626,12 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_payment_number(self, obj):
         return obj.payment.payment_number if obj.payment else None
+
+    def get_owner_name(self, obj):
+        """獲取請款對象(業主名稱)"""
+        if obj.payment and obj.payment.owner:
+            return obj.payment.owner.company_name
+        return None
 
     def get_project_amounts(self, obj):
         """獲取發票關聯的專案金額列表"""
