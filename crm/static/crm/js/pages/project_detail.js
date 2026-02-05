@@ -199,7 +199,24 @@ const projectDetail = createApp({
 
       // 只有 admin 或有請款權限的人可以查看費用支出
       return this.currentUser.profile.is_admin || this.currentUser.profile.can_request_payment;
-    }
+    },
+
+    // 計算當前選擇的類別資訊
+    selectedCategory() {
+      if (!this.project.category) return null;
+      return this.categories.find(c => c.id === this.project.category);
+    },
+
+    // 計算專案編號提示訊息
+    projectNumberHint() {
+      if (!this.selectedCategory) {
+        return '請先選擇專案類別';
+      }
+      if (this.selectedCategory.enforce_three_digit_number) {
+        return '此類別限制三位數字編號 (001-999)';
+      }
+      return '此類別可自由輸入編號';
+    },
   },
   directives: {
     // 點擊元素外部時觸發的自定義指令
@@ -440,6 +457,21 @@ const projectDetail = createApp({
           Swal.fire({
             title: "欄位驗證錯誤",
             html: "專案標記為「已完成」時,以下必填欄位不能為空：<br>" + validationErrors.join("<br>"),
+            icon: "error",
+            confirmButtonText: "確定",
+          });
+          return; // 中斷儲存流程
+        }
+      }
+
+      // 前端驗證:如果有專案編號且該類別啟用三位數字限制,檢查格式
+      const inputProjectNumber = this.project.project_number ? this.project.project_number.trim() : '';
+      if (inputProjectNumber && this.selectedCategory && this.selectedCategory.enforce_three_digit_number) {
+        const threeDigitPattern = /^\d{3}$/;
+        if (!threeDigitPattern.test(inputProjectNumber)) {
+          Swal.fire({
+            title: "案件編號格式錯誤",
+            text: "此類別的案件編號必須為三位數字 (例如:001, 002, 123)",
             icon: "error",
             confirmButtonText: "確定",
           });
@@ -1379,6 +1411,28 @@ const projectDetail = createApp({
     switchTab(tabId) {
       this.activeTab = tabId;
       // Bootstrap 已經處理了標籤切換的顯示邏輯，此方法僅用於記錄當前活動標籤
+    },
+
+    // 驗證專案編號格式
+    validateProjectNumber() {
+      // 如果沒有選擇類別,不進行驗證
+      if (!this.selectedCategory) {
+        return true;
+      }
+
+      // 如果輸入為空,不進行驗證
+      const inputValue = this.project.project_number;
+      if (!inputValue || inputValue.trim() === '') {
+        return true;
+      }
+
+      // 如果該類別啟用三位數字限制,驗證格式
+      if (this.selectedCategory.enforce_three_digit_number) {
+        const threeDigitPattern = /^\d{3}$/;
+        return threeDigitPattern.test(inputValue.trim());
+      }
+
+      return true;
     },
 
     // 驗證自定義欄位

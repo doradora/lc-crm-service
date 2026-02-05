@@ -122,7 +122,16 @@
                       <div class="col-md-4 mb-5">
 
                         <label class="form-label">專案編號</label>
-                        <input v-if="isEditMode" type="text" class="form-control" v-model="project.project_number">
+                        <input v-if="isEditMode" type="text" class="form-control" v-model="project.project_number"
+                          :class="{ 'is-invalid': !validateProjectNumber() && project.project_number }"
+                          @input="validateProjectNumber" :placeholder="projectNumberHint">
+                        <div v-if="isEditMode && !validateProjectNumber() && project.project_number"
+                          class="invalid-feedback">
+                          此類別的案件編號必須為三位數字 (例如:001, 002, 123)
+                        </div>
+                        <div v-if="isEditMode" class="form-text text-muted">
+                          [[ projectNumberHint ]]
+                        </div>
                         <div v-else class="form-control-plaintext">[[ project.project_number ]]</div>
                       </div>
                     </div>
