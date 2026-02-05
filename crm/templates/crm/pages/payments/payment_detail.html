@@ -231,8 +231,12 @@
                         <tr v-for="(projectItem, index) in payment.payment_projects" :key="projectItem.id || index">
                           <td>
                             <div v-if="isEditing">
-                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[
-                                projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]
+                              <div class="form-control-plaintext pb-0 fw-semibold">
+                                <a :href="'/crm/project/' + projectItem.project + '/details/'"
+                                  class="text-primary text-hover-primary">
+                                  [[ projectItem.project_info.year ]][[ projectItem.project_info.category_code ]][[
+                                  projectItem.project_info.project_number ]]
+                                </a>
                               </div>
                               <div class="form-control-plaintext pt-0">[[ projectItem.project_name ]]</div>
                               <input type="text" class="form-control" :value="getProjectReportName(projectItem)"
@@ -240,8 +244,12 @@
                                 placeholder="請輸入報告書名稱" />
                             </div>
                             <div v-else>
-                              <div class="form-control-plaintext pb-0 fw-semibold">[[ projectItem.project_info.year ]][[
-                                projectItem.project_info.category_code ]][[ projectItem.project_info.project_number ]]
+                              <div class="form-control-plaintext pb-0 fw-semibold">
+                                <a :href="'/crm/project/' + projectItem.project + '/details/'"
+                                  class="text-primary text-hover-primary">
+                                  [[ projectItem.project_info.year ]][[ projectItem.project_info.category_code ]][[
+                                  projectItem.project_info.project_number ]]
+                                </a>
                               </div>
                               <div class="py-1 form-control-plaintext">[[ projectItem.project_name ]]</div>
                               <div class="text-muted small">[[ getProjectReportName(projectItem) || '尚未設定報告書名稱' ]]</div>
@@ -473,10 +481,14 @@
                             </td>
                             <td v-if="paymentRecord && index === 0">
                               <div class="">
-                                <div class="fw-bold">[[ project.project_name ]]
-                                  <span v-if="project.project_info" class="text-muted">([[ project.project_info.year
-                                    ]][[ project.project_info.category_code ]][[ project.project_info.project_number
-                                    ]])</span>
+                                <div class="fw-bold">
+                                  <a :href="'/crm/project/' + project.project + '/details/'"
+                                    class="text-gray-800 text-hover-primary">
+                                    [[ project.project_name ]]
+                                    <span v-if="project.project_info" class="text-muted">([[ project.project_info.year
+                                      ]][[ project.project_info.category_code ]][[ project.project_info.project_number
+                                      ]])</span>
+                                  </a>
                                 </div>
                                 <div class="small">請款金額：[[ formatCurrency(project.amount) ]]</div>
                                 <div class="small">發票金額：[[ formatCurrency(getProjectReceivableAmount(project.project))
@@ -500,10 +512,14 @@
                             <td v-if="isEditing" colspan="1"></td>
                             <td>
                               <div class="">
-                                <div class="fw-bold">[[ project.project_name ]]
-                                  <span v-if="project.project_info" class="text-muted">([[ project.project_info.year
-                                    ]][[ project.project_info.category_code ]][[ project.project_info.project_number
-                                    ]])</span>
+                                <div class="fw-bold">
+                                  <a :href="'/crm/project/' + project.project + '/details/'"
+                                    class="text-gray-800 text-hover-primary">
+                                    [[ project.project_name ]]
+                                    <span v-if="project.project_info" class="text-muted">([[ project.project_info.year
+                                      ]][[ project.project_info.category_code ]][[ project.project_info.project_number
+                                      ]])</span>
+                                  </a>
                                 </div>
                                 <div class="small">請款金額：[[ formatCurrency(project.amount) ]]</div>
                                 <div class="small">發票金額：[[ formatCurrency(getProjectReceivableAmount(project.project))
