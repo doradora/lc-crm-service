@@ -1,657 +1,587 @@
 {% extends 'crm/base.html' %}
 {% load static %}
 {% block title %}
-    請款管理
+請款管理
 {% endblock title %}
 {% block content %}
-    {% csrf_token %}
-    <div class="app-main flex-column flex-row-fluid" id="app_main">
-        <div id="app_toolbar" class="app-toolbar">
-            <div id="app_toolbar_container"
-                 class="app-container container-fluid d-flex align-items-stretch">
-                <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
-                    <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
-                        <button class="btn btn-primary"
-                                @click.prevent="showAddPaymentModal"
-                                :disabled="selectedProjects.size === 0">
-                            新增請款單 ([[ selectedProjects.size ]] 個專案)
-                        </button>
-                    </div>
+{% csrf_token %}
+<div class="app-main flex-column flex-row-fluid" id="app_main">
+    <div id="app_toolbar" class="app-toolbar">
+        <div id="app_toolbar_container" class="app-container container-fluid d-flex align-items-stretch">
+            <div class="app-toolbar-wrapper d-flex flex-stack flex-wrap gap-4 w-100">
+                <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
+                    <button class="btn btn-primary" @click.prevent="showAddPaymentModal"
+                        :disabled="selectedProjects.size === 0">
+                        新增請款單 ([[ selectedProjects.size ]] 個專案)
+                    </button>
                 </div>
             </div>
         </div>
-        <div id="app_content" class="app-content flex-column-fluid">
-            <div id="app_content_container" class=" container-fluid p-0">
-                <div class="row">
-                    <!-- 左側：篩選條件 -->
-                    <div class="col-md-3">
-                        <!-- 搜尋和篩選區塊 -->
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                <h6 class="m-0 fw-bold text-primary">篩選條件</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <!-- 業主搜尋 (修改為模態選擇) -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">業主</label>
-                                        <div class="input-group">
-                                            <input type="text"
-                                                   class="form-control"
-                                                   :value="ownerSearchText"
-                                                   @click="showOwnerSelectionModal"
-                                                   readonly
-                                                   placeholder="點擊選擇業主...">
-                                        </div>
-                                    </div>
-                                    <!-- 類別搜尋 (修改為下拉選單) -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">案件類別</label>
-                                        <div class="input-group">
-                                            <select class="form-select" v-model="categoryFilter">
-                                                <option value="">全部類別</option>
-                                                <option v-for="category in categories"
-                                                        :key="category.id"
-                                                        :value="category.id">[[ category.code ]]:[[category.description]]</option>
-                                            </select>
-                                            <button class="btn btn-light"
-                                                    type="button"
-                                                    @click="clearCategorySelection"
-                                                    v-if="categoryFilter">
-                                                <i class="ki-outline ki-cross fs-2"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <!-- 年份範圍搜尋 -->
-                                    <div class="col-6 mb-3">
-                                        <label class="form-label">年份範圍 (從)</label>
-                                        <select class="form-select" v-model="startYearFilter">
-                                            <option value="">全部</option>
-                                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-6 mb-3">
-                                        <label class="form-label">年份範圍 (至)</label>
-                                        <select class="form-select" v-model="endYearFilter">
-                                            <option value="">全部</option>
-                                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                                        </select>
+    </div>
+    <div id="app_content" class="app-content flex-column-fluid">
+        <div id="app_content_container" class=" container-fluid p-0">
+            <div class="row">
+                <!-- 左側：篩選條件 -->
+                <div class="col-md-3">
+                    <!-- 搜尋和篩選區塊 -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 fw-bold text-primary">篩選條件</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- 業主搜尋 (修改為模態選擇) -->
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">業主</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" :value="ownerSearchText"
+                                            @click="showOwnerSelectionModal(false)" readonly placeholder="點擊選擇業主...">
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <!-- 專案狀態篩選 (改為核取方塊) -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">專案狀態</label>
-                                        <div class="d-flex flex-column gap-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input"
-                                                       type="checkbox"
-                                                       id="isCompletedFilter"
-                                                       v-model="isCompletedFilter">
-                                                <label class="form-check-label" for="isCompletedFilter">已完成案件
-                                                    <i class="ki-duotone ki-medal-star">
-                                                        <span class="path1"></span>
-                                                        <span class="path2"></span>
-                                                        <span class="path3"></span>
-                                                        <span class="path4"></span>
-                                                    </i></label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input"
-                                                       type="checkbox"
-                                                       id="isUninvoicedFilter"
-                                                       v-model="isUninvoicedFilter">
-                                                <label class="form-check-label" for="isUninvoicedFilter">未請款完成案件</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input"
-                                                       type="checkbox"
-                                                       id="isPaidFilter"
-                                                       v-model="isPaidFilter">
-                                                <label class="form-check-label" for="isPaidFilter">已收款案件</label>
-                                            </div>
+                                <!-- 類別搜尋 (修改為下拉選單) -->
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">案件類別</label>
+                                    <div class="input-group">
+                                        <select class="form-select" v-model="categoryFilter">
+                                            <option value="">全部類別</option>
+                                            <option v-for="category in categories" :key="category.id"
+                                                :value="category.id">[[ category.code ]]:[[category.description]]
+                                            </option>
+                                        </select>
+                                        <button class="btn btn-light" type="button" @click="clearCategorySelection"
+                                            v-if="categoryFilter">
+                                            <i class="ki-outline ki-cross fs-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- 年份範圍搜尋 -->
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">年份範圍 (從)</label>
+                                    <select class="form-select" v-model="startYearFilter">
+                                        <option value="">全部</option>
+                                        <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">年份範圍 (至)</label>
+                                    <select class="form-select" v-model="endYearFilter">
+                                        <option value="">全部</option>
+                                        <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <!-- 專案狀態篩選 (改為核取方塊) -->
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">專案狀態</label>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="isCompletedFilter"
+                                                v-model="isCompletedFilter">
+                                            <label class="form-check-label" for="isCompletedFilter">已完成案件
+                                                <i class="ki-duotone ki-medal-star">
+                                                    <span class="path1"></span>
+                                                    <span class="path2"></span>
+                                                    <span class="path3"></span>
+                                                    <span class="path4"></span>
+                                                </i></label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="isUninvoicedFilter"
+                                                v-model="isUninvoicedFilter">
+                                            <label class="form-check-label" for="isUninvoicedFilter">未請款完成案件</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="isPaidFilter"
+                                                v-model="isPaidFilter">
+                                            <label class="form-check-label" for="isPaidFilter">已收款案件</label>
                                         </div>
                                     </div>
-                                    <!-- 專案名稱搜尋 -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">專案名稱搜尋</label>
-                                        <input type="text"
-                                               class="form-control"
-                                               v-model="searchQuery"
-                                               placeholder="輸入關鍵字...">
-                                    </div>
-                                    <div class="col-12 mb-3 d-flex">
-                                        <button class="btn btn-primary me-2 flex-fill" @click="fetchProjects()">
-                                            <i class="ki-outline ki-magnifier fs-2"></i> 搜尋
-                                        </button>
-                                        <button class="btn btn-secondary flex-fill" @click="resetFilters()">
-                                            <i class="ki-outline ki-arrows-circle fs-2"></i> 重設
-                                        </button>
-                                    </div>
+                                </div>
+                                <!-- 專案名稱搜尋 -->
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">專案名稱搜尋</label>
+                                    <input type="text" class="form-control" v-model="searchQuery"
+                                        placeholder="輸入關鍵字...">
+                                </div>
+                                <div class="col-12 mb-3 d-flex">
+                                    <button class="btn btn-primary me-2 flex-fill" @click="fetchProjects()">
+                                        <i class="ki-outline ki-magnifier fs-2"></i> 搜尋
+                                    </button>
+                                    <button class="btn btn-secondary flex-fill" @click="resetFilters()">
+                                        <i class="ki-outline ki-arrows-circle fs-2"></i> 重設
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- 右側：專案清單 -->
-                    <div class="col-md-9">
-                        <!-- 專案清單區塊 -->
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                <h6 class="m-0 fw-bold text-primary">專案清單</h6>
-                                <!-- 新增：專案名稱前端過濾輸入框 -->
-                                <div class="col-md-6">
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="ki-outline ki-magnifier"></i></span>
-                                        <input type="text"
-                                               class="form-control"
-                                               v-model="projectNameFilter"
-                                               @input="searchProjects"
-                                               placeholder="即時搜尋專案名稱與負責人...">
-                                        <button class="btn btn-light" v-if="projectNameFilter" @click="projectNameFilter = ''; searchProjects()">
-                                            <i class="ki-outline ki-cross"></i>
-                                        </button>
-                                    </div>
+                </div>
+                <!-- 右側：專案清單 -->
+                <div class="col-md-9">
+                    <!-- 專案清單區塊 -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 fw-bold text-primary">專案清單</h6>
+                            <!-- 新增：專案名稱前端過濾輸入框 -->
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="ki-outline ki-magnifier"></i></span>
+                                    <input type="text" class="form-control" v-model="projectNameFilter"
+                                        @input="searchProjects" placeholder="即時搜尋專案名稱與負責人...">
+                                    <button class="btn btn-light" v-if="projectNameFilter"
+                                        @click="projectNameFilter = ''; searchProjects()">
+                                        <i class="ki-outline ki-cross"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="card-body">
-                                <div v-if="isLoading" class="d-flex justify-content-center py-10">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">載入中...</span>
-                                    </div>
+                        </div>
+                        <div class="card-body">
+                            <div v-if="isLoading" class="d-flex justify-content-center py-10">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">載入中...</span>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table align-middle table-row-dashed table-hover fs-6 gy-5">
-                                        <thead>
-                                            <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
-                                                <th>
-                                                    <input type="checkbox"
-                                                           @change="selectAllProjects"
-                                                           :checked="selectAllChecked">
-                                                </th>
-                                                <th>案件編號</th>
-                                                <th>案件名稱</th>
-                                                <th>業主</th>
-                                                <th>案件類別</th>
-                                                <th>負責人</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="fw-semibold text-gray-600">
-                                            <tr v-if="filteredProjects.length === 0">
-                                                <td colspan="6" class="text-center">沒有符合條件的專案</td>
-                                            </tr>
-                                            <tr v-for="project in filteredProjects" :key="project.id">
-                                                <td>
-                                                    <input type="checkbox"
-                                                           :value="project.id"
-                                                           @change="toggleProjectSelection(project)"
-                                                           :checked="isProjectSelected(project.id)">
-                                                </td>
-                                                <td>
-                                                    <span class="badge badge-light">[[ project.year ]][[ project.category_code ]][[ project.project_number ]]</span>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div>
-                                                            <a :href="`/crm/project/${project.id}/details/`" class="text-gray-800 text-hover-primary fs-5 fw-bold hover-underline">
-                                                                <i class="ki-duotone ki-medal-star" :class="{ 'text-warning': project.is_completed }">
-                                                                    <span class="path1"></span>
-                                                                    <span class="path2"></span>
-                                                                    <span class="path3"></span>
-                                                                    <span class="path4"></span>
-                                                                </i>
-                                                                <i v-if="project.is_invoiced" class="ki-duotone ki-archive-tick text-success ms-1">
-                                                                    <span class="path1"></span>
-                                                                    <span class="path2"></span>
-                                                                </i>
-                                                                [[ project.name ]]
-                                                            </a>
-                                                        </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table align-middle table-row-dashed table-hover fs-6 gy-5">
+                                    <thead>
+                                        <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                                            <th>
+                                                <input type="checkbox" @change="selectAllProjects"
+                                                    :checked="selectAllChecked">
+                                            </th>
+                                            <th>案件編號</th>
+                                            <th>案件名稱</th>
+                                            <th>業主</th>
+                                            <th>案件類別</th>
+                                            <th>負責人</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="fw-semibold text-gray-600">
+                                        <tr v-if="filteredProjects.length === 0">
+                                            <td colspan="6" class="text-center">沒有符合條件的專案</td>
+                                        </tr>
+                                        <tr v-for="project in filteredProjects" :key="project.id">
+                                            <td>
+                                                <input type="checkbox" :value="project.id"
+                                                    @change="toggleProjectSelection(project)"
+                                                    :checked="isProjectSelected(project.id)">
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-light">[[ project.year ]][[
+                                                    project.category_code ]][[ project.project_number ]]</span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div>
+                                                        <a :href="`/crm/project/${project.id}/details/`"
+                                                            class="text-gray-800 text-hover-primary fs-5 fw-bold hover-underline">
+                                                            <i class="ki-duotone ki-medal-star"
+                                                                :class="{ 'text-warning': project.is_completed }">
+                                                                <span class="path1"></span>
+                                                                <span class="path2"></span>
+                                                                <span class="path3"></span>
+                                                                <span class="path4"></span>
+                                                            </i>
+                                                            <i v-if="project.is_invoiced"
+                                                                class="ki-duotone ki-archive-tick text-success ms-1">
+                                                                <span class="path1"></span>
+                                                                <span class="path2"></span>
+                                                            </i>
+                                                            [[ project.name ]]
+                                                        </a>
                                                     </div>
-                                                </td>
-                                                <td>[[ project.owner_name || 'N/A' ]]</td>
-                                                <td>[[ project.category_detail.code || 'N/A' ]][[project.category_detail.description]]</td>
-                                                <td>
+                                                </div>
+                                            </td>
+                                            <td>[[ project.owner_name || 'N/A' ]]</td>
+                                            <td>[[ project.category_detail.code || 'N/A'
+                                                ]][[project.category_detail.description]]</td>
+                                            <td>
                                                 <span v-if="project.managers_info && project.managers_info.length > 0">
-                                                    <span v-for="(mgr, index) in project.managers_info" :key="mgr.id || index">
-                                                        [[ mgr.name ]]<span v-if="index < project.managers_info.length - 1">, </span>
+                                                    <span v-for="(mgr, index) in project.managers_info"
+                                                        :key="mgr.id || index">
+                                                        [[ mgr.name ]]<span
+                                                            v-if="index < project.managers_info.length - 1">, </span>
                                                     </span>
                                                 </span>
                                                 <span v-else>
                                                     N/A
                                                 </span>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <!-- 專案分頁控制 -->
-                                <div v-if="projectPagination && projectPagination.count > 10" class="d-flex justify-content-center align-items-center flex-wrap mt-5">
-                                    <div class="d-flex align-items-center me-3">
-                                        <span class="text-muted">
-                                            共 [[ projectPagination.count ]] 筆資料，第 [[ currentProjectPage ]] 頁
-                                        </span>
-                                    </div>
-                                    <ul class="pagination mb-0">
-                                        <li class="page-item previous" :class="{ 'disabled': !projectPagination.previous }">
-                                            <a class="page-link" 
-                                               @click.prevent="projectPagination.previous && goToProjectPage(currentProjectPage - 1)"
-                                               href="#">
-                                                <i class="previous"></i>
-                                            </a>
-                                        </li>
-                                        <template v-for="page in getProjectPageNumbers()" :key="page">
-                                            <li v-if="page === '...'" class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                            <li v-else class="page-item" :class="{ 'active': page === currentProjectPage }">
-                                                <a class="page-link" 
-                                                   @click.prevent="goToProjectPage(page)"
-                                                   href="#">
-                                                    [[ page ]]
-                                                </a>
-                                            </li>
-                                        </template>
-                                        <li class="page-item next" :class="{ 'disabled': !projectPagination.next }">
-                                            <a class="page-link" 
-                                               @click.prevent="projectPagination.next && goToProjectPage(currentProjectPage + 1)"
-                                               href="#">
-                                                <i class="next"></i>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 選擇業主的 Modal -->
-        <div class="modal fade"
-             tabindex="-1"
-             id="selectOwnerModal"
-             aria-labelledby="selectOwnerModalLabel"
-             aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="selectOwnerModalLabel">選擇業主</h5>
-                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                             @click="hideOwnerSelectionModal"
-                             aria-label="Close">
-                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
-                        </div>
-                    </div>
-                    <div class="modal-body">
-                        <!-- 搜尋框 -->
-                        <div class="row mb-5">
-                            <div class="col-md-12">
-                                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                                    <div class="input-group w-50">
-                                        <span class="input-group-text">
-                                            <i class="ki-outline ki-magnifier fs-5"></i>
-                                        </span>
-                                        <input type="text"
-                                               class="form-control"
-                                               v-model="ownerModalSearchTerm"
-                                               @input="searchOwners"
-                                               @keyup.enter="searchOwners"
-                                               placeholder="搜尋業主公司名稱或統一編號..."
-                                               ref="projectSearchInput">
-                                    </div>
-                                    <!-- 搜尋模式切換按鈕 -->
-                                    <div class="btn-group" role="group">
-                                        <button 
-                                            type="button" 
-                                            class="btn btn-sm border border-2 border-primary"
-                                            :class="ownerSearchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
-                                            @click="ownerSearchMode = 'fuzzy'; searchOwners();"
-                                            title="包括搜尋：可搜尋包含關鍵字的所有資料"
-                                        >
-                                            <i class="ki-outline ki-search-list fs-4"></i> 包括
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            class="btn btn-sm border border-2 border-primary"
-                                            :class="ownerSearchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
-                                            @click="ownerSearchMode = 'exact'; searchOwners();"
-                                            title="相符搜尋：只搜尋完全符合的資料"
-                                        >
-                                            <i class="ki-outline ki-magnifier fs-4"></i> 相符
-                                        </button>
-                                    </div>
-                                    <button type="button" class="btn btn-light-primary" @click="showAddOwnerModal">
-                                        <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
-                                    </button>
-                                </div>
-                                <!-- 業主名稱搜尋 -->
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">業主名稱搜尋:</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           v-model="ownerNameModalFilter" 
-                                           @input="searchOwners"
-                                           @keyup.enter="searchOwners"
-                                           placeholder="請輸入業主名稱" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 載入中指示器 -->
-                        <div v-if="isLoadingOwners" class="text-center py-5">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">載入中...</span>
-                            </div>
-                        </div>
-
-                        <!-- 業主列表 -->
-                        <div v-else-if="modalOwners.length > 0" class="table-responsive">
-                            <table class="table align-middle table-row-dashed table-hover table-striped fs-6 gy-5 gs-7">
-                                <thead>
-                                    <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
-                                        <th class="min-w-200px">公司名稱</th>
-                                        <th class="min-w-100px">統一編號</th>
-                                        <th class="min-w-100px">聯絡人</th>
-                                        <th class="text-end min-w-70px">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="fw-semibold text-gray-600">
-                                    <tr v-for="owner in modalOwners" :key="owner.id">
-                                        <td>
-                                            <div class="text-gray-800 fs-6 fw-bold">[[ owner.company_name ]]</div>
-                                            <div v-if="owner.address" class="text-muted fs-7">[[ owner.address ]]</div>
-                                        </td>
-                                        <td>
-                                            <span class="fw-bold">[[ owner.tax_id || '-' ]]</span>
-                                        </td>
-                                        <td>
-                                            <div class="fw-bold">[[ owner.contact_person || '-' ]]</div>
-                                            <div v-if="owner.phone" class="text-muted fs-7">[[ owner.phone ]]</div>
-                                        </td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-primary"
-                                                    @click="selectOwnerFromModal(owner)">
-                                                選擇
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- 無結果顯示 -->
-                        <div v-else class="text-center py-5">
-                            <div class="text-muted">
-                                <i class="ki-outline ki-information fs-2x mb-3"></i>
-                                <p>沒有找到符合條件的業主</p>
-                                <button class="btn btn-primary" @click="showAddOwnerModal">
-                                    <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 分頁控制 -->
-                        <div v-if="ownerPagination && ownerPagination.count > 10" class="d-flex justify-content-center align-items-center flex-wrap mt-5">
-                            <ul class="pagination">
-                                <li class="page-item previous" :class="{ 'disabled': !ownerPagination.previous }">
-                                    <a class="page-link" 
-                                       href="#" 
-                                       @click.prevent="loadOwners(ownerPagination.previous)"
-                                       :class="{ 'disabled': !ownerPagination.previous }">
-                                        <i class="previous"></i>
-                                    </a>
-                                </li>
-                                <template v-for="page in getOwnerPageNumbers()" :key="page">
-                                    <li v-if="page === '...'" class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                    <li v-else class="page-item" :class="{ 'active': page === currentOwnerPage }">
-                                        <a class="page-link" 
-                                           href="#" 
-                                           @click.prevent="goToOwnerPage(page)">
-                                            [[ page ]]
-                                        </a>
-                                    </li>
-                                </template>
-                                <li class="page-item next" :class="{ 'disabled': !ownerPagination.next }">
-                                    <a class="page-link" 
-                                       href="#" 
-                                       @click.prevent="loadOwners(ownerPagination.next)"
-                                       :class="{ 'disabled': !ownerPagination.next }">
-                                        <i class="next"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" @click="hideOwnerSelectionModal">關閉</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- 結束選擇業主 Modal -->
-
-        <!-- 新增業主的 Modal -->
-        <div class="modal fade"
-             tabindex="-1"
-             id="addOwnerModal"
-             aria-labelledby="addOwnerModalLabel"
-             aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addOwnerModalLabel">新增業主</h5>
-                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                             @click="hideAddOwnerModal"
-                             aria-label="Close">
-                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
-                        </div>
-                    </div>
-                    <div class="modal-body">
-                        <form @submit.prevent="submitOwnerForm" ref="ownerForm">
-                            <div class="mb-5">
-                                <label class="form-label">
-                                    公司名稱<span class="text-danger">*</span>
-                                </label>
-                                <input type="text"
-                                       class="form-control"
-                                       v-model="newOwner.company_name"
-                                       required>
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">統一編號</label>
-                                <input type="text"
-                                       class="form-control"
-                                       v-model="newOwner.tax_id"
-                                       maxlength="8">
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">聯絡人</label>
-                                <input type="text" class="form-control" v-model="newOwner.contact_person">
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">電話</label>
-                                <input type="text" class="form-control" v-model="newOwner.phone">
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">手機</label>
-                                <input type="text" class="form-control" v-model="newOwner.mobile">
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">傳真</label>
-                                <input type="text" class="form-control" v-model="newOwner.fax">
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">地址</label>
-                                <input type="text" class="form-control" v-model="newOwner.address">
-                            </div>
-                            <div class="mb-5">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" v-model="newOwner.email">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
-                                <button type="submit" class="btn btn-primary">送出</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- 結束新增業主 Modal -->
-
-        <!-- 新增請款單 Modal -->
-        <div class="modal fade"
-             tabindex="-1"
-             id="addPaymentModal"
-             aria-labelledby="addPaymentModalLabel"
-             aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addPaymentModalLabel">新增請款單</h5>
-                        <div class="btn btn-icon btn-sm btn-active-light-primary ms-2"
-                             @click="hideAddPaymentModal"
-                             aria-label="Close">
-                            <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
-                        </div>
-                    </div>
-                    <div class="modal-body">
-                        <form @submit.prevent="submitPaymentForm">
-                            <div class="mb-3">
-                                <label class="form-label required">業主</label>
-                                <div class="input-group">
-                                    <input type="text"
-                                           class="form-control"
-                                           :value="ownerSearchText || '請先選擇業主'"
-                                           readonly
-                                           :class="{'text-muted': !ownerSearchText}">
-                                    <!-- <button class="btn btn-outline-secondary"
-                                            type="button"
-                                            @click="showOwnerSelectionModal">
-                                        <i class="ki-outline ki-magnifier fs-5"></i>
-                                    </button> -->
-                                </div>
-                                <div v-if="!ownerFilter" class="text-danger mt-1">請先選擇業主</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label required">收款公司</label>
-                                <div class="position-relative" v-click-outside="closeCompanyDropdown">
-                                    <div class="input-group">
-                                        <input type="text"
-                                               class="form-control"
-                                               v-model="companySearchText"
-                                               @input="searchCompanys"
-                                               @focus="showCompanyDropdown = true"
-                                               placeholder="搜尋收款公司..."
-                                               required>
-                                        <button class="btn btn-light"
-                                                type="button"
-                                                @click="clearCompanySelection"
-                                                v-if="companyFilter">
-                                            <i class="ki-outline ki-cross fs-2"></i>
-                                        </button>
-                                    </div>
-                                    <!-- 自動完成下拉選單 -->
-                                    <div class="dropdown-menu w-100 position-absolute"
-                                         :class="{'show': showCompanyDropdown}"
-                                         style="max-height: 300px; overflow-y: auto">
-                                        <div v-if="filteredCompanys.length === 0" class="dropdown-item text-muted">無符合條件的公司</div>
-                                        <a v-for="company in filteredCompanys"
-                                           :key="company.id"
-                                           class="dropdown-item"
-                                           href="#"
-                                           @click.prevent="selectCompany(company)">
-                                            [[company.name]]
-                                            <span v-if="company.tax_id" class="text-muted">([[company.tax_id]])</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <!-- 載入銀行帳戶資訊指示器 -->
-                                <div v-if="isLoadingBankAccounts" class="mt-2 p-3 bg-light border rounded text-center">
-                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                                        <span class="visually-hidden">載入中...</span>
-                                    </div>
-                                    <small class="text-muted">正在載入銀行帳戶資訊...</small>
-                                </div>
-                                <!-- 顯示選中的銀行帳戶資訊 -->
-                                <div v-else-if="selectedBankAccount" class="mt-2 p-3 bg-light-primary border border-primary rounded">
-                                    <h6 class="text-primary mb-2">
-                                        <i class="ki-outline ki-bank fs-4 me-2"></i>預設收款帳戶(第一筆銀行帳戶)
-                                    </h6>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">戶名：</small><br>
-                                            <span class="fw-bold">[[ selectedBankAccount.account_name ]]</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">帳號：</small><br>
-                                            <span class="fw-bold">[[ selectedBankAccount.account_number ]]</span>
-                                        </div>
-                                        <div class="col-6 mt-2">
-                                            <small class="text-muted">銀行：</small><br>
-                                            <span>[[ selectedBankAccount.bank_name ]]</span>
-                                        </div>
-                                        <div class="col-6 mt-2">
-                                            <small class="text-muted">代碼：</small><br>
-                                            <span>[[ selectedBankAccount.bank_code ]]</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else-if="companyFilter" class="mt-2 p-3 bg-light-warning border border-warning rounded">
-                                    <small class="text-warning">
-                                        <i class="ki-outline ki-warning fs-5 me-1"></i>
-                                        該收款公司尚未設定銀行帳戶，可稍後於收款公司頁面新增
-                                    </small>
-                                </div>
-                                <div v-if="selectedBankAccount" class="text-primary form-label">
-                                    可稍候於請款單詳情變更收款帳戶
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label required">請款單號</label>
-                                <input type="text"
-                                       class="form-control"
-                                       v-model="newPayment.payment_number"
-                                       required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label required">發行日期</label>
-                                <input type="date"
-                                       max="9999-12-31"
-                                       class="form-control"
-                                       v-model="newPayment.date_issued"
-                                       required>
-                            </div>
-                            <h5 class="mt-4 mb-3">已選擇的專案</h5>
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="selected-projects-table">
-                                    <thead>
-                                        <tr>
-                                            <th>案件名稱</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="project in selectedProjectsList" :key="project.id">
-                                            <td>[[ project.name ]]</td>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-light" @click="hideAddPaymentModal">取消</button>
-                                <button type="submit" class="btn btn-primary">建立請款單</button>
+
+                            <!-- 專案分頁控制 -->
+                            <div v-if="projectPagination && projectPagination.count > 10"
+                                class="d-flex justify-content-center align-items-center flex-wrap mt-5">
+                                <div class="d-flex align-items-center me-3">
+                                    <span class="text-muted">
+                                        共 [[ projectPagination.count ]] 筆資料，第 [[ currentProjectPage ]] 頁
+                                    </span>
+                                </div>
+                                <ul class="pagination mb-0">
+                                    <li class="page-item previous" :class="{ 'disabled': !projectPagination.previous }">
+                                        <a class="page-link"
+                                            @click.prevent="projectPagination.previous && goToProjectPage(currentProjectPage - 1)"
+                                            href="#">
+                                            <i class="previous"></i>
+                                        </a>
+                                    </li>
+                                    <template v-for="page in getProjectPageNumbers()" :key="page">
+                                        <li v-if="page === '...'" class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                        <li v-else class="page-item" :class="{ 'active': page === currentProjectPage }">
+                                            <a class="page-link" @click.prevent="goToProjectPage(page)" href="#">
+                                                [[ page ]]
+                                            </a>
+                                        </li>
+                                    </template>
+                                    <li class="page-item next" :class="{ 'disabled': !projectPagination.next }">
+                                        <a class="page-link"
+                                            @click.prevent="projectPagination.next && goToProjectPage(currentProjectPage + 1)"
+                                            href="#">
+                                            <i class="next"></i>
+                                        </a>
+                                    </li>
+                                </ul>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- 新增請款單 Modal -->
+    <div class="modal fade" tabindex="-1" id="addPaymentModal" aria-labelledby="addPaymentModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPaymentModalLabel">新增請款單</h5>
+                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideAddPaymentModal"
+                        aria-label="Close">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitPaymentForm">
+                        <div class="mb-3">
+                            <label class="form-label required">請款公司(業主)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" :value="paymentOwnerSearchText || '請先選擇業主'"
+                                    readonly :class="{'text-muted': !paymentOwnerSearchText}">
+                                <button class="btn btn-outline-secondary" type="button"
+                                    @click="showOwnerSelectionModal(true)">
+                                    <i class="ki-outline ki-magnifier fs-5"></i>
+                                </button>
+                            </div>
+                            <div v-if="!paymentOwnerFilter" class="text-danger mt-1">請先選擇業主</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">收款公司</label>
+                            <div class="position-relative" v-click-outside="closeCompanyDropdown">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" v-model="companySearchText"
+                                        @input="searchCompanys" @focus="showCompanyDropdown = true"
+                                        placeholder="搜尋收款公司..." required>
+                                    <button class="btn btn-light" type="button" @click="clearCompanySelection"
+                                        v-if="companyFilter">
+                                        <i class="ki-outline ki-cross fs-2"></i>
+                                    </button>
+                                </div>
+                                <!-- 自動完成下拉選單 -->
+                                <div class="dropdown-menu w-100 position-absolute"
+                                    :class="{'show': showCompanyDropdown}" style="max-height: 300px; overflow-y: auto">
+                                    <div v-if="filteredCompanys.length === 0" class="dropdown-item text-muted">無符合條件的公司
+                                    </div>
+                                    <a v-for="company in filteredCompanys" :key="company.id" class="dropdown-item"
+                                        href="#" @click.prevent="selectCompany(company)">
+                                        [[company.name]]
+                                        <span v-if="company.tax_id" class="text-muted">([[company.tax_id]])</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <!-- 載入銀行帳戶資訊指示器 -->
+                            <div v-if="isLoadingBankAccounts" class="mt-2 p-3 bg-light border rounded text-center">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                    <span class="visually-hidden">載入中...</span>
+                                </div>
+                                <small class="text-muted">正在載入銀行帳戶資訊...</small>
+                            </div>
+                            <!-- 顯示選中的銀行帳戶資訊 -->
+                            <div v-else-if="selectedBankAccount"
+                                class="mt-2 p-3 bg-light-primary border border-primary rounded">
+                                <h6 class="text-primary mb-2">
+                                    <i class="ki-outline ki-bank fs-4 me-2"></i>預設收款帳戶(第一筆銀行帳戶)
+                                </h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">戶名：</small><br>
+                                        <span class="fw-bold">[[ selectedBankAccount.account_name ]]</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">帳號：</small><br>
+                                        <span class="fw-bold">[[ selectedBankAccount.account_number ]]</span>
+                                    </div>
+                                    <div class="col-6 mt-2">
+                                        <small class="text-muted">銀行：</small><br>
+                                        <span>[[ selectedBankAccount.bank_name ]]</span>
+                                    </div>
+                                    <div class="col-6 mt-2">
+                                        <small class="text-muted">代碼：</small><br>
+                                        <span>[[ selectedBankAccount.bank_code ]]</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else-if="companyFilter"
+                                class="mt-2 p-3 bg-light-warning border border-warning rounded">
+                                <small class="text-warning">
+                                    <i class="ki-outline ki-warning fs-5 me-1"></i>
+                                    該收款公司尚未設定銀行帳戶，可稍後於收款公司頁面新增
+                                </small>
+                            </div>
+                            <div v-if="selectedBankAccount" class="text-primary form-label">
+                                可稍候於請款單詳情變更收款帳戶
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">請款單號</label>
+                            <input type="text" class="form-control" v-model="newPayment.payment_number" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">發行日期</label>
+                            <input type="date" max="9999-12-31" class="form-control" v-model="newPayment.date_issued"
+                                required>
+                        </div>
+                        <h5 class="mt-4 mb-3">已選擇的專案</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="selected-projects-table">
+                                <thead>
+                                    <tr>
+                                        <th>案件名稱</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="project in selectedProjectsList" :key="project.id">
+                                        <td>[[ project.name ]]</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" @click="hideAddPaymentModal">取消</button>
+                            <button type="submit" class="btn btn-primary">建立請款單</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 選擇業主的 Modal -->
+    <div class="modal fade" tabindex="-1" id="selectOwnerModal" aria-labelledby="selectOwnerModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="selectOwnerModalLabel">選擇業主</h5>
+                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideOwnerSelectionModal"
+                        aria-label="Close">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <!-- 搜尋框 -->
+                    <div class="row mb-5">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                                <div class="input-group w-50">
+                                    <span class="input-group-text">
+                                        <i class="ki-outline ki-magnifier fs-5"></i>
+                                    </span>
+                                    <input type="text" class="form-control" v-model="ownerModalSearchTerm"
+                                        @input="searchOwners" @keyup.enter="searchOwners" placeholder="搜尋業主公司名稱或統一編號..."
+                                        ref="projectSearchInput">
+                                </div>
+                                <!-- 搜尋模式切換按鈕 -->
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm border border-2 border-primary"
+                                        :class="ownerSearchMode === 'fuzzy' ? 'btn-primary' : 'btn-light-primary'"
+                                        @click="ownerSearchMode = 'fuzzy'; searchOwners();" title="包括搜尋：可搜尋包含關鍵字的所有資料">
+                                        <i class="ki-outline ki-search-list fs-4"></i> 包括
+                                    </button>
+                                    <button type="button" class="btn btn-sm border border-2 border-primary"
+                                        :class="ownerSearchMode === 'exact' ? 'btn-primary' : 'btn-light-primary'"
+                                        @click="ownerSearchMode = 'exact'; searchOwners();" title="相符搜尋：只搜尋完全符合的資料">
+                                        <i class="ki-outline ki-magnifier fs-4"></i> 相符
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-light-primary" @click="showAddOwnerModal">
+                                    <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
+                                </button>
+                            </div>
+                            <!-- 業主名稱搜尋 -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">業主名稱搜尋:</label>
+                                <input type="text" class="form-control" v-model="ownerNameModalFilter"
+                                    @input="searchOwners" @keyup.enter="searchOwners" placeholder="請輸入業主名稱" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 載入中指示器 -->
+                    <div v-if="isLoadingOwners" class="text-center py-5">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">載入中...</span>
+                        </div>
+                    </div>
+
+                    <!-- 業主列表 -->
+                    <div v-else-if="modalOwners.length > 0" class="table-responsive">
+                        <table class="table align-middle table-row-dashed table-hover table-striped fs-6 gy-5 gs-7">
+                            <thead>
+                                <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                                    <th class="min-w-200px">公司名稱</th>
+                                    <th class="min-w-100px">統一編號</th>
+                                    <th class="min-w-100px">聯絡人</th>
+                                    <th class="text-end min-w-70px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="fw-semibold text-gray-600">
+                                <tr v-for="owner in modalOwners" :key="owner.id">
+                                    <td>
+                                        <div class="text-gray-800 fs-6 fw-bold">[[ owner.company_name ]]</div>
+                                        <div v-if="owner.address" class="text-muted fs-7">[[ owner.address ]]</div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">[[ owner.tax_id || '-' ]]</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">[[ owner.contact_person || '-' ]]</div>
+                                        <div v-if="owner.phone" class="text-muted fs-7">[[ owner.phone ]]</div>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-primary"
+                                            @click="selectOwnerFromModal(owner, isSelectingOwnerForPayment)">
+                                            選擇
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 無結果顯示 -->
+                    <div v-else class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="ki-outline ki-information fs-2x mb-3"></i>
+                            <p>沒有找到符合條件的業主</p>
+                            <button class="btn btn-primary" @click="showAddOwnerModal">
+                                <i class="ki-outline ki-plus fs-5 me-2"></i>新增業主
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 分頁控制 -->
+                    <div v-if="ownerPagination && ownerPagination.count > 10"
+                        class="d-flex justify-content-center align-items-center flex-wrap mt-5">
+                        <ul class="pagination">
+                            <li class="page-item previous" :class="{ 'disabled': !ownerPagination.previous }">
+                                <a class="page-link" href="#" @click.prevent="loadOwners(ownerPagination.previous)"
+                                    :class="{ 'disabled': !ownerPagination.previous }">
+                                    <i class="previous"></i>
+                                </a>
+                            </li>
+                            <template v-for="page in getOwnerPageNumbers()" :key="page">
+                                <li v-if="page === '...'" class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                <li v-else class="page-item" :class="{ 'active': page === currentOwnerPage }">
+                                    <a class="page-link" href="#" @click.prevent="goToOwnerPage(page)">
+                                        [[ page ]]
+                                    </a>
+                                </li>
+                            </template>
+                            <li class="page-item next" :class="{ 'disabled': !ownerPagination.next }">
+                                <a class="page-link" href="#" @click.prevent="loadOwners(ownerPagination.next)"
+                                    :class="{ 'disabled': !ownerPagination.next }">
+                                    <i class="next"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" @click="hideOwnerSelectionModal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 結束選擇業主 Modal -->
+
+    <!-- 新增業主的 Modal -->
+    <div class="modal fade" tabindex="-1" id="addOwnerModal" aria-labelledby="addOwnerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addOwnerModalLabel">新增業主</h5>
+                    <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" @click="hideAddOwnerModal"
+                        aria-label="Close">
+                        <i class="ki-duotone ki-cross fs-1"><span class="path1"></span><span class="path2"></span></i>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitOwnerForm" ref="ownerForm">
+                        <div class="mb-5">
+                            <label class="form-label">
+                                公司名稱<span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" v-model="newOwner.company_name" required>
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">統一編號</label>
+                            <input type="text" class="form-control" v-model="newOwner.tax_id" maxlength="8">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">聯絡人</label>
+                            <input type="text" class="form-control" v-model="newOwner.contact_person">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">電話</label>
+                            <input type="text" class="form-control" v-model="newOwner.phone">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">手機</label>
+                            <input type="text" class="form-control" v-model="newOwner.mobile">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">傳真</label>
+                            <input type="text" class="form-control" v-model="newOwner.fax">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">地址</label>
+                            <input type="text" class="form-control" v-model="newOwner.address">
+                        </div>
+                        <div class="mb-5">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" v-model="newOwner.email">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" @click="hideAddOwnerModal">關閉</button>
+                            <button type="submit" class="btn btn-primary">送出</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 結束新增業主 Modal -->
+
+</div>
 {% endblock content %}
 {% block extra_js %}
-    <script src="{% static 'crm/js/pages/payments/create_payment.js' %}"></script>
+<script src="{% static 'crm/js/pages/payments/create_payment.js' %}"></script>
 {% endblock extra_js %}

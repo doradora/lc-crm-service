@@ -14,6 +14,8 @@ const paymentsList = createApp({
       filteredOwners: [], // 過濾後的業主列表
       showOwnerDropdown: false, // 是否顯示業主下拉選單
       selectedOwnerName: "", // 已選擇的業主名稱
+      paymentOwnerFilter: "", // 新增:請款單業主 ID (獨立於側欄篩選)
+      paymentOwnerSearchText: "", // 新增:請款單業主搜尋文字
       companyFilter: "", // 新增：收款公司 ID
       companySearchText: "", // 新增：收款公司搜尋文字
       filteredCompanys: [], // 新增：過濾後的收款公司列表
@@ -48,6 +50,7 @@ const paymentsList = createApp({
       ownerPagination: null,
       currentOwnerPage: 1,
       searchTimeout: null,
+      isSelectingOwnerForPayment: false, // 新增:標記是否為請款單選擇業主
       // 新增業主表單
       newOwner: {
         company_name: "",
@@ -121,7 +124,7 @@ const paymentsList = createApp({
       if (this.searchTimeout) {
         clearTimeout(this.searchTimeout);
       }
-      
+
       // 設置新的計時器，300ms後執行搜尋
       this.searchTimeout = setTimeout(() => {
         this.currentOwnerPage = 1;
@@ -130,9 +133,16 @@ const paymentsList = createApp({
     },
 
     // 從模態視窗選擇業主
-    selectOwnerFromModal(owner) {
-      this.ownerFilter = owner.id;
-      this.ownerSearchText = owner.company_name;
+    selectOwnerFromModal(owner, forPayment = false) {
+      if (forPayment) {
+        // 為請款單選擇業主
+        this.paymentOwnerFilter = owner.id;
+        this.paymentOwnerSearchText = owner.company_name;
+      } else {
+        // 為側欄篩選選擇業主
+        this.ownerFilter = owner.id;
+        this.ownerSearchText = owner.company_name;
+      }
       this.hideOwnerSelectionModal();
     },
 
@@ -157,7 +167,7 @@ const paymentsList = createApp({
       if (this.projectSearchTimeout) {
         clearTimeout(this.projectSearchTimeout);
       }
-      
+
       // 設置新的計時器，300ms後執行搜尋
       this.projectSearchTimeout = setTimeout(() => {
         this.currentProjectPage = 1;
@@ -176,11 +186,11 @@ const paymentsList = createApp({
       if (!this.projectPagination || this.projectPagination.count === 0) {
         return [];
       }
-      
+
       const totalPages = Math.ceil(this.projectPagination.count / 10);
       const currentPage = this.currentProjectPage;
       const pages = [];
-      
+
       // 如果總頁數 <= 7，顯示所有頁碼
       if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) {
@@ -207,16 +217,19 @@ const paymentsList = createApp({
           pages.push(totalPages);
         }
       }
-      
+
       return pages;
     },
 
     // 顯示業主選擇Modal
-    showOwnerSelectionModal() {
+    showOwnerSelectionModal(forPayment = false) {
+      // 儲存是否為請款單選擇業主的狀態
+      this.isSelectingOwnerForPayment = forPayment;
+
       // 重置搜尋條件
       this.ownerModalSearchTerm = "";
       this.currentOwnerPage = 1;
-      
+
       // 顯示Modal
       const modal = new bootstrap.Modal(
         document.getElementById("selectOwnerModal")
@@ -231,7 +244,7 @@ const paymentsList = createApp({
           }
         });
       }, { once: true });
-      
+
       // 載入初始資料
       this.loadOwners();
     },
@@ -249,27 +262,27 @@ const paymentsList = createApp({
     // 載入業主資料（支援分頁和搜尋）
     loadOwners(url = null) {
       this.isLoadingOwners = true;
-      
+
       // 建構 API URL
       let apiUrl = url || "/crm/api/owners/";
       const params = new URLSearchParams();
-      
+
       if (!url) {
         params.append("format", "json");
         params.append("page_size", "10");
         params.append("page", this.currentOwnerPage.toString());
-        
+
         if (this.ownerModalSearchTerm.trim()) {
           params.append("search", this.ownerModalSearchTerm.trim());
           params.append("search_mode", this.ownerSearchMode); // 新增：傳送搜尋模式參數
         }
-        
+
         // 新增:業主名稱搜尋
         if (this.ownerNameModalFilter.trim()) {
           params.append("owner_name", this.ownerNameModalFilter.trim());
           params.append("search_mode", this.ownerSearchMode); // 使用相同的搜尋模式
         }
-        
+
         apiUrl += "?" + params.toString();
       }
 
@@ -287,7 +300,7 @@ const paymentsList = createApp({
             next: data.next,
             previous: data.previous,
           };
-          
+
           // 更新當前頁面
           if (url) {
             const urlObj = new URL(url);
@@ -318,11 +331,11 @@ const paymentsList = createApp({
       if (!this.ownerPagination || this.ownerPagination.count === 0) {
         return [];
       }
-      
+
       const totalPages = Math.ceil(this.ownerPagination.count / 10);
       const currentPage = this.currentOwnerPage;
       const pages = [];
-      
+
       // 如果總頁數 <= 7，顯示所有頁碼
       if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) {
@@ -355,7 +368,7 @@ const paymentsList = createApp({
           pages.push(totalPages);
         }
       }
-      
+
       return pages;
     },
 
@@ -416,8 +429,8 @@ const paymentsList = createApp({
           return response.json();
         })
         .then((data) => {
-          // 新增業主成功後，選擇新增的業主
-          this.selectOwnerFromModal(data);
+          // 新增業主成功後，選擇新增的業主(根據當前情境選擇)
+          this.selectOwnerFromModal(data, this.isSelectingOwnerForPayment);
 
           // 關閉Modal
           this.hideAddOwnerModal();
@@ -473,7 +486,7 @@ const paymentsList = createApp({
       if (this.companySearchTimeout) {
         clearTimeout(this.companySearchTimeout);
       }
-      
+
       // 設置新的計時器，300ms後執行搜尋
       this.companySearchTimeout = setTimeout(() => {
         if (!this.companySearchText.trim()) {
@@ -499,23 +512,23 @@ const paymentsList = createApp({
       this.companyFilter = company.id;
       this.companySearchText = company.name;
       this.showCompanyDropdown = false;
-      
+
       // 只有當選擇的公司不同時才獲取銀行帳戶資訊
       if (this.lastSelectedCompanyId !== company.id) {
         this.fetchCompanyBankAccounts(company.id);
         this.lastSelectedCompanyId = company.id;
       }
     },
-    
+
     // 獲取公司的銀行帳戶資訊
     fetchCompanyBankAccounts(companyId) {
       // 防止重複調用
       if (this.isLoadingBankAccounts) {
         return;
       }
-      
+
       this.isLoadingBankAccounts = true;
-      
+
       fetch(`/crm/api/companys/${companyId}/`)
         .then(response => response.json())
         .then(data => {
@@ -679,11 +692,11 @@ const paymentsList = createApp({
     // 獲取專案列表 (更新以處理分頁和伺服器端搜尋)
     fetchProjects(url = null) {
       this.isLoading = true;
-      
+
       // 建構 API URL
       let apiUrl = url || "/crm/api/projects/";
       const params = new URLSearchParams();
-      
+
       if (!url) {
         params.append("format", "json");
         params.append("page_size", "10"); // 每頁顯示10筆
@@ -693,7 +706,7 @@ const paymentsList = createApp({
         if (this.searchQuery) {
           params.append("search", this.searchQuery);
         }
-        
+
         // 即時搜尋專案名稱與負責人
         if (this.projectNameFilter.trim()) {
           params.append("search", this.projectNameFilter.trim());
@@ -738,7 +751,7 @@ const paymentsList = createApp({
         if (this.isPaidFilter) {
           params.append("is_paid", "true");
         }
-        
+
         apiUrl += "?" + params.toString();
       }
 
@@ -771,14 +784,14 @@ const paymentsList = createApp({
               }
               return project;
             });
-            
+
             // 更新分頁資訊
             this.projectPagination = {
               count: data.count,
               next: data.next,
               previous: data.previous,
             };
-            
+
             // 更新當前頁面
             if (url) {
               const urlObj = new URL(url);
@@ -881,6 +894,10 @@ const paymentsList = createApp({
         return;
       }
 
+      // 重置請款單業主選擇
+      this.paymentOwnerFilter = "";
+      this.paymentOwnerSearchText = "";
+
       // 設置今天日期為預設發行日期
       this.newPayment.date_issued = new Date().toISOString().split("T")[0];
 
@@ -924,10 +941,10 @@ const paymentsList = createApp({
         return;
       }
 
-      if (!this.ownerFilter) {
+      if (!this.paymentOwnerFilter) {
         Swal.fire({
           title: "驗證失敗!",
-          text: "請先選擇業主",
+          text: "請先選擇請款單業主",
           icon: "warning",
           confirmButtonText: "確定",
         });
@@ -952,7 +969,7 @@ const paymentsList = createApp({
           project: projectId,
           amount: this.projectAmounts[projectId],
         })),
-        owner: this.ownerFilter,
+        owner: this.paymentOwnerFilter, // 使用請款單業主
         company: this.companyFilter, // 新增：收款公司
       };
 
@@ -1015,7 +1032,7 @@ const paymentsList = createApp({
         document.removeEventListener("click", el._clickOutside);
       }
     });
-    
+
     // 清理計時器
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout);

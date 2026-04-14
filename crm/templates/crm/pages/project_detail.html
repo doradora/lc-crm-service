@@ -472,7 +472,8 @@
                                 <thead>
                                   <tr class="fw-bold text-muted bg-light fs-7">
                                     <th class="min-w-150px">請款單號</th>
-                                    <th class="min-w-120px text-end">收款總額</th>
+                                    <th class="min-w-150px">請款公司</th>
+                                    <th class="min-w-100px text-end">收款總額</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -483,6 +484,9 @@
                                         [[ payment.payment_number ]]
                                       </a>
                                     </td>
+                                    <td class="fs-7">
+                                      [[ payment.owner.name ]]
+                                    </td>
                                     <td class="text-end fw-bold fs-7">NT$ [[ formatAmount(payment.total_received) ]]
                                     </td>
                                   </tr>
@@ -490,7 +494,7 @@
                                 <tfoot>
                                   <tr class="border-top border-gray-400">
                                     <td class="fw-bold fs-7">總計</td>
-                                    <td class="text-end fw-bold text-primary fs-6">NT$ [[
+                                    <td class="text-end fw-bold text-primary fs-6" colspan="2">NT$ [[
                                       formatAmount(getTotalProjectReceived()) ]]</td>
                                   </tr>
                                 </tfoot>

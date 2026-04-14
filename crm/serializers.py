@@ -322,7 +322,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     def get_related_payments(self, obj):
         """Fetch all related payments for the project."""
         result = []
-        for payment in Payment.objects.filter(paymentproject__project=obj).select_related('selected_bank_account').prefetch_related('invoices', 'projectreceipt_set'):
+        for payment in Payment.objects.filter(paymentproject__project=obj).select_related('owner', 'company', 'selected_bank_account').prefetch_related('invoices', 'projectreceipt_set'):
             payment_project = PaymentProject.objects.filter(payment=payment, project=obj).first()
             if payment_project:
                 # 取得該請款單的發票資訊
@@ -385,6 +385,14 @@ class ProjectSerializer(serializers.ModelSerializer):
                 result.append({
                     'id': payment.id,
                     'payment_number': payment.payment_number,
+                    'owner': {
+                        'id': payment.owner.id,
+                        'name': payment.owner.company_name,
+                    },
+                    'company': {
+                        'id': payment.company.id,
+                        'name': payment.company.name,
+                    },
                     'amount': payment_project.amount,
                     'is_paid': payment.paid,
                     'date_issued': payment.date_issued,
