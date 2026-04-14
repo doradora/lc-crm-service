@@ -1374,8 +1374,20 @@ def export_projects_csv(request):
     
     # 合併：一般專案在前，「其他」專案在後
     from itertools import chain
+    from collections import defaultdict
     projects = list(chain(normal_projects, other_projects))
-    
+
+    # === Bulk 預查詢新系統請款/收款資料 ===
+    all_project_ids = [p.id for p in projects]
+
+    pp_by_project = defaultdict(list)
+    for pp in PaymentProject.objects.filter(project_id__in=all_project_ids).select_related('payment').order_by('project_id', 'payment__date_issued'):
+        pp_by_project[pp.project_id].append(pp)
+
+    pi_by_project = defaultdict(list)
+    for pi in ProjectInvoice.objects.filter(project_id__in=all_project_ids).select_related('invoice').order_by('project_id', 'invoice__issue_date'):
+        pi_by_project[pi.project_id].append(pi)
+
     # === 收集所有自定義欄位（聯集模式） ===
     all_custom_fields = {}  # {欄位名稱: 顯示名稱}
     
@@ -1432,11 +1444,15 @@ def export_projects_csv(request):
     for field_name, display_name in sorted_custom_fields:
         headers.append(display_name)
     
-    # 加入舊系統欄位
+    # 加入新系統請款/收款欄位
     headers.extend([
-        # 以下為舊系統匯入欄位(過時資料)
-        '是否請款', '請款日期', '請款金額', '收款日期', '發票日期', 
-        '是否收款', '請款備註'
+        '是否請款', '請款日期', '請款金額', '收款日期', '發票日期', '是否收款', '請款備註',
+    ])
+
+    # 加入舊系統欄位（標記為舊資料）
+    headers.extend([
+        '（舊）是否請款', '（舊）請款日期', '（舊）請款金額', '（舊）收款日期', '（舊）發票日期',
+        '（舊）是否收款', '（舊）請款備註'
     ])
     
     writer.writerow(headers)
@@ -1483,9 +1499,42 @@ def export_projects_csv(request):
                 field_value = ''
             row.append(field_value)
         
-        # 加入舊系統欄位
+        # 計算新系統請款/收款欄位
+        pps = pp_by_project.get(project.id, [])
+        pis = pi_by_project.get(project.id, [])
+
+        new_is_invoiced = '是' if pps else '否'
+        new_invoice_dates_str = ' / '.join(
+            pp.payment.date_issued.strftime('%Y-%m-%d')
+            for pp in pps if pp.payment.date_issued
+        )
+        new_invoice_amount = sum(pp.amount or 0 for pp in pps) or ''
+        new_payment_dates_str = ' / '.join(
+            pi.invoice.payment_received_date.strftime('%Y-%m-%d')
+            for pi in pis if pi.invoice.payment_received_date
+        )
+        new_invoice_issue_dates_str = ' / '.join(
+            pi.invoice.issue_date.strftime('%Y-%m-%d')
+            for pi in pis if pi.invoice.issue_date
+        )
+        new_is_paid = '是' if any(pi.invoice.payment_status == 'paid' for pi in pis) else '否'
+        new_invoice_notes = ' / '.join(
+            pi.invoice.notes for pi in pis if pi.invoice.notes
+        )
+
+        # 加入新系統欄位
         row.extend([
-            # 以下為舊系統匯入資料(過時)
+            new_is_invoiced,
+            new_invoice_dates_str,
+            new_invoice_amount,
+            new_payment_dates_str,
+            new_invoice_issue_dates_str,
+            new_is_paid,
+            new_invoice_notes,
+        ])
+
+        # 加入舊系統欄位（標記為舊資料）
+        row.extend([
             '是' if project.is_invoiced else '否',
             project.invoice_date.strftime('%Y-%m-%d') if project.invoice_date else '',
             project.invoice_amount if project.invoice_amount else '',
