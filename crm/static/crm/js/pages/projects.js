@@ -551,6 +551,30 @@ const projectList = createApp({
       };
       return textMap[project.status] || '未知';
     },
+    getPaymentStatusText(project) {
+      const payments = project.related_payments || [];
+      const hasQuotedAmount = project.quoted_amount && parseFloat(project.quoted_amount) > 0;
+
+      // 有請款記錄 → 以收款狀態為主
+      if (payments.length > 0) {
+        const allFull = payments.every(p => p.payment_status === 'full' || p.payment_status === 'over');
+        if (allFull) return '全額收款';
+        return '未收款';
+      }
+
+      // 無請款記錄：有報價金額 → 無記錄；無報價金額 → 不請款
+      return hasQuotedAmount ? '無記錄' : '不請款';
+    },
+    getPaymentStatusBadgeClass(project) {
+      const text = this.getPaymentStatusText(project);
+      const classMap = {
+        '全額收款': 'badge-success',
+        '未收款':   'badge-warning',
+        '無記錄':   'badge-secondary',
+        '不請款':   'badge-info',
+      };
+      return classMap[text] || 'badge-secondary';
+    },
     toggleMenu(projectId) {
       if (this.activeMenu === projectId) {
         this.activeMenu = null;

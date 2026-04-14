@@ -129,6 +129,7 @@
                     <th class="min-w-100px">類別</th>
                     <th class="min-w-100px">專案負責人</th>
                     <th class="min-w-100px">狀態</th>
+                    <th class="min-w-120px">請款狀態</th>
                     <th class="text-end min-w-70px">操作</th>
                   </tr>
                 </thead>
@@ -155,6 +156,9 @@
                     <td>
                       <div class="badge" :class="getStatusBadgeClass(project)">[[ getStatusText(project) ]]
                       </div>
+                    </td>
+                    <td>
+                      <div class="badge" :class="getPaymentStatusBadgeClass(project)">[[ getPaymentStatusText(project) ]]</div>
                     </td>
                     <td class="text-end">
                       <button
