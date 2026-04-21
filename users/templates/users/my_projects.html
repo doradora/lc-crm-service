@@ -35,54 +35,65 @@
                     </button>
                     <!--end::Menu toggle-->
                     <!--begin::Menu dropdown-->
-                    <div class="menu menu-sub menu-sub-dropdown w-350px" data-kt-menu="true"
+                    <div class="menu menu-sub menu-sub-dropdown w-500px" data-kt-menu="true"
                       id="kt_menu_my_project_filter">
                       <div class="px-7 py-5">
                         <div class="fs-5 text-gray-900 fw-bold">篩選條件</div>
                       </div>
                       <div class="separator border-gray-200"></div>
                       <div class="px-7 py-5">
-                        <div class="mb-5">
-                          <label class="form-label fw-semibold">專案類別:</label>
-                          <select class="form-select" v-model="categoryFilter" data-placeholder="所有類別">
-                            <option value="">所有類別</option>
-                            <option v-for="category in categories" :key="category.id" :value="category.id">
-                              [[ category.code ]]: [[ category.description ]]
-                            </option>
-                          </select>
+                        <div class="row g-4 mb-2">
+                          <div class="col-6">
+                            <label class="form-label fw-semibold">專案類別:</label>
+                            <select class="form-select" v-model="categoryFilter" data-placeholder="所有類別">
+                              <option value="">所有類別</option>
+                              <option v-for="category in categories" :key="category.id" :value="category.id">
+                                [[ category.code ]]: [[ category.description ]]
+                              </option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label fw-semibold">專案狀態:</label>
+                            <select class="form-select" v-model="completedFilter" data-placeholder="專案狀態">
+                              <option value="">所有狀態</option>
+                              <option value="in_progress">進行中</option>
+                              <option value="paused">暫停</option>
+                              <option value="completed">已完成</option>
+                              <option value="cancelled">撤案</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label fw-semibold">開始年份:</label>
+                            <select class="form-select" v-model="startYearFilter" data-placeholder="開始年份">
+                              <option value="">開始年份</option>
+                              <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label fw-semibold">結束年份:</label>
+                            <select class="form-select" v-model="endYearFilter" data-placeholder="結束年份">
+                              <option value="">結束年份</option>
+                              <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label fw-semibold">請款狀態:</label>
+                            <select class="form-select" v-model="paymentStatusFilter" data-placeholder="請款狀態">
+                              <option value="">所有狀態</option>
+                              <option value="no_record">無記錄</option>
+                              <option value="unpaid">未收款</option>
+                              <option value="paid">全額收款</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label fw-semibold">排序方式:</label>
+                            <select class="form-select" v-model="orderBy" data-placeholder="排序方式">
+                              <option value="time">依時間排序</option>
+                              <option value="category">年度→案件類別→案件編號</option>
+                            </select>
+                          </div>
                         </div>
-                        <div class="mb-5">
-                          <label class="form-label fw-semibold">專案狀態:</label>
-                          <select class="form-select" v-model="completedFilter" data-placeholder="專案狀態">
-                            <option value="">所有狀態</option>
-                            <option value="in_progress">進行中</option>
-                            <option value="paused">暫停</option>
-                            <option value="completed">已完成</option>
-                            <option value="cancelled">撤案</option>
-                          </select>
-                        </div>
-                        <div class="mb-5">
-                          <label class="form-label fw-semibold">開始年份:</label>
-                          <select class="form-select" v-model="startYearFilter" data-placeholder="開始年份">
-                            <option value="">開始年份</option>
-                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                          </select>
-                        </div>
-                        <div class="mb-5">
-                          <label class="form-label fw-semibold">結束年份:</label>
-                          <select class="form-select" v-model="endYearFilter" data-placeholder="結束年份">
-                            <option value="">結束年份</option>
-                            <option v-for="year in yearRange" :key="year" :value="year">[[ year ]]</option>
-                          </select>
-                        </div>
-                        <div class="mb-5">
-                          <label class="form-label fw-semibold">排序方式:</label>
-                          <select class="form-select" v-model="orderBy" data-placeholder="排序方式">
-                            <option value="time">依時間排序</option>
-                            <option value="category">年度→案件類別→案件編號</option>
-                          </select>
-                        </div>
-                        <div class="d-flex justify-content-end">
+                        <div class="d-flex justify-content-end mt-3">
                           <button type="button" class="btn btn-sm btn-light btn-active-light-primary me-2"
                             data-kt-menu-dismiss="true" @click="resetFilters">重設</button>
                           <button type="button" class="btn btn-sm btn-primary" data-kt-menu-dismiss="true"
@@ -126,12 +137,13 @@
                     <th class="min-w-150px">業主</th>
                     <th class="min-w-100px">類別</th>
                     <th class="min-w-100px">狀態</th>
+                    <th class="min-w-120px">請款狀態</th>
                     <th class="text-end min-w-70px">操作</th>
                   </tr>
                 </thead>
                 <tbody class="fw-semibold text-gray-600">
                   <tr v-if="projects.length === 0">
-                    <td colspan="6" class="text-center">沒有找到專案</td>
+                    <td colspan="7" class="text-center">沒有找到專案</td>
                   </tr>
                   <tr v-for="project in projects" :key="project.id">
                     <td>
@@ -147,6 +159,9 @@
                     <td>
                       <div class="badge" :class="getStatusBadgeClass(project)">[[ getStatusText(project) ]]
                       </div>
+                    </td>
+                    <td>
+                      <div class="badge" :class="getPaymentStatusBadgeClass(project)">[[ getPaymentStatusText(project) ]]</div>
                     </td>
                     <td class="text-end">
                       <button
@@ -219,6 +234,7 @@
         searchQuery: "",
         categoryFilter: "",
         completedFilter: "",
+        paymentStatusFilter: "",
         startYearFilter: "",
         endYearFilter: "",
         orderBy: "category", // 排序方式:time(依時間排序) 或 category(年度->案件類別->案件編號)
@@ -296,6 +312,9 @@
           }
           if (this.completedFilter) {
             params.append("status", this.completedFilter);
+          }
+          if (this.paymentStatusFilter) {
+            params.append("payment_status", this.paymentStatusFilter);
           }
           if (this.startYearFilter) {
             params.append("year_start", this.startYearFilter);
@@ -385,6 +404,22 @@
         };
         return textMap[project.status] || '未知';
       },
+      getPaymentStatusText(project) {
+        const textMap = {
+          'no_record': '無記錄',
+          'unpaid':    '未收款',
+          'paid':      '全額收款',
+        };
+        return textMap[project.payment_status_summary] || '無記錄';
+      },
+      getPaymentStatusBadgeClass(project) {
+        const classMap = {
+          'no_record': 'badge-secondary',
+          'unpaid':    'badge-warning',
+          'paid':      'badge-success',
+        };
+        return classMap[project.payment_status_summary] || 'badge-secondary';
+      },
       toggleMenu(projectId) {
         if (this.activeMenu === projectId) {
           this.activeMenu = null;
@@ -425,6 +460,7 @@
       resetFilters() {
         this.categoryFilter = "";
         this.completedFilter = "";
+        this.paymentStatusFilter = "";
         this.startYearFilter = "";
         this.endYearFilter = "";
         this.orderBy = "time";
