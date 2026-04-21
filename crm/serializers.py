@@ -144,6 +144,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     )
     custom_fields = serializers.JSONField(required=False)
     related_payments = serializers.SerializerMethodField()
+    payment_status_summary = serializers.SerializerMethodField()
     # 新增完整案件編號的計算屬性
     full_project_number = serializers.SerializerMethodField(read_only=True)
     # 新增案件編號欄位，允許手動輸入
@@ -190,6 +191,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "custom_fields",
             "report_name",
             "related_payments",
+            "payment_status_summary",
         ]
         read_only_fields = [
             "total_expenditure",
@@ -406,6 +408,39 @@ class ProjectSerializer(serializers.ModelSerializer):
                     'payment_status': payment_status,
                 })
         return result
+
+    def get_payment_status_summary(self, obj):
+        """
+        計算專案請款狀態摘要。
+        - no_record: 尚未建立任何請款單
+        - unpaid:    有請款單但未全額收款
+        - paid:      所有請款單均已全額收款
+        """
+        from django.db.models import Sum
+        from decimal import Decimal
+
+        payment_projects = list(
+            PaymentProject.objects.filter(project=obj).values('payment_id', 'amount')
+        )
+
+        if not payment_projects:
+            return 'no_record'
+
+        payment_ids = [pp['payment_id'] for pp in payment_projects]
+
+        receipts_by_payment = {
+            r['payment_id']: r['total']
+            for r in ProjectReceipt.objects.filter(
+                project=obj, payment_id__in=payment_ids
+            ).values('payment_id').annotate(total=Sum('amount'))
+        }
+
+        for pp in payment_projects:
+            total_received = receipts_by_payment.get(pp['payment_id']) or Decimal('0')
+            if pp['amount'] - total_received > 0:
+                return 'unpaid'
+
+        return 'paid'
 
 
 class QuotationSerializer(serializers.ModelSerializer):

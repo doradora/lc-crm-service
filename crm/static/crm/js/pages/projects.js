@@ -12,6 +12,7 @@ const projectList = createApp({
       searchQuery: "",
       categoryFilter: "",
       completedFilter: "",
+      paymentStatusFilter: "",
       startYearFilter: "", // 開始年份
       endYearFilter: "", // 結束年份
       orderBy: "category", // 排序方式:time(依時間排序) 或 category(年度->案件類別->案件編號)
@@ -333,6 +334,11 @@ const projectList = createApp({
         url += `&status=${this.completedFilter}`;
       }
 
+      // 請款狀態篩選
+      if (this.paymentStatusFilter) {
+        url += `&payment_status=${this.paymentStatusFilter}`;
+      }
+
       // 使用年份區間過濾
       if (this.startYearFilter) {
         url += `&year_start=${this.startYearFilter}`;
@@ -552,28 +558,20 @@ const projectList = createApp({
       return textMap[project.status] || '未知';
     },
     getPaymentStatusText(project) {
-      const payments = project.related_payments || [];
-      const hasQuotedAmount = project.quoted_amount && parseFloat(project.quoted_amount) > 0;
-
-      // 有請款記錄 → 以收款狀態為主
-      if (payments.length > 0) {
-        const allFull = payments.every(p => p.payment_status === 'full' || p.payment_status === 'over');
-        if (allFull) return '全額收款';
-        return '未收款';
-      }
-
-      // 無請款記錄：有報價金額 → 無記錄；無報價金額 → 不請款
-      return hasQuotedAmount ? '無記錄' : '不請款';
+      const textMap = {
+        'no_record': '無記錄',
+        'unpaid':    '未收款',
+        'paid':      '全額收款',
+      };
+      return textMap[project.payment_status_summary] || '無記錄';
     },
     getPaymentStatusBadgeClass(project) {
-      const text = this.getPaymentStatusText(project);
       const classMap = {
-        '全額收款': 'badge-success',
-        '未收款':   'badge-warning',
-        '無記錄':   'badge-secondary',
-        '不請款':   'badge-info',
+        'no_record': 'badge-secondary',
+        'unpaid':    'badge-warning',
+        'paid':      'badge-success',
       };
-      return classMap[text] || 'badge-secondary';
+      return classMap[project.payment_status_summary] || 'badge-secondary';
     },
     toggleMenu(projectId) {
       if (this.activeMenu === projectId) {
@@ -1129,6 +1127,7 @@ const projectList = createApp({
     resetFilters() {
       this.categoryFilter = "";
       this.completedFilter = "";
+      this.paymentStatusFilter = "";
       this.startYearFilter = "";
       this.endYearFilter = "";
       this.orderBy = "time";

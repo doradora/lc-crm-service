@@ -3,7 +3,8 @@ import csv
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count, Sum, F, Q, Min, Max
+from django.db.models import Count, Sum, F, Q, Min, Max, Exists, OuterRef, Subquery, Value, DecimalField
+from django.db.models.functions import Coalesce
 from django.db import models
 from django.utils import timezone
 from django.contrib import messages
@@ -529,6 +530,47 @@ class ProjectViewSet(BaseViewSet):
         if is_paid is not None:
             is_paid = is_paid.lower() == "true"
             queryset = queryset.filter(is_paid=is_paid)
+
+        # 請款狀態摘要過濾 (no_record / unpaid / paid)
+        payment_status = self.request.query_params.get("payment_status", None)
+        if payment_status in ('no_record', 'unpaid', 'paid'):
+            from decimal import Decimal
+
+            receipt_total_subq = Subquery(
+                ProjectReceipt.objects.filter(
+                    project=OuterRef('project'),
+                    payment=OuterRef('payment'),
+                ).values('payment_id').annotate(s=Sum('amount')).values('s'),
+                output_field=DecimalField(max_digits=10, decimal_places=0)
+            )
+
+            underpaid_pp_exists = Exists(
+                PaymentProject.objects.filter(
+                    project=OuterRef('pk')
+                ).annotate(
+                    total_received=Coalesce(
+                        receipt_total_subq,
+                        Value(Decimal('0')),
+                        output_field=DecimalField(max_digits=10, decimal_places=0)
+                    )
+                ).filter(amount__gt=F('total_received'))
+            )
+
+            has_payment_exists = Exists(
+                PaymentProject.objects.filter(project=OuterRef('pk'))
+            )
+
+            queryset = queryset.annotate(
+                _has_payment=has_payment_exists,
+                _has_underpaid=underpaid_pp_exists,
+            )
+
+            if payment_status == 'no_record':
+                queryset = queryset.filter(_has_payment=False)
+            elif payment_status == 'paid':
+                queryset = queryset.filter(_has_payment=True, _has_underpaid=False)
+            elif payment_status == 'unpaid':
+                queryset = queryset.filter(_has_payment=True, _has_underpaid=True)
 
         # 年份過濾 - 單一年份
         year = self.request.query_params.get("year", None)
