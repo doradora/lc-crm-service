@@ -1590,6 +1590,263 @@ def export_projects_csv(request):
     return response
 
 @login_required(login_url="signin")
+def export_projects_excel(request):
+    """匯出所有專案資料為 Excel 格式，格式需求：
+    - 欄寬 9、列高 20
+    - 凍結窗格於 H2
+    - 第一列自動篩選
+    - 日期統一為 西元年/月/日（不補零），多筆以逗號區隔
+    """
+    if not request.user.profile.is_admin and not request.user.profile.can_request_payment:
+        raise PermissionDenied
+
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    from io import BytesIO
+    from urllib.parse import quote
+    from itertools import chain
+    from collections import defaultdict
+
+    def fmt_date(d):
+        """格式化日期為 YYYY/M/D（月日不補零）"""
+        if not d:
+            return ''
+        return f'{d.year}/{d.month}/{d.day}'
+
+    now = timezone.now()
+    filename = f"專案資料_{now.strftime('%Y%m%d-%H%M%S')}.xlsx"
+
+    # 取得查詢參數
+    year_start = request.GET.get('year_start')
+    year_end = request.GET.get('year_end')
+    category_id = request.GET.get('category')
+
+    projects = Project.objects.all().select_related('owner', 'category').prefetch_related('managers', 'supervisors', 'quotations')
+
+    if year_start:
+        projects = projects.filter(year__gte=year_start)
+    if year_end:
+        projects = projects.filter(year__lte=year_end)
+    if category_id:
+        projects = projects.filter(category_id=category_id)
+
+    # 排序：一般專案在前，「其他」專案在後
+    other_projects = projects.filter(
+        name='其他', category__code='OTHER', project_number='9999'
+    ).order_by('-year')
+    normal_projects = projects.exclude(
+        name='其他', category__code='OTHER', project_number='9999'
+    ).order_by('-year', 'category__code', 'project_number')
+    projects = list(chain(normal_projects, other_projects))
+
+    # Bulk 預查詢新系統請款／收款資料
+    all_project_ids = [p.id for p in projects]
+
+    pp_by_project = defaultdict(list)
+    for pp in PaymentProject.objects.filter(
+        project_id__in=all_project_ids
+    ).select_related('payment').order_by('project_id', 'payment__date_issued'):
+        pp_by_project[pp.project_id].append(pp)
+
+    pi_by_project = defaultdict(list)
+    for pi in ProjectInvoice.objects.filter(
+        project_id__in=all_project_ids
+    ).select_related('invoice').order_by('project_id', 'invoice__issue_date'):
+        pi_by_project[pi.project_id].append(pi)
+
+    # Bulk 預查詢各專案各請款單的實收金額
+    from decimal import Decimal
+    receipt_by_project_payment = {}
+    for r in ProjectReceipt.objects.filter(
+        project_id__in=all_project_ids
+    ).values('project_id', 'payment_id').annotate(total=Sum('amount')):
+        receipt_by_project_payment[(r['project_id'], r['payment_id'])] = r['total'] or Decimal('0')
+
+    # 收集自定義欄位（聯集模式）
+    all_custom_fields = {}
+    if category_id:
+        try:
+            cat = Category.objects.get(id=category_id)
+            for fn, fc in cat.get_custom_fields().items():
+                all_custom_fields[fn] = fc.get('display_name', fn)
+        except Category.DoesNotExist:
+            pass
+    else:
+        cat_ids = {p.category_id for p in projects if p.category_id}
+        for cat in Category.objects.filter(id__in=cat_ids):
+            for fn, fc in cat.get_custom_fields().items():
+                if fn not in all_custom_fields:
+                    all_custom_fields[fn] = fc.get('display_name', fn)
+
+    if category_id:
+        try:
+            cat = Category.objects.get(id=category_id)
+            sorted_fields = sorted(cat.get_custom_fields().items(), key=lambda x: x[1].get('order', 999))
+            sorted_custom_fields = [(n, c.get('display_name', n)) for n, c in sorted_fields]
+        except Category.DoesNotExist:
+            sorted_custom_fields = sorted(all_custom_fields.items())
+    else:
+        sorted_custom_fields = sorted(all_custom_fields.items())
+
+    # 標題列
+    headers = [
+        '年份', '案件類別', '案件編號', '案件名稱', '報告名稱', '業主',
+        '負責人', '監造人員', '繪圖', '聯絡方式', '專案狀態',
+        '報價金額', '總支出', '備註',
+    ]
+    for _, display_name in sorted_custom_fields:
+        headers.append(display_name)
+    headers.extend([
+        '請款狀態', '請款日期', '請款金額', '收款日期', '收款金額', '發票日期', '是否收款', '請款備註',
+    ])
+    headers.extend([
+        '（舊）是否請款', '（舊）請款日期', '（舊）請款金額', '（舊）收款日期', '（舊）發票日期',
+        '（舊）是否收款', '（舊）請款備註',
+    ])
+
+    # 建立 workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = '專案資料'
+    ws.append(headers)
+
+    # 寫入資料列
+    for project in projects:
+        managers_names = ', '.join([
+            m.profile.name if hasattr(m, 'profile') and m.profile.name else m.username
+            for m in project.managers.all()
+        ])
+        supervisors_names = ', '.join([
+            s.profile.name if hasattr(s, 'profile') and s.profile.name else s.username
+            for s in project.supervisors.all()
+        ])
+        status_display = dict(Project.STATUS_CHOICES).get(project.status, project.status)
+
+        row = [
+            project.year,
+            f"{project.category.code}:{project.category.description}" if project.category else '',
+            str(project.project_number) if project.project_number else '',
+            project.name,
+            project.report_name or '',
+            project.owner.company_name if project.owner else '',
+            managers_names,
+            supervisors_names,
+            project.drawing or '',
+            project.contact_info,
+            status_display,
+            project.quoted_amount if project.quoted_amount else '',
+            project.total_expenditure,
+            project.notes,
+        ]
+
+        # 自定義欄位
+        project_custom_fields = project.get_all_custom_fields()
+        for field_name, _ in sorted_custom_fields:
+            val = project_custom_fields.get(field_name, '')
+            if isinstance(val, bool):
+                val = '是' if val else '否'
+            elif val is None:
+                val = ''
+            row.append(val)
+
+        # 新系統請款／收款欄位
+        pps = pp_by_project.get(project.id, [])
+        pis = pi_by_project.get(project.id, [])
+
+        new_invoice_dates_str = ','.join(
+            fmt_date(pp.payment.date_issued) for pp in pps if pp.payment.date_issued
+        )
+        new_payment_dates_str = ','.join(
+            fmt_date(pi.invoice.payment_received_date) for pi in pis if pi.invoice.payment_received_date
+        )
+        new_invoice_issue_dates_str = ','.join(
+            fmt_date(pi.invoice.issue_date) for pi in pis if pi.invoice.issue_date
+        )
+        new_invoice_notes = ','.join(
+            pi.invoice.notes for pi in pis if pi.invoice.notes
+        )
+
+        # 請款狀態
+        if not pps:
+            payment_status_text = '無記錄'
+        else:
+            all_paid = True
+            for pp in pps:
+                received = receipt_by_project_payment.get((project.id, pp.payment_id), Decimal('0'))
+                if pp.amount - received > 0:
+                    all_paid = False
+                    break
+            payment_status_text = '全額收款' if all_paid else '未收款'
+
+        # 收款金額（各請款單實收加總）
+        total_received = sum(
+            receipt_by_project_payment.get((project.id, pp.payment_id), Decimal('0'))
+            for pp in pps
+        )
+        total_received_str = str(int(total_received)) if total_received else ''
+
+        row.extend([
+            payment_status_text,
+            new_invoice_dates_str,
+            sum(pp.amount or 0 for pp in pps) or '',
+            new_payment_dates_str,
+            total_received_str,
+            new_invoice_issue_dates_str,
+            '是' if any(pi.invoice.payment_status == 'paid' for pi in pis) else '否',
+            new_invoice_notes,
+        ])
+
+        # 舊系統欄位
+        row.extend([
+            '是' if project.is_invoiced else '否',
+            fmt_date(project.invoice_date),
+            project.invoice_amount or '',
+            fmt_date(project.payment_date),
+            fmt_date(project.invoice_issue_date),
+            '是' if project.is_paid else '否',
+            project.invoice_notes or '',
+        ])
+
+        ws.append(row)
+
+    # === 格式設定 ===
+    total_cols = len(headers)
+    total_rows = ws.max_row  # 含標題列
+
+    # 1. 前七欄欄位欄寬 9，其餘為 13.4 
+    for col_idx in range(1, total_cols + 1):
+        if col_idx <= 7:
+            ws.column_dimensions[get_column_letter(col_idx)].width = 9
+        else:
+            ws.column_dimensions[get_column_letter(col_idx)].width = 13.4
+
+    # 2. 所有列高 20
+    for row_idx in range(1, total_rows + 1):
+        ws.row_dimensions[row_idx].height = 20
+
+    # 3. 凍結窗格於 H2（凍結第 1 列及 A–G 欄）
+    ws.freeze_panes = 'H2'
+
+    # 4. 第一列自動篩選
+    ws.auto_filter.ref = f'A1:{get_column_letter(total_cols)}1'
+
+    # 輸出回應
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    ascii_filename = f"projects_{now.strftime('%Y%m%d-%H%M%S')}.xlsx"
+    encoded_filename = quote(filename.encode('utf-8'))
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+    )
+    return response
+
+@login_required(login_url="signin")
 def export_owners_csv(request):
     """匯出所有業主資料為 CSV 格式（不再依年份過濾）"""
     if not request.user.profile.is_admin and not request.user.profile.can_request_payment:

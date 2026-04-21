@@ -69,6 +69,7 @@ urlpatterns = [
     path("api/company/<int:company_id>/bank_accounts/", views.get_bank_accounts_for_company, name="get_bank_accounts_for_company"),
       # 新增匯出各類資料到CSV的路由
     path("export/projects/csv/", views.export_projects_csv, name="export_projects_csv"),
+    path("export/projects/excel/", views.export_projects_excel, name="export_projects_excel"),
     path("export/owners/csv/", views.export_owners_csv, name="export_owners_csv"),
     path("export/quotations/csv/", views.export_quotations_csv, name="export_quotations_csv"),
     path("export/payments/csv/", views.export_payments_csv, name="export_payments_csv"),

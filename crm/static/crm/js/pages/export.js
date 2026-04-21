@@ -382,7 +382,7 @@ const exportApp = createApp({
         if (filters === null) return;
         this.isLoading = true;
         this.showLoadingModal('專案資料匯出中...');
-        let url = '/crm/export/projects/csv/';
+        let url = '/crm/export/projects/excel/';
         if (!filters.select_all && (filters.category || filters.year_start || filters.year_end)) {
           const params = [];
           if (filters.category) params.push(`category=${filters.category}`);
@@ -519,7 +519,7 @@ const exportApp = createApp({
         if (dateRange === null) return;
         this.isLoading = true;
         const exportTasks = [
-          { method: this.exportProjects, name: '專案資料', url: '/crm/export/projects/csv/', useYear: true },
+          { method: this.exportProjects, name: '專案資料', url: '/crm/export/projects/excel/', useYear: true },
           { method: this.exportOwners, name: '業主資料', url: '/crm/export/owners/csv/', useYear: false },
           { method: this.exportPayments, name: '請款資料', url: '/crm/export/payments/csv/', useYear: false },
           { method: this.exportInvoices, name: '發票資料', url: '/crm/export/invoices/csv/', useYear: false },
