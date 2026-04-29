@@ -83,8 +83,11 @@
                             <select class="form-select" v-model="paymentStatusFilter" data-placeholder="請款狀態">
                               <option value="">所有狀態</option>
                               <option value="no_record">無記錄</option>
+                              <option value="not_invoiced">未請款</option>
                               <option value="unpaid">未收款</option>
-                              <option value="paid">全額收款</option>
+                              <option value="partial_collected">未收款完成</option>
+                              <option value="fully_paid">全額收款</option>
+                              <option value="received">已收款</option>
                             </select>
                           </div>
                           <div class="col-6">

@@ -411,36 +411,50 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_payment_status_summary(self, obj):
         """
-        計算專案請款狀態摘要。
-        - no_record: 尚未建立任何請款單
-        - unpaid:    有請款單但未全額收款
-        - paid:      所有請款單均已全額收款
+        計算專案請款狀態摘要（6 種狀態）。
+
+        判斷邏輯（Q=報價, I=請款, R=收款）：
+        - no_record:          I=0 且 Q=0
+        - not_invoiced:       I=0 且 Q>0
+        - unpaid:             I>0 且 R<I
+        - partial_collected:  I>0 且 R≥I 且 Q>I
+        - fully_paid:         I>0 且 R≥I 且 Q=I
+        - received:           I>0 且 R≥I 且 Q<I
         """
         from django.db.models import Sum
         from decimal import Decimal
 
+        quoted = obj.quoted_amount or Decimal('0')
+
         payment_projects = list(
             PaymentProject.objects.filter(project=obj).values('payment_id', 'amount')
         )
+        total_invoiced = sum(pp['amount'] or Decimal('0') for pp in payment_projects)
 
-        if not payment_projects:
-            return 'no_record'
+        # 請款=0
+        if total_invoiced == 0:
+            return 'not_invoiced' if quoted > 0 else 'no_record'
 
+        # 請款>0，計算收款總額
         payment_ids = [pp['payment_id'] for pp in payment_projects]
-
         receipts_by_payment = {
             r['payment_id']: r['total']
             for r in ProjectReceipt.objects.filter(
                 project=obj, payment_id__in=payment_ids
             ).values('payment_id').annotate(total=Sum('amount'))
         }
+        total_received = sum(
+            receipts_by_payment.get(pp['payment_id']) or Decimal('0')
+            for pp in payment_projects
+        )
 
-        for pp in payment_projects:
-            total_received = receipts_by_payment.get(pp['payment_id']) or Decimal('0')
-            if pp['amount'] - total_received > 0:
-                return 'unpaid'
-
-        return 'paid'
+        if total_received < total_invoiced:
+            return 'unpaid'
+        if quoted > total_invoiced:
+            return 'partial_collected'
+        if quoted == total_invoiced:
+            return 'fully_paid'
+        return 'received'
 
 
 class QuotationSerializer(serializers.ModelSerializer):

@@ -81,8 +81,11 @@
                             <select class="form-select" v-model="paymentStatusFilter" data-placeholder="請款狀態">
                               <option value="">所有狀態</option>
                               <option value="no_record">無記錄</option>
+                              <option value="not_invoiced">未請款</option>
                               <option value="unpaid">未收款</option>
-                              <option value="paid">全額收款</option>
+                              <option value="partial_collected">未收款完成</option>
+                              <option value="fully_paid">全額收款</option>
+                              <option value="received">已收款</option>
                             </select>
                           </div>
                           <div class="col-6">
@@ -406,17 +409,23 @@
       },
       getPaymentStatusText(project) {
         const textMap = {
-          'no_record': '無記錄',
-          'unpaid':    '未收款',
-          'paid':      '全額收款',
+          'no_record':         '無記錄',
+          'not_invoiced':      '未請款',
+          'unpaid':            '未收款',
+          'partial_collected': '未收款完成',
+          'fully_paid':        '全額收款',
+          'received':          '已收款',
         };
         return textMap[project.payment_status_summary] || '無記錄';
       },
       getPaymentStatusBadgeClass(project) {
         const classMap = {
-          'no_record': 'badge-secondary',
-          'unpaid':    'badge-warning',
-          'paid':      'badge-success',
+          'no_record':         'badge-secondary',
+          'not_invoiced':      'badge-info',
+          'unpaid':            'badge-warning',
+          'partial_collected': 'badge-warning',
+          'fully_paid':        'badge-success',
+          'received':          'badge-primary',
         };
         return classMap[project.payment_status_summary] || 'badge-secondary';
       },

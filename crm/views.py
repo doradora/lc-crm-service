@@ -3,7 +3,7 @@ import csv
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count, Sum, F, Q, Min, Max, Exists, OuterRef, Subquery, Value, DecimalField
+from django.db.models import Count, Sum, F, Q, Min, Max, OuterRef, Subquery, Value, DecimalField
 from django.db.models.functions import Coalesce
 from django.db import models
 from django.utils import timezone
@@ -531,46 +531,40 @@ class ProjectViewSet(BaseViewSet):
             is_paid = is_paid.lower() == "true"
             queryset = queryset.filter(is_paid=is_paid)
 
-        # 請款狀態摘要過濾 (no_record / unpaid / paid)
+        # 請款狀態摘要過濾 (no_record / not_invoiced / unpaid / partial_collected / fully_paid / received)
+        VALID_PAYMENT_STATUSES = ('no_record', 'not_invoiced', 'unpaid', 'partial_collected', 'fully_paid', 'received')
         payment_status = self.request.query_params.get("payment_status", None)
-        if payment_status in ('no_record', 'unpaid', 'paid'):
+        if payment_status in VALID_PAYMENT_STATUSES:
             from decimal import Decimal
 
-            receipt_total_subq = Subquery(
-                ProjectReceipt.objects.filter(
-                    project=OuterRef('project'),
-                    payment=OuterRef('payment'),
-                ).values('payment_id').annotate(s=Sum('amount')).values('s'),
+            invoiced_subq = Subquery(
+                PaymentProject.objects.filter(project=OuterRef('pk'))
+                .values('project_id').annotate(total=Sum('amount')).values('total'),
                 output_field=DecimalField(max_digits=10, decimal_places=0)
             )
-
-            underpaid_pp_exists = Exists(
-                PaymentProject.objects.filter(
-                    project=OuterRef('pk')
-                ).annotate(
-                    total_received=Coalesce(
-                        receipt_total_subq,
-                        Value(Decimal('0')),
-                        output_field=DecimalField(max_digits=10, decimal_places=0)
-                    )
-                ).filter(amount__gt=F('total_received'))
+            received_subq = Subquery(
+                ProjectReceipt.objects.filter(project=OuterRef('pk'))
+                .values('project_id').annotate(total=Sum('amount')).values('total'),
+                output_field=DecimalField(max_digits=10, decimal_places=0)
             )
-
-            has_payment_exists = Exists(
-                PaymentProject.objects.filter(project=OuterRef('pk'))
-            )
-
             queryset = queryset.annotate(
-                _has_payment=has_payment_exists,
-                _has_underpaid=underpaid_pp_exists,
+                _total_invoiced=Coalesce(invoiced_subq, Value(Decimal('0')), output_field=DecimalField(max_digits=10, decimal_places=0)),
+                _total_received=Coalesce(received_subq, Value(Decimal('0')), output_field=DecimalField(max_digits=10, decimal_places=0)),
+                _quoted=Coalesce(F('quoted_amount'), Value(Decimal('0')), output_field=DecimalField(max_digits=10, decimal_places=0)),
             )
 
             if payment_status == 'no_record':
-                queryset = queryset.filter(_has_payment=False)
-            elif payment_status == 'paid':
-                queryset = queryset.filter(_has_payment=True, _has_underpaid=False)
+                queryset = queryset.filter(_total_invoiced=0, _quoted=0)
+            elif payment_status == 'not_invoiced':
+                queryset = queryset.filter(_total_invoiced=0, _quoted__gt=0)
             elif payment_status == 'unpaid':
-                queryset = queryset.filter(_has_payment=True, _has_underpaid=True)
+                queryset = queryset.filter(_total_invoiced__gt=0, _total_received__lt=F('_total_invoiced'))
+            elif payment_status == 'partial_collected':
+                queryset = queryset.filter(_total_invoiced__gt=0, _total_received__gte=F('_total_invoiced'), _quoted__gt=F('_total_invoiced'))
+            elif payment_status == 'fully_paid':
+                queryset = queryset.filter(_total_invoiced__gt=0, _total_received__gte=F('_total_invoiced'), _quoted=F('_total_invoiced'))
+            elif payment_status == 'received':
+                queryset = queryset.filter(_total_invoiced__gt=0, _total_received__gte=F('_total_invoiced'), _quoted__lt=F('_total_invoiced'))
 
         # 年份過濾 - 單一年份
         year = self.request.query_params.get("year", None)
@@ -1766,23 +1760,25 @@ def export_projects_excel(request):
             pi.invoice.notes for pi in pis if pi.invoice.notes
         )
 
-        # 請款狀態
-        if not pps:
-            payment_status_text = '無記錄'
-        else:
-            all_paid = True
-            for pp in pps:
-                received = receipt_by_project_payment.get((project.id, pp.payment_id), Decimal('0'))
-                if pp.amount - received > 0:
-                    all_paid = False
-                    break
-            payment_status_text = '全額收款' if all_paid else '未收款'
-
-        # 收款金額（各請款單實收加總）
+        # 請款狀態（5 狀態）
+        quoted = project.quoted_amount or Decimal('0')
+        total_invoiced = sum(pp.amount or Decimal('0') for pp in pps)
         total_received = sum(
             receipt_by_project_payment.get((project.id, pp.payment_id), Decimal('0'))
             for pp in pps
         )
+        if total_invoiced == 0:
+            payment_status_text = '未請款' if quoted > 0 else '無記錄'
+        elif total_received < total_invoiced:
+            payment_status_text = '未收款'
+        elif quoted > total_invoiced:
+            payment_status_text = '未收款完成'
+        elif quoted == total_invoiced:
+            payment_status_text = '全額收款'
+        else:
+            payment_status_text = '已收款'
+
+        # 收款金額（各請款單實收加總）
         total_received_str = str(int(total_received)) if total_received else ''
 
         row.extend([

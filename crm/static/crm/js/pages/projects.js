@@ -559,17 +559,23 @@ const projectList = createApp({
     },
     getPaymentStatusText(project) {
       const textMap = {
-        'no_record': '無記錄',
-        'unpaid':    '未收款',
-        'paid':      '全額收款',
+        'no_record':         '無記錄',
+        'not_invoiced':      '未請款',
+        'unpaid':            '未收款',
+        'partial_collected': '未收款完成',
+        'fully_paid':        '全額收款',
+        'received':          '已收款',
       };
       return textMap[project.payment_status_summary] || '無記錄';
     },
     getPaymentStatusBadgeClass(project) {
       const classMap = {
-        'no_record': 'badge-secondary',
-        'unpaid':    'badge-warning',
-        'paid':      'badge-success',
+        'no_record':         'badge-secondary',
+        'not_invoiced':      'badge-info',
+        'unpaid':            'badge-warning',
+        'partial_collected': 'badge-warning',
+        'fully_paid':        'badge-success',
+        'received':          'badge-primary',
       };
       return classMap[project.payment_status_summary] || 'badge-secondary';
     },
