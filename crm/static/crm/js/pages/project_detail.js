@@ -574,12 +574,58 @@ const projectDetail = createApp({
         })
         .catch((error) => {
           console.error("Error saving project:", error);
-          Swal.fire({
-            title: "失敗!",
-            text: `儲存失敗: ${error.message}`,
-            icon: "error",
-            confirmButtonText: "確定",
-          });
+
+          // 嘗試解析錯誤訊息
+          let errorData = null;
+          try {
+            errorData = JSON.parse(error.message);
+          } catch (e) {
+            // 忽略解析失敗
+          }
+
+          // 檢查是否為案件編號重複的唯一性錯誤
+          const isDuplicateProjectNumber = errorData &&
+            errorData.non_field_errors &&
+            errorData.non_field_errors.some((msg) =>
+              msg.includes("year, category, project_number") && msg.includes("unique")
+            );
+
+          if (isDuplicateProjectNumber) {
+            Swal.fire({
+              title: "案件編號重複",
+              html: `案件編號「<strong>${this.project.project_number}</strong>」在同一年份與類別中已存在，請輸入另一個案件編號。`,
+              input: "text",
+              inputLabel: "新案件編號",
+              inputValue: this.project.project_number,
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonText: "確定",
+              cancelButtonText: "取消",
+              inputValidator: (value) => {
+                if (!value || value.trim() === "") {
+                  return "請輸入案件編號";
+                }
+                if (this.selectedCategory && this.selectedCategory.enforce_three_digit_number) {
+                  const threeDigitPattern = /^\d{3}$/;
+                  if (!threeDigitPattern.test(value.trim())) {
+                    return "此類別的案件編號必須為三位數字 (例如：001, 002, 123)";
+                  }
+                }
+              },
+            }).then((result) => {
+              if (result.isConfirmed && result.value) {
+                this.project.project_number = result.value.trim();
+                this.saveProject();
+              }
+            });
+          } else {
+            Swal.fire({
+              title: "失敗!",
+              text: `儲存失敗: ${error.message}`,
+              icon: "error",
+              confirmButtonText: "確定",
+            });
+          }
         });
     },
 
