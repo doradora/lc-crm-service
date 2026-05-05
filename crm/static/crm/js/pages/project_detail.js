@@ -451,7 +451,7 @@ const projectDetail = createApp({
       }
 
       // 只有在專案標記為「已完成」時才驗證自定義欄位
-      if (this.project.is_completed) {
+      if (this.project.status === 'completed') {
         const validationErrors = this.validateCustomFields();
         if (validationErrors.length > 0) {
           Swal.fire({
@@ -1380,6 +1380,15 @@ const projectDetail = createApp({
               confirmButtonText: "確定",
             });
           });
+      }
+    },
+
+    // 處理類別變更：重新載入自定義欄位並清空舊值
+    handleCategoryChange() {
+      this.customFieldValues = {};
+      this.categoryFields = {};
+      if (this.project.category) {
+        this.fetchCategoryCustomFields(this.project.category);
       }
     },
 

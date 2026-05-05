@@ -109,7 +109,7 @@
                       <div class="col-md-4 mb-5">
                         <label class="form-label">專案類別</label>
                         <!-- 管理員可修改專案類別 -->
-                        <select v-if="isEditMode && currentUser.profile.is_admin" class="form-select" v-model="project.category">
+                        <select v-if="isEditMode && currentUser.profile.is_admin" class="form-select" v-model="project.category" @change="handleCategoryChange">
                           <option v-for="category in categories"
                                   :key="category.id"
                                   :value="category.id"
@@ -117,7 +117,7 @@
                             [[ category.code ]]: [[ category.description ]]
                           </option>
                           </select>
-                        <div class="form-control-plaintext">[[ project.category_detail.code ]]:
+                        <div v-else class="form-control-plaintext">[[ project.category_detail.code ]]:
                           [[ project.category_detail.description ]]</div>
                       </div>
                       <div class="col-md-4 mb-5">
